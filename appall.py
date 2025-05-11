@@ -4,7 +4,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
 import os
 
-st.title("Weekly Lesson Observation Input Tool (Public)")
+st.title("Weekly Lesson Observation Input Tool")
 
 email = st.text_input("Enter your school email to continue")
 allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
@@ -28,7 +28,7 @@ if uploaded_file:
 
     if "Guidelines" in wb.sheetnames:
         st.expander("📘 Click here to view observation guidelines").markdown(
-            "\n".join([str(cell.value) for row in wb["Guidelines"].iter_rows(values_only=True) for cell in row if cell])
+            "\n".join([str(cell) for row in wb["Guidelines"].iter_rows(values_only=True) for cell in row if cell])
         )
 
     selected_option = st.selectbox("Select existing LO sheet or create a new one:", ["Create new"] + lo_sheets)
@@ -47,3 +47,4 @@ if uploaded_file:
     st.subheader(f"Filling data for: {sheet_name}")
 
     # [rest of your code remains unchanged below here...]
+
