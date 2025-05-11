@@ -1,18 +1,19 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon May 12 00:42:10 2025
-
-@author: paulaassaf
-"""
-
 import streamlit as st
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
 import os
 
-st.title("Weekly Lesson Observation Input Tool")
+# NOTE: Public deployment version with domain-restricted access
+st.title("Weekly Lesson Observation Input Tool (Public)")
+
+# Email gatekeeping
+email = st.text_input("Enter your school email to continue")
+allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
+
+if not any(email.endswith(domain) for domain in allowed_domains):
+    st.warning("Access restricted. Please use an authorized school email (e.g. @charterschools.ae or @adek.gov.ae).")
+    st.stop()
 
 uploaded_file = st.file_uploader("Upload your school's Excel workbook:", type=["xlsx"])
 
@@ -20,6 +21,11 @@ if uploaded_file:
     wb = load_workbook(uploaded_file, data_only=True)
     lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
     st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
+
+    if "Guidelines" in wb.sheetnames:
+        st.expander("📘 Click here to view observation guidelines").markdown(
+            "\n".join([str(cell.value) for row in wb["Guidelines"].iter_rows(values_only=True) for cell in row if cell])
+        )
 
     selected_option = st.selectbox("Select existing LO sheet or create a new one:", ["Create new"] + lo_sheets)
 
@@ -36,7 +42,6 @@ if uploaded_file:
     ws = wb[sheet_name]
     st.subheader(f"Filling data for: {sheet_name}")
 
-    # Observer metadata section
     st.write("### Observer and Observation Info")
     observer_name = st.text_input("Name of the Observer")
     teacher_name = st.text_input("Name of the Teacher Observed")
@@ -70,7 +75,6 @@ if uploaded_file:
     observation_type = st.selectbox("Type of Observation", ["Individual", "Joint"])
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Write metadata to hidden cells
     ws["Z1"] = "Observer Name"
     ws["AA1"] = observer_name
     ws["Z2"] = "Teacher Observed"
@@ -83,6 +87,8 @@ if uploaded_file:
     ws["AA5"] = operator_name
     ws["Z6"] = "School Name"
     ws["AA6"] = school_name
+    ws["Z7"] = "Email"
+    ws["AA7"] = email
 
     st.write("### General Lesson Info")
     grades = ["Grade " + str(i) for i in range(1, 13)] + ["K1", "K2"]
@@ -154,7 +160,7 @@ if uploaded_file:
 
     if "Observation Log" not in wb.sheetnames:
         log_ws = wb.create_sheet("Observation Log")
-        log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp"])
+        log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Email", "Timestamp"])
     else:
         log_ws: Worksheet = wb["Observation Log"]
 
@@ -175,7 +181,7 @@ if uploaded_file:
         ws["D7"] = d_inputs["Time In"].strftime("%H:%M")
         ws["D8"] = d_inputs["Time Out"].strftime("%H:%M")
 
-        log_ws.append([sheet_name, observer_name, teacher_name, operator_name, school_name, observation_type, timestamp])
+        log_ws.append([sheet_name, observer_name, teacher_name, operator_name, school_name, observation_type, email, timestamp])
 
         save_path = f"updated_{uploaded_file.name}"
         wb.save(save_path)
