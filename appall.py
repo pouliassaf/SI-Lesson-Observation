@@ -15,7 +15,6 @@ if not any(email.endswith(domain) for domain in allowed_domains):
 
 uploaded_file = st.file_uploader("Upload your school's Excel workbook:", type=["xlsx"])
 
-# Use default template if no file is uploaded
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 if not uploaded_file and os.path.exists(DEFAULT_FILE):
     uploaded_file = open(DEFAULT_FILE, "rb")
@@ -57,4 +56,41 @@ if uploaded_file:
     ws = wb[sheet_name]
     st.subheader(f"Filling data for: {sheet_name}")
 
-    # [rest of your code remains unchanged below here...]
+    st.text_input("Observer Name", key="observer")
+    st.text_input("Teacher Name", key="teacher")
+    st.selectbox("Grade", [f"Grade {i}" for i in range(1, 13)] + ["K1", "K2"], key="grade")
+    st.date_input("Date", key="date")
+    st.selectbox("Subject", ["Math", "English", "Arabic", "Science", "Islamic", "Social Studies"], key="subject")
+    st.selectbox("Gender", ["Male", "Female", "Mixed"], key="gender")
+    st.text_input("Number of Students", key="students")
+    st.text_input("Number of Males", key="males")
+    st.text_input("Number of Females", key="females")
+    st.time_input("Time In", key="in")
+    st.time_input("Time Out", key="out")
+    st.selectbox("Period", [f"Period {i}" for i in range(1, 9)], key="period")
+    st.selectbox("Observation Type", ["Individual", "Joint"], key="obs_type")
+
+    if st.button("Save this Observation"):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ws["AA1"] = st.session_state.observer
+        ws["AA2"] = st.session_state.teacher
+        ws["B3"] = st.session_state.grade
+        ws["B4"] = st.session_state.date.strftime("%Y-%m-%d")
+        ws["D2"] = st.session_state.subject
+        ws["B5"] = st.session_state.gender
+        ws["B6"] = st.session_state.students
+        ws["B7"] = st.session_state.males
+        ws["B8"] = st.session_state.females
+        ws["D7"] = st.session_state["in"].strftime("%H:%M")
+        ws["D8"] = st.session_state["out"].strftime("%H:%M")
+        ws["D4"] = st.session_state.period
+        ws["AA3"] = st.session_state.obs_type
+        ws["Z4"] = now
+        ws["Z7"] = email
+
+        filename = f"updated_{sheet_name}.xlsx"
+        wb.save(filename)
+        with open(filename, "rb") as f:
+            st.download_button("📥 Download updated workbook", f, file_name=filename)
+        os.remove(filename)
+
