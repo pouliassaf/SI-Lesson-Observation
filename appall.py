@@ -4,7 +4,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
 import os
 
-st.title("Weekly Lesson Observation Input Tool")
+st.title("Weekly Lesson Observation Input Tool (Public)")
 
 email = st.text_input("Enter your school email to continue")
 allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
@@ -25,6 +25,17 @@ if uploaded_file:
     wb = load_workbook(uploaded_file, data_only=True)
     lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
     st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
+
+    if st.checkbox("🧹 Clean up unused LO sheets (no observer name)"):
+        to_remove = []
+        for sheet in lo_sheets:
+            if wb[sheet]["AA1"].value is None:
+                to_remove.append(sheet)
+
+        for sheet in to_remove:
+            wb.remove(wb[sheet])
+        st.warning(f"Removed {len(to_remove)} unused LO sheets.")
+        lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
 
     if "Guidelines" in wb.sheetnames:
         st.expander("📘 Click here to view observation guidelines").markdown(
@@ -47,4 +58,3 @@ if uploaded_file:
     st.subheader(f"Filling data for: {sheet_name}")
 
     # [rest of your code remains unchanged below here...]
-
