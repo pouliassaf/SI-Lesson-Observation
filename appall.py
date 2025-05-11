@@ -10,7 +10,7 @@ email = st.text_input("Enter your school email to continue")
 allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
 
 if not any(email.endswith(domain) for domain in allowed_domains):
-    st.warning("Access restricted. Please use an authorized school email (e.g. @charterschools.ae or @adek.gov.ae).")
+    st.warning("Access restricted. Please use an authorized school email.")
     st.stop()
 
 uploaded_file = st.file_uploader("Upload your school's Excel workbook:", type=["xlsx"])
@@ -93,4 +93,5 @@ if uploaded_file:
         with open(filename, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=filename)
         os.remove(filename)
+
 
