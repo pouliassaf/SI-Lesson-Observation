@@ -122,15 +122,17 @@ if uploaded_file:
                 ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
                 ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
             ]
-            tooltip = "
+            meanings = "
 ".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
             st.markdown(f"**Score Meanings:**
 
-{tooltip}")
+{meanings}")
             val = st.number_input(f"{label}", min_value=1, max_value=6, key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
 
   ws[f"{col}{row + i}"] = val
+  
+
   
 
 
