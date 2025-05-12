@@ -163,11 +163,7 @@ if uploaded_file:
             avg_cell = f"{col}{row + count}"
             judgment_cell = f"{col}{row + count + 1}"
             ws[avg_cell] = f'=IF(COUNTA({score_range})=0, "", AVERAGEIF({score_range}, "<>NA"))'
-            ws[judgment_cell] = f'''=IF({avg_cell}="", "", IF({avg_cell}>=5.5,"Outstanding",IF({avg_cell}>=4.5,"Very Good",IF({avg_cell}>=3.5,"Good",IF({avg_cell}>=2.5,"Acceptable",IF({avg_cell}>=1.5,"Weak","Very Weak"))))))'''
-        
-        ws["B2"] = school
-        ws["B3"] = grade
-        ws["B4"] = date.strftime("%Y-%m-%d")
+            ws[judgment_cell] = f'=IF({avg_cell}="", "", IF({avg_cell}>=5.5,"Outstanding",IF({avg_cell}>=4.5,"Very Good",IF({avg_cell}>=3.5,"Good",IF({avg_cell}>=2.5,"Acceptable",IF({avg_cell}>=1.5,"Weak","Very Weak"))))))'
         ws["B5"] = gender
         ws["B6"] = students
         ws["B7"] = males
