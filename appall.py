@@ -1,4 +1,4 @@
-import streamlit as st
+""import streamlit as st
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
@@ -142,7 +142,8 @@ if uploaded_file:
             ws[f"{col}{row + i}"] = val
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Save Button
+    st.info("Make sure to click the '💾 Save this Observation' button to enable download.")
+
     if st.button("💾 Save this Observation"):
         ws["B2"] = school
         ws["B3"] = grade
