@@ -13,9 +13,7 @@ if not any(email.endswith(domain) for domain in allowed_domains):
     st.warning("Access restricted. Please use an authorized school email.")
     st.stop()
 
-# uploaded_file = st.file_uploader("Upload your school's Excel workbook:", type=["xlsx"])
 uploaded_file = None
-
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 if not uploaded_file and os.path.exists(DEFAULT_FILE):
     uploaded_file = open(DEFAULT_FILE, "rb")
@@ -122,37 +120,10 @@ if uploaded_file:
                 ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
                 ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
             ]
-            tooltip = "
-".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
+            tooltip = "\n".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
             val = st.number_input(f"{label}", min_value=1, max_value=6, key=f"{domain}_{i}", help=tooltip)
             ws[f"{col}{row + i}"] = val
 
-    if st.button("Save this Observation"):
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ws["AA1"] = st.session_state.observer
-        ws["AA2"] = st.session_state.teacher
-        ws["AA3"] = st.session_state.obs_type
-        ws["AA5"] = st.session_state.operator
-        ws["AA6"] = st.session_state.school
-        ws["Z4"] = now
-        ws["Z7"] = email
-
-        ws["B3"] = st.session_state.grade
-        ws["B4"] = st.session_state.date.strftime("%Y-%m-%d")
-        ws["D2"] = st.session_state.subject
-        ws["B5"] = st.session_state.gender
-        ws["B6"] = st.session_state.students
-        ws["B7"] = st.session_state.males
-        ws["B8"] = st.session_state.females
-        ws["D7"] = st.session_state["in"].strftime("%H:%M")
-        ws["D8"] = st.session_state["out"].strftime("%H:%M")
-        ws["D4"] = st.session_state.period
-
-        filename = f"updated_{sheet_name}.xlsx"
-        wb.save(filename)
-        with open(filename, "rb") as f:
-            st.download_button("📥 Download updated workbook", f, file_name=filename)
-        os.remove(filename)
 
 
 
