@@ -13,7 +13,8 @@ if not any(email.endswith(domain) for domain in allowed_domains):
     st.warning("Access restricted. Please use an authorized school email.")
     st.stop()
 
-uploaded_file = st.file_uploader("Upload your school's Excel workbook:", type=["xlsx"])
+# uploaded_file = st.file_uploader("Upload your school's Excel workbook:", type=["xlsx"])
+uploaded_file = None
 
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 if not uploaded_file and os.path.exists(DEFAULT_FILE):
@@ -30,7 +31,6 @@ if uploaded_file:
         for sheet in lo_sheets:
             if wb[sheet]["AA1"].value is None:
                 to_remove.append(sheet)
-
         for sheet in to_remove:
             wb.remove(wb[sheet])
         st.warning(f"Removed {len(to_remove)} unused LO sheets.")
@@ -97,6 +97,29 @@ if uploaded_file:
     st.selectbox("Period", [f"Period {i}" for i in range(1, 9)], key="period")
     st.selectbox("Observation Type", ["Individual", "Joint"], key="obs_type")
 
+    st.markdown("---")
+    st.subheader("Rubric Scores")
+
+    rubric_domains = {
+        "Domain 1": ("I11", 5),
+        "Domain 2": ("I20", 3),
+        "Domain 3": ("I27", 4),
+        "Domain 4": ("I35", 3),
+        "Domain 5": ("I42", 2),
+        "Domain 6": ("I48", 2),
+        "Domain 7": ("I54", 2),
+        "Domain 8": ("I60", 3),
+        "Domain 9": ("I67", 2)
+    }
+
+    for domain, (start_cell, count) in rubric_domains.items():
+        st.markdown(f"**{domain}**")
+        col = start_cell[0]
+        row = int(start_cell[1:])
+        for i in range(count):
+            val = st.number_input(f"{domain} - Element {i+1} (1–6)", min_value=1, max_value=6, key=f"{domain}_{i}")
+            ws[f"{col}{row + i}"] = val
+
     if st.button("Save this Observation"):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ws["AA1"] = st.session_state.observer
@@ -123,6 +146,7 @@ if uploaded_file:
         with open(filename, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=filename)
         os.remove(filename)
+
 
 
 
