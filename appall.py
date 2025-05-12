@@ -95,6 +95,15 @@ if uploaded_file:
     females = st.text_input("Number of Females")
     time_in = st.time_input("Time In")
     time_out = st.time_input("Time Out")
+
+    # Live duration preview
+    try:
+        lesson_duration = datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)
+        minutes = round(lesson_duration.total_seconds() / 60)
+        duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
+        st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
+    except Exception:
+        st.warning("Could not calculate lesson duration.")
     period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
     obs_type = st.selectbox("Observation Type", ["Individual", "Joint"])
 
@@ -133,12 +142,12 @@ if uploaded_file:
                 ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
                 ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
             ]
-            formatted = "\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])
+            formatted = "\n\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])
             st.markdown(f"<div style='background-color:{shade};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
             st.markdown(f"**{element_number} – {label}**")
             with st.expander("Rubric Guidance"):
                 st.markdown(formatted)
-            val = st.number_input(f"Rating for {element_number}", min_value=1, max_value=6, key=f"{domain}_{i}")
+            val = st.selectbox(f"Rating for {element_number}", options=[6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -184,6 +193,7 @@ if uploaded_file:
         with open(save_path, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
