@@ -133,7 +133,7 @@ if uploaded_file:
                 ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
                 ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
             ]
-            formatted = "\n".join([f"**{j+1}:** {desc}" for j, desc in enumerate(rubric) if desc])
+            formatted = "\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])  # Fixed reversed scale
             st.markdown(f"<div style='background-color:{shade};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
             st.markdown(f"**{element_number} – {label}**")
             with st.expander("Rubric Guidance"):
@@ -141,6 +141,7 @@ if uploaded_file:
             val = st.number_input(f"Rating for {element_number}", min_value=1, max_value=6, key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
             st.markdown("</div>", unsafe_allow_html=True)
+
 
 
   
