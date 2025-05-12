@@ -58,6 +58,33 @@ if uploaded_file:
 
     st.text_input("Observer Name", key="observer")
     st.text_input("Teacher Name", key="teacher")
+    st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]), key="operator")
+
+    school_options = {
+        "New Century Education": [
+            "Al Bayan School", "Al Bayraq School", "Al Dhaher School", "Al Hosoon School",
+            "Al Mutanabi School", "Al Nahdha School", "Jern Yafoor School", "Maryam Bint Omran School"
+        ],
+        "Taaleem": [
+            "Al Ahad Charter School", "Al Azm Charter School", "Al Riyadh Charter School", "Al Majd Charter School",
+            "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School",
+            "Al Walaa Charter Kindergarten", "Al Forsan Charter Kindergarten", "Al Wafaa Charter Kindergarten",
+            "Al Watan Charter School"
+        ],
+        "Al Dar": [
+            "Al Ghad Charter School", "Al Mushrif Charter Kindergarten", "Al Danah Charter School",
+            "Al Rayaheen Charter School", "Al Rayana Charter School", "Al Qurm Charter School",
+            "Mubarak Bin Mohammed Charter School (Cycle 2 & 3)"
+        ],
+        "Bloom": [
+            "Al Ain Charter School", "Al Dana Charter School", "Al Ghadeer Charter School", "Al Hili Charter School",
+            "Al Manhal Charter School", "Al Qattara Charter School", "Al Towayya Charter School",
+            "Jabel Hafeet Charter School"
+        ]
+    }
+
+    school_list = sorted(school_options.get(st.session_state.operator, []))
+    st.selectbox("School Name", school_list, key="school")
     st.selectbox("Grade", [f"Grade {i}" for i in range(1, 13)] + ["K1", "K2"], key="grade")
     st.date_input("Date", key="date")
     st.selectbox("Subject", ["Math", "English", "Arabic", "Science", "Islamic", "Social Studies"], key="subject")
@@ -74,6 +101,12 @@ if uploaded_file:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ws["AA1"] = st.session_state.observer
         ws["AA2"] = st.session_state.teacher
+        ws["AA3"] = st.session_state.obs_type
+        ws["AA5"] = st.session_state.operator
+        ws["AA6"] = st.session_state.school
+        ws["Z4"] = now
+        ws["Z7"] = email
+
         ws["B3"] = st.session_state.grade
         ws["B4"] = st.session_state.date.strftime("%Y-%m-%d")
         ws["D2"] = st.session_state.subject
@@ -84,14 +117,12 @@ if uploaded_file:
         ws["D7"] = st.session_state["in"].strftime("%H:%M")
         ws["D8"] = st.session_state["out"].strftime("%H:%M")
         ws["D4"] = st.session_state.period
-        ws["AA3"] = st.session_state.obs_type
-        ws["Z4"] = now
-        ws["Z7"] = email
 
         filename = f"updated_{sheet_name}.xlsx"
         wb.save(filename)
         with open(filename, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=filename)
         os.remove(filename)
+
 
 
