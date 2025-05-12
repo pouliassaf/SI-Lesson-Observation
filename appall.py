@@ -96,17 +96,15 @@ if uploaded_file:
     time_in = st.time_input("Time In")
     time_out = st.time_input("Time Out")
 
-    # Live duration preview
+    # Live duration preview (single block only)
     try:
         lesson_duration = datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)
         minutes = round(lesson_duration.total_seconds() / 60)
         duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
         st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
-        minutes = round(lesson_duration.total_seconds() / 60)
-        duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
-        st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
     except Exception:
         st.warning("Could not calculate lesson duration.")
+
     period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
     obs_type = st.selectbox("Observation Type", ["Individual", "Joint"])
 
@@ -196,6 +194,7 @@ if uploaded_file:
         with open(save_path, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
