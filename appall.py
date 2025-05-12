@@ -23,7 +23,7 @@ if not uploaded_file and os.path.exists(DEFAULT_FILE):
     st.info("Using default template workbook.")
 
 if uploaded_file:
-    wb = load_workbook(uploaded_file, data_only=True)
+    wb = load_workbook(uploaded_file)
     lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
     st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
 
@@ -204,6 +204,7 @@ if uploaded_file:
         with open(save_path, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
