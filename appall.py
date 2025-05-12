@@ -171,11 +171,7 @@ if uploaded_file:
                 f'IF({avg_cell}>=2.5,"Acceptable",'
                 f'IF({avg_cell}>=1.5,"Weak","Very Weak")))))'
             )
-        else:
-                    ws[f"{col}{row + count + 1}"] = "Very Weak"
-            else:
-                ws[f"{col}{row + count}"] = ""
-                ws[f"{col}{row + count + 1}"] = ""
+        
         ws["B2"] = school
         ws["B3"] = grade
         ws["B4"] = date.strftime("%Y-%m-%d")
@@ -215,6 +211,7 @@ if uploaded_file:
         with open(save_path, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
