@@ -13,7 +13,9 @@ if not any(email.endswith(domain) for domain in allowed_domains):
     st.warning("Access restricted. Please use an authorized school email.")
     st.stop()
 
+# uploaded_file = st.file_uploader("Upload your school's Excel workbook:", type=["xlsx"])
 uploaded_file = None
+
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 if not uploaded_file and os.path.exists(DEFAULT_FILE):
     uploaded_file = open(DEFAULT_FILE, "rb")
@@ -120,9 +122,17 @@ if uploaded_file:
                 ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
                 ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
             ]
-            tooltip = "\n".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
-            val = st.number_input(f"{label}", min_value=1, max_value=6, key=f"{domain}_{i}", help=tooltip)
+            tooltip = "
+".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
+            st.markdown(f"**Score Meanings:**
+
+{tooltip}")
+            val = st.number_input(f"{label}", min_value=1, max_value=6, key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
+
+  ws[f"{col}{row + i}"] = val
+  
+
 
 
 
