@@ -57,9 +57,9 @@ if uploaded_file:
     ws = wb[sheet_name]
     st.subheader(f"Filling data for: {sheet_name}")
 
-    st.text_input("Observer Name", key="observer")
-    st.text_input("Teacher Name", key="teacher")
-    st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]), key="operator")
+    observer = st.text_input("Observer Name")
+    teacher = st.text_input("Teacher Name")
+    operator = st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]))
 
     school_options = {
         "New Century Education": [
@@ -84,19 +84,19 @@ if uploaded_file:
         ]
     }
 
-    school_list = sorted(school_options.get(st.session_state.operator, []))
-    st.selectbox("School Name", school_list, key="school")
-    st.selectbox("Grade", [f"Grade {i}" for i in range(1, 13)] + ["K1", "K2"], key="grade")
-    st.date_input("Date", key="date")
-    st.selectbox("Subject", ["Math", "English", "Arabic", "Science", "Islamic", "Social Studies"], key="subject")
-    st.selectbox("Gender", ["Male", "Female", "Mixed"], key="gender")
-    st.text_input("Number of Students", key="students")
-    st.text_input("Number of Males", key="males")
-    st.text_input("Number of Females", key="females")
-    st.time_input("Time In", key="in")
-    st.time_input("Time Out", key="out")
-    st.selectbox("Period", [f"Period {i}" for i in range(1, 9)], key="period")
-    st.selectbox("Observation Type", ["Individual", "Joint"], key="obs_type")
+    school_list = sorted(school_options.get(operator, []))
+    school = st.selectbox("School Name", school_list)
+    grade = st.selectbox("Grade", [f"Grade {i}" for i in range(1, 13)] + ["K1", "K2"])
+    date = st.date_input("Date")
+    subject = st.selectbox("Subject", ["Math", "English", "Arabic", "Science", "Islamic", "Social Studies"])
+    gender = st.selectbox("Gender", ["Male", "Female", "Mixed"])
+    students = st.text_input("Number of Students")
+    males = st.text_input("Number of Males")
+    females = st.text_input("Number of Females")
+    time_in = st.time_input("Time In")
+    time_out = st.time_input("Time Out")
+    period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
+    obs_type = st.selectbox("Observation Type", ["Individual", "Joint"])
 
     st.markdown("---")
     st.subheader("Rubric Scores")
@@ -133,7 +133,7 @@ if uploaded_file:
                 ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
                 ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
             ]
-            formatted = "\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])  # Fixed reversed scale
+            formatted = "\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])
             st.markdown(f"<div style='background-color:{shade};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
             st.markdown(f"**{element_number} – {label}**")
             with st.expander("Rubric Guidance"):
@@ -141,6 +141,49 @@ if uploaded_file:
             val = st.number_input(f"Rating for {element_number}", min_value=1, max_value=6, key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
             st.markdown("</div>", unsafe_allow_html=True)
+
+    # Save Button
+    if st.button("💾 Save this Observation"):
+        ws["B2"] = school
+        ws["B3"] = grade
+        ws["B4"] = date.strftime("%Y-%m-%d")
+        ws["B5"] = gender
+        ws["B6"] = students
+        ws["B7"] = males
+        ws["B8"] = females
+        ws["D2"] = subject
+        ws["D3"] = "Full Lesson" if ((datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)).seconds / 60) >= 40 else "Walkthrough"
+        ws["D4"] = period
+        ws["D7"] = time_in.strftime("%H:%M")
+        ws["D8"] = time_out.strftime("%H:%M")
+
+        ws["Z1"] = "Observer Name"
+        ws["AA1"] = observer
+        ws["Z2"] = "Teacher Observed"
+        ws["AA2"] = teacher
+        ws["Z3"] = "Observation Type"
+        ws["AA3"] = obs_type
+        ws["Z4"] = "Timestamp"
+        ws["AA4"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ws["Z5"] = "Operator"
+        ws["AA5"] = operator
+        ws["Z6"] = "School Name"
+        ws["AA6"] = school
+
+        if "Observation Log" not in wb.sheetnames:
+            log_ws = wb.create_sheet("Observation Log")
+            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp"])
+        else:
+            log_ws: Worksheet = wb["Observation Log"]
+
+        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+
+        save_path = f"updated_{sheet_name}.xlsx"
+        wb.save(save_path)
+        with open(save_path, "rb") as f:
+            st.download_button("📥 Download updated workbook", f, file_name=save_path)
+        os.remove(save_path)
+
 
 
 
