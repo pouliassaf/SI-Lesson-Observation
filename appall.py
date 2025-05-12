@@ -102,6 +102,9 @@ if uploaded_file:
         minutes = round(lesson_duration.total_seconds() / 60)
         duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
         st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
+        minutes = round(lesson_duration.total_seconds() / 60)
+        duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
+        st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
     except Exception:
         st.warning("Could not calculate lesson duration.")
     period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
@@ -162,7 +165,7 @@ if uploaded_file:
         ws["B7"] = males
         ws["B8"] = females
         ws["D2"] = subject
-        ws["D3"] = "Full Lesson" if ((datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)).seconds / 60) >= 40 else "Walkthrough"
+        ws["D3"] = duration_label
         ws["D4"] = period
         ws["D7"] = time_in.strftime("%H:%M")
         ws["D8"] = time_out.strftime("%H:%M")
@@ -193,6 +196,7 @@ if uploaded_file:
         with open(save_path, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
