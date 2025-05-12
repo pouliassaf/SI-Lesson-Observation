@@ -155,6 +155,30 @@ if uploaded_file:
     st.info("Make sure to click the '💾 Save this Observation' button to enable download.")
 
     if st.button("💾 Save this Observation"):
+        # Calculate and store domain summary averages
+        for domain_label, (start_cell, count) in rubric_domains.items():
+            col = start_cell[0]
+            row = int(start_cell[1:])
+            ratings = [ws[f"{col}{row + i}"].value for i in range(count)]
+            numeric_ratings = [r for r in ratings if isinstance(r, (int, float))]
+            if numeric_ratings:
+                avg = round(sum(numeric_ratings) / len(numeric_ratings), 2)
+                ws[f"{col}{row + count}"] = avg
+                if avg >= 5.5:
+                    ws[f"{col}{row + count + 1}"] = "Outstanding"
+                elif avg >= 4.5:
+                    ws[f"{col}{row + count + 1}"] = "Very Good"
+                elif avg >= 3.5:
+                    ws[f"{col}{row + count + 1}"] = "Good"
+                elif avg >= 2.5:
+                    ws[f"{col}{row + count + 1}"] = "Acceptable"
+                elif avg >= 1.5:
+                    ws[f"{col}{row + count + 1}"] = "Weak"
+                else:
+                    ws[f"{col}{row + count + 1}"] = "Very Weak"
+            else:
+                ws[f"{col}{row + count}"] = ""
+                ws[f"{col}{row + count + 1}"] = ""
         ws["B2"] = school
         ws["B3"] = grade
         ws["B4"] = date.strftime("%Y-%m-%d")
