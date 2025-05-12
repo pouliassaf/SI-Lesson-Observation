@@ -117,6 +117,12 @@ if uploaded_file:
         col = start_cell[0]
         row = int(start_cell[1:])
         for i in range(count):
+            label = ws[f"B{row + i}"].value or f"Element {i+1}"
+            rubric = [ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
+                      ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value]
+            tooltip = "
+".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
+            val = st.number_input(f"{label}", min_value=1, max_value=6, key=f"{domain}_{i}", help=tooltip)
             val = st.number_input(f"{domain} - Element {i+1} (1–6)", min_value=1, max_value=6, key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
 
@@ -146,6 +152,7 @@ if uploaded_file:
         with open(filename, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=filename)
         os.remove(filename)
+
 
 
 
