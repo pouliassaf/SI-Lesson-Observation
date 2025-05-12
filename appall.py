@@ -4,6 +4,8 @@ from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
 import os
 
+st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
+
 st.title("Weekly Lesson Observation Input Tool")
 
 email = st.text_input("Enter your school email to continue")
@@ -25,7 +27,7 @@ if uploaded_file:
     lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
     st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
 
-    if st.checkbox("🧹 Clean up unused LO sheets (no observer name)"):
+    if st.checkbox("🪟 Clean up unused LO sheets (no observer name)"):
         to_remove = []
         for sheet in lo_sheets:
             if wb[sheet]["AA1"].value is None:
@@ -111,20 +113,35 @@ if uploaded_file:
         "Domain 9": ("I67", 2)
     }
 
-    for domain, (start_cell, count) in rubric_domains.items():
-        st.markdown(f"**{domain}**")
+    domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff", "#f2ffe6", "#ffe6f2"]
+
+    for idx, (domain, (start_cell, count)) in enumerate(rubric_domains.items()):
+        background = domain_colors[idx % len(domain_colors)]
+        st.markdown(f"""
+            <div style='background-color:{background};padding:12px;border-radius:10px;margin-bottom:5px;'>
+            <h4 style='margin-bottom:5px;'>{domain}: {ws[f'A{int(start_cell[1:])}'].value}</h4>
+            </div>
+        """, unsafe_allow_html=True)
+
         col = start_cell[0]
         row = int(start_cell[1:])
         for i in range(count):
-            label = ws[f"B{row + i}"].value or f"Element {i+1}"
+            shade = f"#{int(255 - idx * 10):02x}{int(255 - idx * 5):02x}{int(255 - idx * 5):02x}"
+            element_number = f"{idx+1}.{i+1}"
+            label = ws[f"B{row + i}"].value or f"Element {element_number}"
             rubric = [
                 ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
                 ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
             ]
-            meanings = "\n".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
-            st.markdown(f"**Score Meanings:**\n\n{meanings}")
-            val = st.number_input(f"{label}", min_value=1, max_value=6, key=f"{domain}_{i}")
+            formatted = "\n".join([f"**{j+1}:** {desc}" for j, desc in enumerate(rubric) if desc])
+            st.markdown(f"<div style='background-color:{shade};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
+            st.markdown(f"**{element_number} – {label}**")
+            with st.expander("Rubric Guidance"):
+                st.markdown(formatted)
+            val = st.number_input(f"Rating for {element_number}", min_value=1, max_value=6, key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
+            st.markdown("</div>", unsafe_allow_html=True)
+
 
   
 
