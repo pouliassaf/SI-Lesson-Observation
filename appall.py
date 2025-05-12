@@ -155,26 +155,23 @@ if uploaded_file:
     st.info("Make sure to click the '💾 Save this Observation' button to enable download.")
 
     if st.button("💾 Save this Observation"):
-        # Calculate and store domain summary averages
+        # Inject Excel formulas into summary average/judgment cells
         for domain_label, (start_cell, count) in rubric_domains.items():
             col = start_cell[0]
             row = int(start_cell[1:])
-            ratings = [ws[f"{col}{row + i}"].value for i in range(count)]
-            numeric_ratings = [r for r in ratings if isinstance(r, (int, float))]
-            if numeric_ratings:
-                avg = round(sum(numeric_ratings) / len(numeric_ratings), 2)
-                ws[f"{col}{row + count}"] = avg
-                if avg >= 5.5:
-                    ws[f"{col}{row + count + 1}"] = "Outstanding"
-                elif avg >= 4.5:
-                    ws[f"{col}{row + count + 1}"] = "Very Good"
-                elif avg >= 3.5:
-                    ws[f"{col}{row + count + 1}"] = "Good"
-                elif avg >= 2.5:
-                    ws[f"{col}{row + count + 1}"] = "Acceptable"
-                elif avg >= 1.5:
-                    ws[f"{col}{row + count + 1}"] = "Weak"
-                else:
+            score_range = f"{col}{row}:{col}{row + count - 1}"
+            avg_cell = f"{col}{row + count}"
+            judgment_cell = f"{col}{row + count + 1}"
+            ws[avg_cell] = f'=IF(COUNTA({score_range})=0, "", AVERAGEIF({score_range}, "<>NA"))'
+            ws[judgment_cell] = (
+                f'=IF({avg_cell}="", "", '
+                f'IF({avg_cell}>=5.5,"Outstanding",'
+                f'IF({avg_cell}>=4.5,"Very Good",'
+                f'IF({avg_cell}>=3.5,"Good",'
+                f'IF({avg_cell}>=2.5,"Acceptable",'
+                f'IF({avg_cell}>=1.5,"Weak","Very Weak")))))'
+            )
+        else:
                     ws[f"{col}{row + count + 1}"] = "Very Weak"
             else:
                 ws[f"{col}{row + count}"] = ""
