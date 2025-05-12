@@ -4,7 +4,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
 import os
 
-st.title("Weekly Lesson Observation Input Tool (Public)")
+st.title("Weekly Lesson Observation Input Tool")
 
 email = st.text_input("Enter your school email to continue")
 allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
