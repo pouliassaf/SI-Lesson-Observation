@@ -122,9 +122,9 @@ if uploaded_file:
                       ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value]
             tooltip = "
 ".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])
+".join([f"{j+1}: {desc}" for j, desc in enumerate(rubric) if desc])"""
             val = st.number_input(f"{label}", min_value=1, max_value=6, key=f"{domain}_{i}", help=tooltip)
-            val = st.number_input(f"{domain} - Element {i+1} (1–6)", min_value=1, max_value=6, key=f"{domain}_{i}")
-            ws[f"{col}{row + i}"] = val
+                        ws[f"{col}{row + i}"] = val
 
     if st.button("Save this Observation"):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -152,6 +152,7 @@ if uploaded_file:
         with open(filename, "rb") as f:
             st.download_button("📥 Download updated workbook", f, file_name=filename)
         os.remove(filename)
+
 
 
 
