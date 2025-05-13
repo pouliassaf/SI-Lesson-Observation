@@ -16,7 +16,6 @@ if not any(email.endswith(domain) for domain in allowed_domains):
     st.stop()
 
 uploaded_file = None
-
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 if not uploaded_file and os.path.exists(DEFAULT_FILE):
     uploaded_file = open(DEFAULT_FILE, "rb")
@@ -96,7 +95,6 @@ if uploaded_file:
     time_in = st.time_input("Time In")
     time_out = st.time_input("Time Out")
 
-    # Live duration preview (single block only)
     try:
         lesson_duration = datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)
         minutes = round(lesson_duration.total_seconds() / 60)
@@ -127,35 +125,27 @@ if uploaded_file:
 
     for idx, (domain, (start_cell, count)) in enumerate(rubric_domains.items()):
         background = domain_colors[idx % len(domain_colors)]
-        st.markdown(f"""
-            <div style='background-color:{background};padding:12px;border-radius:10px;margin-bottom:5px;'>
-            <h4 style='margin-bottom:5px;'>{domain}: {ws[f'A{int(start_cell[1:])}'].value}</h4>
-            </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown(f"<div style='background-color:{background};padding:12px;border-radius:10px;margin-bottom:5px;'><h4 style='margin-bottom:5px;'>{domain}: {ws[f'A{int(start_cell[1:])}'].value}</h4></div>", unsafe_allow_html=True)
         col = start_cell[0]
         row = int(start_cell[1:])
         for i in range(count):
-            shade = f"#{int(255 - idx * 10):02x}{int(255 - idx * 5):02x}{int(255 - idx * 5):02x}"
             element_number = f"{idx+1}.{i+1}"
             label = ws[f"B{row + i}"].value or f"Element {element_number}"
-            rubric = [
-                ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value,
-                ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value
-            ]
+            rubric = [ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value, ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value]
             formatted = "\n\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])
-            st.markdown(f"<div style='background-color:{shade};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:{background};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
             st.markdown(f"**{element_number} – {label}**")
             with st.expander("Rubric Guidance"):
                 st.markdown(formatted)
             val = st.selectbox(f"Rating for {element_number}", options=[6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
             ws[f"{col}{row + i}"] = val
+            note = st.text_area(f"Notes for {element_number}", key=f"{domain}_{i}_note")
+            ws[f"J{row + i}"] = note
             st.markdown("</div>", unsafe_allow_html=True)
 
-    st.info("Make sure to click the '💾 Save this Observation' button to enable download.")
+    overall_notes = st.text_area("General Notes for this Lesson Observation")
 
     if st.button("💾 Save this Observation"):
-        # Inject Excel formulas into summary average/judgment cells
         for domain_label, (start_cell, count) in rubric_domains.items():
             col = start_cell[0]
             row = int(start_cell[1:])
@@ -164,6 +154,7 @@ if uploaded_file:
             judgment_cell = f"{col}{row + count + 1}"
             ws[avg_cell] = f'=IF(COUNTA({score_range})=0, "", AVERAGEIF({score_range}, "<>NA"))'
             ws[judgment_cell] = f'=IF({avg_cell}="", "", IF({avg_cell}>=5.5,"Outstanding",IF({avg_cell}>=4.5,"Very Good",IF({avg_cell}>=3.5,"Good",IF({avg_cell}>=2.5,"Acceptable",IF({avg_cell}>=1.5,"Weak","Very Weak"))))))'
+
         ws["B5"] = gender
         ws["B6"] = students
         ws["B7"] = males
@@ -173,7 +164,6 @@ if uploaded_file:
         ws["D4"] = period
         ws["D7"] = time_in.strftime("%H:%M")
         ws["D8"] = time_out.strftime("%H:%M")
-
         ws["Z1"] = "Observer Name"
         ws["AA1"] = observer
         ws["Z2"] = "Teacher Observed"
@@ -186,20 +176,23 @@ if uploaded_file:
         ws["AA5"] = operator
         ws["Z6"] = "School Name"
         ws["AA6"] = school
+        ws["Z7"] = "General Notes"
+        ws["AA7"] = overall_notes
 
         if "Observation Log" not in wb.sheetnames:
             log_ws = wb.create_sheet("Observation Log")
-            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp"])
+            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp", "Notes"])
         else:
             log_ws: Worksheet = wb["Observation Log"]
 
-        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), overall_notes])
 
         save_path = f"updated_{sheet_name}.xlsx"
         wb.save(save_path)
         with open(save_path, "rb") as f:
-            st.download_button("📥 Download updated workbook", f, file_name=save_path)
+            st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
