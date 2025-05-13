@@ -137,10 +137,13 @@ if uploaded_file:
             st.markdown(f"**{element_number} – {label}**")
             with st.expander("Rubric Guidance"):
                 st.markdown(formatted)
-            val = st.selectbox(f"Rating for {element_number}", options=[6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
-            ws[f"{col}{row + i}"] = val
-            note = st.text_area(f"Notes for {element_number}", key=f"{domain}_{i}_note")
-            ws[f"J{row + i}"] = note
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                val = st.selectbox(f"Rating for {element_number}", options=[6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
+                ws[f"{col}{row + i}"] = val
+            with col2:
+                note = st.text_area(f"Write notes for {element_number}", key=f"{domain}_{i}_note", height=100)
+                ws[f"J{row + i}"] = note
             st.markdown("</div>", unsafe_allow_html=True)
 
     overall_notes = st.text_area("General Notes for this Lesson Observation")
@@ -192,6 +195,7 @@ if uploaded_file:
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
