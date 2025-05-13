@@ -152,7 +152,9 @@ if uploaded_file:
             ws[f"{col}{row + i}"] = val
             st.markdown("</div>", unsafe_allow_html=True)
 
-    st.info("Make sure to click the '💾 Save this Observation' button to enable download.")
+    st.markdown("---")
+st.subheader("Additional Comments")
+remarks = st.text_area("Observer Notes / Remarks", value=ws["AA7"].value or "")
 
     if st.button("💾 Save this Observation"):
         # Inject Excel formulas into summary average/judgment cells
@@ -186,14 +188,16 @@ if uploaded_file:
         ws["AA5"] = operator
         ws["Z6"] = "School Name"
         ws["AA6"] = school
+        ws["Z7"] = "Remarks"
+        ws["AA7"] = remarks
 
         if "Observation Log" not in wb.sheetnames:
             log_ws = wb.create_sheet("Observation Log")
-            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp"])
+            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp", "Remarks"])
         else:
             log_ws: Worksheet = wb["Observation Log"]
 
-        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), remarks])
 
         save_path = f"updated_{sheet_name}.xlsx"
         wb.save(save_path)
