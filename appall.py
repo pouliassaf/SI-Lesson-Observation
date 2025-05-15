@@ -158,12 +158,12 @@ elif page == "Observation Analytics":
                 if not school_reflection.empty:
                     reflection_buffer.write("School - Areas of Strength:
 ")
-                    reflection_buffer.write(school_reflection.head(3).to_string())
+reflection_buffer.write(school_reflection.head(3).to_string())
                     reflection_buffer.write("
 
 School - Areas for Improvement:
 ")
-                    reflection_buffer.write(school_reflection.tail(3).to_string())
+reflection_buffer.write(school_reflection.tail(3).to_string())
                     reflection_buffer.write("
 
 ")
@@ -171,12 +171,12 @@ School - Areas for Improvement:
                 if 'subject_reflection' in locals() and not subject_reflection.empty:
                     reflection_buffer.write("Subject - Areas of Strength:
 ")
-                    reflection_buffer.write(subject_reflection.head(3).to_string())
+reflection_buffer.write(subject_reflection.head(3).to_string())
                     reflection_buffer.write("
 
 Subject - Areas for Improvement:
 ")
-                    reflection_buffer.write(subject_reflection.tail(3).to_string())
+reflection_buffer.write(subject_reflection.tail(3).to_string())
                     reflection_buffer.write("
 
 ")
@@ -184,12 +184,12 @@ Subject - Areas for Improvement:
                 if 'grade_reflection' in locals() and not grade_reflection.empty:
                     reflection_buffer.write("Grade - Areas of Strength:
 ")
-                    reflection_buffer.write(grade_reflection.head(3).to_string())
+reflection_buffer.write(grade_reflection.head(3).to_string())
                     reflection_buffer.write("
 
 Grade - Areas for Improvement:
 ")
-                    reflection_buffer.write(grade_reflection.tail(3).to_string())
+reflection_buffer.write(grade_reflection.tail(3).to_string())
                     reflection_buffer.write("
 
 ")
@@ -477,6 +477,7 @@ Observation Type: {obs_type}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
