@@ -159,18 +159,25 @@ if st.button("💾 Save Observation"):
             os.remove(save_path)
 
             if send_feedback and teacher_email:
-                feedback = f"Dear {teacher},
+                feedback = ("Dear " + teacher + "
 
-Your lesson observation has been saved.
-Observer: {observer}
-Duration: {duration_label}
-Subject: {subject}
-School: {school}
+" +
+            "Your lesson observation has been saved.
+" +
+            f"Observer: {observer}
+" +
+            f"Duration: {duration_label}
+" +
+            f"Subject: {subject}
+" +
+            f"School: {school}
 
-Based on rubric ratings, please review your updated workbook for details.
+" +
+            "Based on rubric ratings, please review your updated workbook for details.
 
-Regards,
-Observation Team"
+" +
+            "Regards,
+Observation Team")
                 st.success(f"Feedback generated for {teacher_email} (not sent, simulated):
 
 {feedback}")
