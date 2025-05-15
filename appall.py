@@ -3,10 +3,14 @@ from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
 import os
+import statistics
 
 st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
 
-st.title("Weekly Lesson Observation Input Tool")
+page = st.sidebar.selectbox("Choose a page:", ["Lesson Input", "Observation Analytics"])
+
+if page == "Lesson Input":
+    st.title("Weekly Lesson Observation Input Tool")
 
 email = st.text_input("Enter your school email to continue")
 allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
@@ -21,7 +25,47 @@ if not uploaded_file and os.path.exists(DEFAULT_FILE):
     uploaded_file = open(DEFAULT_FILE, "rb")
     st.info("Using default template workbook.")
 
-if uploaded_file:
+elif page == "Observation Analytics":
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    st.title("Observation Analytics")
+
+    if os.path.exists(DEFAULT_FILE):
+        wb = load_workbook(DEFAULT_FILE)
+        if "Observation Log" in wb.sheetnames:
+            ws = wb["Observation Log"]
+            data = list(ws.values)
+            headers, *rows = data
+            df = pd.DataFrame(rows, columns=headers)
+            st.success("Observation Log loaded successfully.")
+
+            if not df.empty:
+                st.subheader("Overall Judgment Distribution")
+                st.bar_chart(df["Final Judgment"].value_counts())
+
+                st.subheader("Average Score by School")
+                avg_school = df.groupby("School")["Overall Avg"].mean().sort_values()
+                st.bar_chart(avg_school)
+
+                st.subheader("Average Score by Subject")
+                if "Subject" in df.columns:
+                    avg_subject = df.groupby("Subject")["Overall Avg"].mean().sort_values()
+                    st.bar_chart(avg_subject)
+
+                st.subheader("Average Score by Grade")
+                if "Grade" in df.columns:
+                    avg_grade = df.groupby("Grade")["Overall Avg"].mean().sort_values()
+                    st.bar_chart(avg_grade)
+            else:
+                st.warning("Observation Log is empty.")
+        else:
+            st.warning("'Observation Log' sheet not found in the Excel file.")
+    else:
+        st.warning("Default file not found. Please upload or run a lesson observation first.")
+
+else:
+    if uploaded_file:
     wb = load_workbook(uploaded_file)
     lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
     st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
@@ -65,22 +109,9 @@ if uploaded_file:
             "Al Bayan School", "Al Bayraq School", "Al Dhaher School", "Al Hosoon School",
             "Al Mutanabi School", "Al Nahdha School", "Jern Yafoor School", "Maryam Bint Omran School"
         ],
-        "Taaleem": [
-            "Al Ahad Charter School", "Al Azm Charter School", "Al Riyadh Charter School", "Al Majd Charter School",
-            "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School",
-            "Al Walaa Charter Kindergarten", "Al Forsan Charter Kindergarten", "Al Wafaa Charter Kindergarten",
-            "Al Watan Charter School"
-        ],
-        "Al Dar": [
-            "Al Ghad Charter School", "Al Mushrif Charter Kindergarten", "Al Danah Charter School",
-            "Al Rayaheen Charter School", "Al Rayana Charter School", "Al Qurm Charter School",
-            "Mubarak Bin Mohammed Charter School (Cycle 2 & 3)"
-        ],
-        "Bloom": [
-            "Al Ain Charter School", "Al Dana Charter School", "Al Ghadeer Charter School", "Al Hili Charter School",
-            "Al Manhal Charter School", "Al Qattara Charter School", "Al Towayya Charter School",
-            "Jabel Hafeet Charter School"
-        ]
+        "Taaleem": [...],
+        "Al Dar": [...],
+        "Bloom": [...]
     }
 
     school_list = sorted(school_options.get(operator, []))
@@ -128,6 +159,7 @@ if uploaded_file:
         st.markdown(f"<div style='background-color:{background};padding:12px;border-radius:10px;margin-bottom:5px;'><h4 style='margin-bottom:5px;'>{domain}: {ws[f'A{int(start_cell[1:])}'].value}</h4></div>", unsafe_allow_html=True)
         col = start_cell[0]
         row = int(start_cell[1:])
+        scores = []
         for i in range(count):
             element_number = f"{idx+1}.{i+1}"
             label = ws[f"B{row + i}"].value or f"Element {element_number}"
@@ -141,12 +173,65 @@ if uploaded_file:
             with col1:
                 val = st.selectbox(f"Rating for {element_number}", options=[6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
                 ws[f"{col}{row + i}"] = val
+                if isinstance(val, int):
+                    scores.append(val)
             with col2:
                 note = st.text_area(f"Write notes for {element_number}", key=f"{domain}_{i}_note", height=100)
                 ws[f"J{row + i}"] = note
             st.markdown("</div>", unsafe_allow_html=True)
 
+        if scores:
+            avg = round(statistics.mean(scores), 2)
+            if avg >= 5.5:
+                judgment = "Outstanding"
+            elif avg >= 4.5:
+                judgment = "Very Good"
+            elif avg >= 3.5:
+                judgment = "Good"
+            elif avg >= 2.5:
+                judgment = "Acceptable"
+            elif avg >= 1.5:
+                judgment = "Weak"
+            else:
+                judgment = "Very Weak"
+            st.success(f"✅ Domain Average: {avg} | Judgment: {judgment}")
+        else:
+            st.info("No numeric scores entered yet for this domain.")
+
+        
+    # Display overall average and judgment across all domains
+    all_scores = []
+    for domain, (start_cell, count) in rubric_domains.items():
+        col = start_cell[0]
+        row = int(start_cell[1:])
+        for i in range(count):
+            cell_value = ws[f"{col}{row + i}"].value
+            if isinstance(cell_value, int):
+                all_scores.append(cell_value)
+
+    if all_scores:
+        overall_avg = round(statistics.mean(all_scores), 2)
+        if overall_avg >= 5.5:
+            overall_judgment = "Outstanding"
+        elif overall_avg >= 4.5:
+            overall_judgment = "Very Good"
+        elif overall_avg >= 3.5:
+            overall_judgment = "Good"
+        elif overall_avg >= 2.5:
+            overall_judgment = "Acceptable"
+        elif overall_avg >= 1.5:
+            overall_judgment = "Weak"
+        else:
+            overall_judgment = "Very Weak"
+
+        st.markdown("---")
+        st.success(f"🌟 Overall Average: {overall_avg} | Final Judgment: {overall_judgment}")
+    else:
+        st.info("No numeric scores entered yet for overall calculation.")
+
     overall_notes = st.text_area("General Notes for this Lesson Observation")
+
+        # Remaining unchanged code for saving to Excel, etc.
 
     if st.button("💾 Save this Observation"):
         for domain_label, (start_cell, count) in rubric_domains.items():
@@ -167,6 +252,7 @@ if uploaded_file:
         ws["D4"] = period
         ws["D7"] = time_in.strftime("%H:%M")
         ws["D8"] = time_out.strftime("%H:%M")
+
         ws["Z1"] = "Observer Name"
         ws["AA1"] = observer
         ws["Z2"] = "Teacher Observed"
@@ -181,20 +267,25 @@ if uploaded_file:
         ws["AA6"] = school
         ws["Z7"] = "General Notes"
         ws["AA7"] = overall_notes
+        ws["Z8"] = "Overall Average"
+        ws["AA8"] = overall_avg if all_scores else ""
+        ws["Z9"] = "Final Judgment"
+        ws["AA9"] = overall_judgment if all_scores else ""
 
         if "Observation Log" not in wb.sheetnames:
             log_ws = wb.create_sheet("Observation Log")
-            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp", "Notes"])
+            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp", "Notes", "Overall Avg", "Final Judgment"])
         else:
             log_ws: Worksheet = wb["Observation Log"]
 
-        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), overall_notes])
+        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), overall_notes, overall_avg if all_scores else "", overall_judgment if all_scores else ""])
 
         save_path = f"updated_{sheet_name}.xlsx"
         wb.save(save_path)
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
