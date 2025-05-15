@@ -13,7 +13,7 @@ if page == "Lesson Input":
     st.title("Weekly Lesson Observation Input Tool")
 
 email = st.text_input("Enter your school email to continue")
-allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
+allowed_domains = ["@charterschools.ae", "@adek.gov.ae", "@nceducation.com"]
 
 if not any(email.endswith(domain) for domain in allowed_domains):
     st.warning("Access restricted. Please use an authorized school email.")
@@ -31,6 +31,24 @@ elif page == "Observation Analytics":
 
     st.title("Observation Analytics")
 
+    if "Email Log" in wb.sheetnames:
+        st.subheader("📬 Email Report Summary")
+        email_ws = wb["Email Log"]
+        email_data = list(email_ws.values)
+        email_headers, *email_rows = email_data
+        email_df = pd.DataFrame(email_rows, columns=email_headers)
+
+        st.markdown("**Total Feedback Reports Sent:**")
+        st.metric("Total Sent", len(email_df))
+
+        email_by_teacher = email_df["Teacher"].value_counts()
+        st.markdown("**Most Frequently Contacted Teachers:**")
+        st.bar_chart(email_by_teacher.head(10))
+
+        email_by_observer = email_df["Observer"].value_counts()
+        st.markdown("**Emails Sent per Observer:**")
+        st.bar_chart(email_by_observer)
+
     if os.path.exists(DEFAULT_FILE):
         wb = load_workbook(DEFAULT_FILE)
         if "Observation Log" in wb.sheetnames:
@@ -38,197 +56,371 @@ elif page == "Observation Analytics":
             data = list(ws.values)
             headers, *rows = data
             df = pd.DataFrame(rows, columns=headers)
+            df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
             st.success("Observation Log loaded successfully.")
 
             if not df.empty:
+                st.subheader("Filter Observations")
+                with st.expander("🔎 Filter Options"):
+                    selected_school = st.multiselect("Filter by School", sorted(df["School"].dropna().unique()))
+                    selected_subject = st.multiselect("Filter by Subject", sorted(df["Subject"].dropna().unique()) if "Subject" in df.columns else [])
+                    selected_grade = st.multiselect("Filter by Grade", sorted(df["Grade"].dropna().unique()) if "Grade" in df.columns else [])
+
+                    filtered_df = df.copy()
+                    if selected_school:
+                        filtered_df = filtered_df[filtered_df["School"].isin(selected_school)]
+                    if selected_subject:
+                        filtered_df = filtered_df[filtered_df["Subject"].isin(selected_subject)]
+                    if selected_grade:
+                        filtered_df = filtered_df[filtered_df["Grade"].isin(selected_grade)]
+
+                st.subheader("Observer Summary")
+                observer_avg = df.groupby("Observer")["Overall Avg"].mean().sort_values(ascending=False)
+                st.bar_chart(observer_avg)
+
+                observer_count = df["Observer"].value_counts()
+                st.markdown("#### Observations per Observer")
+                st.bar_chart(observer_count)
+
                 st.subheader("Overall Judgment Distribution")
-                st.bar_chart(df["Final Judgment"].value_counts())
+                st.bar_chart(filtered_df["Final Judgment"].value_counts())
 
                 st.subheader("Average Score by School")
-                avg_school = df.groupby("School")["Overall Avg"].mean().sort_values()
+                avg_school = filtered_df.groupby("School")["Overall Avg"].mean().sort_values()
                 st.bar_chart(avg_school)
 
                 st.subheader("Average Score by Subject")
-                if "Subject" in df.columns:
-                    avg_subject = df.groupby("Subject")["Overall Avg"].mean().sort_values()
+                if "Subject" in filtered_df.columns:
+                    avg_subject = filtered_df.groupby("Subject")["Overall Avg"].mean().sort_values()
                     st.bar_chart(avg_subject)
 
                 st.subheader("Average Score by Grade")
-                if "Grade" in df.columns:
-                    avg_grade = df.groupby("Grade")["Overall Avg"].mean().sort_values()
+                if "Grade" in filtered_df.columns:
+                    avg_grade = filtered_df.groupby("Grade")["Overall Avg"].mean().sort_values()
                     st.bar_chart(avg_grade)
-            else:
-                st.warning("Observation Log is empty.")
+
+                st.subheader("📈 School Comparison Over Time")
+                df_time = df.dropna(subset=["Timestamp"])
+                df_time['Month'] = df_time['Timestamp'].dt.to_period('M').astype(str)
+                trend_df = df_time.groupby(['Month', 'School'])['Overall Avg'].mean().reset_index()
+                for school_name in trend_df['School'].unique():
+                    st.markdown(f"#### {school_name}")
+                    school_trend = trend_df[trend_df['School'] == school_name]
+                    fig, ax = plt.subplots()
+                    ax.plot(school_trend['Month'], school_trend['Overall Avg'], marker='o')
+                    ax.set_title(f"Average Observation Score Over Time for {school_name}")
+                    ax.set_xlabel("Month")
+                    ax.set_ylabel("Average Score")
+                    ax.tick_params(axis='x', rotation=45)
+                    st.pyplot(fig)
+
+                trend_csv = trend_df.pivot(index='Month', columns='School', values='Overall Avg').fillna('').reset_index()
+                import io
+                trend_io = io.StringIO()
+                trend_csv.to_csv(trend_io, index=False)
+                st.download_button("📄 Download School Trends Report (CSV)", data=trend_io.getvalue(), file_name="school_trends.csv", mime="text/csv")
+
+                st.subheader("📤 Export Filtered Data")
+
+                st.subheader("🧾 Reflection Summary Report")
+                st.markdown("Shows strengths and areas for improvement per group.")
+
+                with st.expander("Generate by School"):
+                    school_reflection = filtered_df.groupby("School")["Overall Avg"].mean().sort_values(ascending=False)
+                    st.write("**Areas of Strength**")
+                    st.write(school_reflection.head(3))
+                    st.write("**Areas for Improvement**")
+                    st.write(school_reflection.tail(3))
+
+                if "Subject" in filtered_df.columns:
+                    with st.expander("Generate by Subject"):
+                        subject_reflection = filtered_df.groupby("Subject")["Overall Avg"].mean().sort_values(ascending=False)
+                        st.write("**Areas of Strength**")
+                        st.write(subject_reflection.head(3))
+                        st.write("**Areas for Improvement**")
+                        st.write(subject_reflection.tail(3))
+
+                if "Grade" in filtered_df.columns:
+                    with st.expander("Generate by Grade"):
+                        grade_reflection = filtered_df.groupby("Grade")["Overall Avg"].mean().sort_values(ascending=False)
+                        st.write("**Areas of Strength**")
+                        st.write(grade_reflection.head(3))
+                        st.write("**Areas for Improvement**")
+                        st.write(grade_reflection.tail(3))
+
+                
+                import io
+                reflection_buffer = io.StringIO()
+                reflection_buffer.write("Reflection Summary Report
+
+")
+
+                if not school_reflection.empty:
+                    reflection_buffer.write("School - Areas of Strength:
+")
+                    reflection_buffer.write(school_reflection.head(3).to_string())
+                    reflection_buffer.write("
+
+School - Areas for Improvement:
+")
+                    reflection_buffer.write(school_reflection.tail(3).to_string())
+                    reflection_buffer.write("
+
+")
+
+                if 'subject_reflection' in locals() and not subject_reflection.empty:
+                    reflection_buffer.write("Subject - Areas of Strength:
+")
+                    reflection_buffer.write(subject_reflection.head(3).to_string())
+                    reflection_buffer.write("
+
+Subject - Areas for Improvement:
+")
+                    reflection_buffer.write(subject_reflection.tail(3).to_string())
+                    reflection_buffer.write("
+
+")
+
+                if 'grade_reflection' in locals() and not grade_reflection.empty:
+                    reflection_buffer.write("Grade - Areas of Strength:
+")
+                    reflection_buffer.write(grade_reflection.head(3).to_string())
+                    reflection_buffer.write("
+
+Grade - Areas for Improvement:
+")
+                    reflection_buffer.write(grade_reflection.tail(3).to_string())
+                    reflection_buffer.write("
+
+")
+
+                from fpdf import FPDF
+
+        pdf = FPDF()
+        if os.path.exists("logos"):
+            logo_path = (
+            f"logos/{school}.png" if os.path.exists(f"logos/{school}.png") else
+            f"logos/{school}.jpg" if os.path.exists(f"logos/{school}.jpg") else
+            f"logos/{school}.jpeg" if os.path.exists(f"logos/{school}.jpeg") else
+            "logos/default.png" if os.path.exists("logos/default.png") else
+            "logos/default.jpg" if os.path.exists("logos/default.jpg") else
+            "logos/default.jpeg"
+        )
+            if os.path.exists(logo_path):
+                pdf.image(logo_path, x=170, y=8, w=30)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
+        pdf.ln(10)
+        pdf.multi_cell(0, 10, txt=f"Observer: {observer}
+Teacher: {teacher}
+Subject: {subject}
+School: {school}
+Grade: {grade}
+Gender: {gender}
+Date: {date}
+Duration: {duration_label}
+Period: {period}
+Observation Type: {obs_type}")
+        pdf.ln(5)
+        pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
+        pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
+        pdf.ln(5)
+        pdf.multi_cell(0, 10, txt=f"General Notes:
+{overall_notes}")
+        pdf.ln(5)
+
+        support_plan = "Next Steps:
+"
+        if overall_judgment in ["Weak", "Very Weak"]:
+            support_plan += "- A follow-up coaching session should be scheduled within 2 weeks.
+- Targeted professional development should be prioritized.
+- Provide classroom support and peer observation opportunities."
+        elif overall_judgment == "Acceptable":
+            support_plan += "- Encourage reflection on areas of improvement.
+- Recommend joining PLC sessions.
+- Track follow-up observations within the term."
+        elif overall_judgment in ["Good", "Very Good"]:
+            support_plan += "- Maintain consistency across lessons.
+- Support other teachers through mentorship or peer reviews."
+        elif overall_judgment == "Outstanding":
+            support_plan += "- Consider leading PD sessions.
+- Share exemplary practices across teams.
+- Contribute to strategic improvement projects."
         else:
-            st.warning("'Observation Log' sheet not found in the Excel file.")
-    else:
-        st.warning("Default file not found. Please upload or run a lesson observation first.")
+            support_plan += "- No judgment available. Please review rubric input."
 
-if page == "Lesson Input" and uploaded_file:
-    wb = load_workbook(uploaded_file)
-    lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
-    st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
+        arabic_labels = {
+            "Learning Objective Visible": "الهدف التعليمي ظاهر",
+            "Questioning Techniques": "تقنيات طرح الأسئلة",
+            "Student Engagement": "مشاركة الطلاب",
+            "Use of Resources": "استخدام الموارد",
+            "Assessment for Learning": "التقويم من أجل التعلم",
+            "Classroom Management": "إدارة الصف",
+            "Differentiation": "التمايز",
+            "Student-Centered Learning": "التعلم المتمحور حول الطالب",
+            "Use of Technology": "استخدام التقنية"
+        }
 
-    if st.checkbox("🪟 Clean up unused LO sheets (no observer name)"):
-        to_remove = []
-        for sheet in lo_sheets:
-            if wb[sheet]["AA1"].value is None:
-                to_remove.append(sheet)
-        for sheet in to_remove:
-            wb.remove(wb[sheet])
-        st.warning(f"Removed {len(to_remove)} unused LO sheets.")
-        lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
+        pdf.ln(10)
+        pdf.set_font("Arial", 'B', size=12)
+        pdf.cell(0, 10, txt="Rubric Elements Summary:", ln=True)
+        pdf.set_font("Arial", size=11)
 
-    if "Guidelines" in wb.sheetnames:
-        st.expander("📘 Click here to view observation guidelines").markdown(
-            "\n".join([str(cell) for row in wb["Guidelines"].iter_rows(values_only=True) for cell in row if cell])
+        for domain, (start_cell, count) in rubric_domains.items():
+            col = start_cell[0]
+            row = int(start_cell[1:])
+            for i in range(count):
+                label = ws[f"B{row + i}"].value
+                score = ws[f"{col}{row + i}"].value
+                label_ar = arabic_labels.get(label, "")
+                pdf.multi_cell(0, 10, txt=f"{label} ({label_ar})
+Score: {score if score else 'N/A'}")
+
+        pdf.multi_cell(0, 10, txt=support_plan)
+        pdf.set_y(-20)
+        pdf.set_font("Arial", size=8)
+        pdf.cell(0, 10, txt=f"{school} • {date.strftime('%Y-%m-%d')}", ln=True, align='C')
+
+        pdf_output = pdf.output(dest='S').encode('latin-1')
+
+        pdf_lang = st.radio("Select PDF language", ["English", "Arabic"], horizontal=True)
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        if pdf_lang == "Arabic":
+            pdf.cell(200, 10, txt="ملخص ملاحظة الحصة الدراسية", ln=True, align='C')
+            pdf.ln(10)
+            pdf.set_font("Arial", size=12)
+            pdf.multi_cell(0, 10, txt=f"الملاحظ: {observer}
+المعلم: {teacher}
+المادة: {subject}
+المدرسة: {school}
+الصف: {grade}
+الجنس: {gender}
+التاريخ: {date}
+المدة: {duration_label}
+الحصة: {period}
+نوع الملاحظة: {obs_type}")
+            pdf.ln(5)
+            pdf.cell(200, 10, txt=f"المعدل العام: {overall_avg if all_scores else 'N/A'}", ln=True)
+            pdf.cell(200, 10, txt=f"الحكم النهائي: {overall_judgment if all_scores else 'N/A'}", ln=True)
+            pdf.ln(5)
+            pdf.multi_cell(0, 10, txt=f"ملاحظات عامة:
+{overall_notes}")
+            pdf.ln(5)
+            support_plan = "الخطوات التالية:
+"
+            if overall_judgment in ["Weak", "Very Weak"]:
+                support_plan += "- يجب تحديد جلسة متابعة خلال أسبوعين.
+- يُنصح بالتطوير المهني المستهدف.
+- تقديم دعم صفّي وفرص للملاحظة الزميلية."
+            elif overall_judgment == "Acceptable":
+                support_plan += "- التشجيع على التفكير الذاتي في مجالات التحسين.
+- الانضمام إلى مجتمعات التعلم المهني.
+- تتبع ملاحظات المتابعة خلال الفصل."
+            elif overall_judgment in ["Good", "Very Good"]:
+                support_plan += "- الحفاظ على الاتساق في الأداء.
+- دعم الزملاء من خلال الإرشاد."
+            elif overall_judgment == "Outstanding":
+                support_plan += "- قيادة ورش العمل المهنية.
+- مشاركة أفضل الممارسات.
+- الإسهام في مشاريع التحسين."
+            else:
+                support_plan += "- لا يوجد حكم نهائي. يرجى مراجعة المدخلات."
+        else:
+            pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
+            pdf.ln(10)
+            pdf.multi_cell(0, 10, txt=f"Observer: {observer}
+Teacher: {teacher}
+Subject: {subject}
+School: {school}
+Grade: {grade}
+Gender: {gender}
+Date: {date}
+Duration: {duration_label}
+Period: {period}
+Observation Type: {obs_type}")
+            pdf.ln(5)
+            pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
+            pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
+            pdf.ln(5)
+            pdf.multi_cell(0, 10, txt=f"General Notes:
+{overall_notes}")
+            pdf.ln(5)
+            support_plan = "Next Steps:
+"
+            if overall_judgment in ["Weak", "Very Weak"]:
+                support_plan += "- A follow-up coaching session should be scheduled within 2 weeks.
+- Targeted professional development should be prioritized.
+- Provide classroom support and peer observation opportunities."
+            elif overall_judgment == "Acceptable":
+                support_plan += "- Encourage reflection on areas of improvement.
+- Recommend joining PLC sessions.
+- Track follow-up observations within the term."
+            elif overall_judgment in ["Good", "Very Good"]:
+                support_plan += "- Maintain consistency across lessons.
+- Support other teachers through mentorship or peer reviews."
+            elif overall_judgment == "Outstanding":
+                support_plan += "- Consider leading PD sessions.
+- Share exemplary practices across teams.
+- Contribute to strategic improvement projects."
+            else:
+                support_plan += "- No judgment available. Please review rubric input."
+
+        pdf.multi_cell(0, 10, txt=support_plan)
+        pdf_output = pdf.output(dest='S').encode('latin-1')
+
+        st.download_button(
+            label="📥 Download Form Summary (PDF)",
+            data=pdf_output,
+            file_name=f"{sheet_name}_summary.pdf",
+            mime="application/pdf"
         )
 
-    selected_option = st.selectbox("Select existing LO sheet or create a new one:", ["Create new"] + lo_sheets)
+        if st.button("📤 Email PDF to Teacher"):
+            pdf_email_msg = MIMEMultipart()
+            pdf_email_msg['From'] = sender_email
+            pdf_email_msg['To'] = teacher_email
+            pdf_email_msg['Cc'] = sender_email
+            pdf_email_msg['Subject'] = f"Lesson Observation PDF Summary – {teacher}"
+            pdf_email_msg.attach(MIMEText("Attached is your observation summary in PDF format.", 'plain'))
+            from email.mime.application import MIMEApplication
+            attachment = MIMEApplication(pdf_output, _subtype="pdf")
+            attachment.add_header('Content-Disposition', 'attachment', filename=f"{sheet_name}_summary.pdf")
+            pdf_email_msg.attach(attachment)
 
-    if selected_option == "Create new":
-        next_index = 1
-        while f"LO {next_index}" in wb.sheetnames:
-            next_index += 1
-        sheet_name = f"LO {next_index}"
-        wb.copy_worksheet(wb["LO 1"]).title = sheet_name
-        st.success(f"Created new sheet: {sheet_name}")
-    else:
-        sheet_name = selected_option
+            try:
+                smtp = smtplib.SMTP(smtp_server, smtp_port)
+                smtp.starttls()
+                smtp.login(smtp_user, smtp_pass)
+                smtp.sendmail(sender_email, [teacher_email, sender_email], pdf_email_msg.as_string())
+                smtp.quit()
+                st.success("PDF sent to teacher and observer successfully!")
 
-    ws = wb[sheet_name]
-    st.subheader(f"Filling data for: {sheet_name}")
+                # Log email send
+                if "Email Log" not in wb.sheetnames:
+                    email_log_ws = wb.create_sheet("Email Log")
+                    email_log_ws.append(["Timestamp", "Observer", "Observer Email", "Teacher", "Teacher Email", "Type", "Status"])
+                else:
+                    email_log_ws: Worksheet = wb["Email Log"]
 
-    observer = st.text_input("Observer Name")
-    teacher = st.text_input("Teacher Name")
-    operator = st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]))
+                email_log_ws.append([
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    observer,
+                    sender_email,
+                    teacher,
+                    teacher_email,
+                    "PDF sent",
+                    "Success"
+                ])
 
-    school_options = {
-        "New Century Education": [
-            "Al Bayan School", "Al Bayraq School", "Al Dhaher School", "Al Hosoon School",
-            "Al Mutanabi School", "Al Nahdha School", "Jern Yafoor School", "Maryam Bint Omran School"
-        ],
-        "Taaleem": [...],
-        "Al Dar": [...],
-        "Bloom": [...]
-    }
-
-    school_list = sorted(school_options.get(operator, []))
-    school = st.selectbox("School Name", school_list)
-    grade = st.selectbox("Grade", [f"Grade {i}" for i in range(1, 13)] + ["K1", "K2"])
-    date = st.date_input("Date")
-    subject = st.selectbox("Subject", ["Math", "English", "Arabic", "Science", "Islamic", "Social Studies"])
-    gender = st.selectbox("Gender", ["Male", "Female", "Mixed"])
-    students = st.text_input("Number of Students")
-    males = st.text_input("Number of Males")
-    females = st.text_input("Number of Females")
-    time_in = st.time_input("Time In")
-    time_out = st.time_input("Time Out")
-
-    try:
-        lesson_duration = datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)
-        minutes = round(lesson_duration.total_seconds() / 60)
-        duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
-        st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
-    except Exception:
-        st.warning("Could not calculate lesson duration.")
-
-    period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
-    obs_type = st.selectbox("Observation Type", ["Individual", "Joint"])
-
-    st.markdown("---")
-    st.subheader("Rubric Scores")
-
-    rubric_domains = {
-        "Domain 1": ("I11", 5),
-        "Domain 2": ("I20", 3),
-        "Domain 3": ("I27", 4),
-        "Domain 4": ("I35", 3),
-        "Domain 5": ("I42", 2),
-        "Domain 6": ("I48", 2),
-        "Domain 7": ("I54", 2),
-        "Domain 8": ("I60", 3),
-        "Domain 9": ("I67", 2)
-    }
-
-    domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff", "#f2ffe6", "#ffe6f2"]
-
-    for idx, (domain, (start_cell, count)) in enumerate(rubric_domains.items()):
-        background = domain_colors[idx % len(domain_colors)]
-        st.markdown(f"<div style='background-color:{background};padding:12px;border-radius:10px;margin-bottom:5px;'><h4 style='margin-bottom:5px;'>{domain}: {ws[f'A{int(start_cell[1:])}'].value}</h4></div>", unsafe_allow_html=True)
-        col = start_cell[0]
-        row = int(start_cell[1:])
-        scores = []
-        for i in range(count):
-            element_number = f"{idx+1}.{i+1}"
-            label = ws[f"B{row + i}"].value or f"Element {element_number}"
-            rubric = [ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value, ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value]
-            formatted = "\n\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])
-            st.markdown(f"<div style='background-color:{background};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
-            st.markdown(f"**{element_number} – {label}**")
-            with st.expander("Rubric Guidance"):
-                st.markdown(formatted)
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                val = st.selectbox(f"Rating for {element_number}", options=[6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
-                ws[f"{col}{row + i}"] = val
-                if isinstance(val, int):
-                    scores.append(val)
-            with col2:
-                note = st.text_area(f"Write notes for {element_number}", key=f"{domain}_{i}_note", height=100)
-                ws[f"J{row + i}"] = note
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        if scores:
-            avg = round(statistics.mean(scores), 2)
-            if avg >= 5.5:
-                judgment = "Outstanding"
-            elif avg >= 4.5:
-                judgment = "Very Good"
-            elif avg >= 3.5:
-                judgment = "Good"
-            elif avg >= 2.5:
-                judgment = "Acceptable"
-            elif avg >= 1.5:
-                judgment = "Weak"
-            else:
-                judgment = "Very Weak"
-            st.success(f"✅ Domain Average: {avg} | Judgment: {judgment}")
-        else:
-            st.info("No numeric scores entered yet for this domain.")
-
-        
-    # Display overall average and judgment across all domains
-    all_scores = []
-    for domain, (start_cell, count) in rubric_domains.items():
-        col = start_cell[0]
-        row = int(start_cell[1:])
-        for i in range(count):
-            cell_value = ws[f"{col}{row + i}"].value
-            if isinstance(cell_value, int):
-                all_scores.append(cell_value)
-
-    if all_scores:
-        overall_avg = round(statistics.mean(all_scores), 2)
-        if overall_avg >= 5.5:
-            overall_judgment = "Outstanding"
-        elif overall_avg >= 4.5:
-            overall_judgment = "Very Good"
-        elif overall_avg >= 3.5:
-            overall_judgment = "Good"
-        elif overall_avg >= 2.5:
-            overall_judgment = "Acceptable"
-        elif overall_avg >= 1.5:
-            overall_judgment = "Weak"
-        else:
-            overall_judgment = "Very Weak"
-
-        st.markdown("---")
-        st.success(f"🌟 Overall Average: {overall_avg} | Final Judgment: {overall_judgment}")
-    else:
-        st.info("No numeric scores entered yet for overall calculation.")
-
-    overall_notes = st.text_area("General Notes for this Lesson Observation")
+                wb.save(DEFAULT_FILE)
+            except Exception as e:
+                st.error(f"PDF email failed: {e}")
+            mime="application/pdf"
+        )
 
         # Remaining unchanged code for saving to Excel, etc.
 
@@ -284,6 +476,7 @@ if page == "Lesson Input" and uploaded_file:
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
