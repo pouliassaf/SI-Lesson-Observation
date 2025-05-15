@@ -48,6 +48,7 @@ if page == "Lesson Input":
 
         observer = st.text_input("Observer Name")
         teacher = st.text_input("Teacher Name")
+teacher_email = st.text_input("Teacher Email")
         operator = st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]))
 
         school_options = {
@@ -119,6 +120,8 @@ for domain, (start_cell, count) in rubric_domains.items():
         rating = st.selectbox(f"Rating for {label}", [6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
         ws[f"{col}{row + i}"] = rating
 
+send_feedback = st.checkbox("✉️ Send Feedback to Teacher")
+
 if st.button("💾 Save Observation"):
             ws["Z1"] = "Observer Name"
             ws["AA1"] = observer
@@ -154,6 +157,23 @@ if st.button("💾 Save Observation"):
             with open(save_path, "rb") as f:
                 st.download_button("📥 Download updated workbook", f, file_name=save_path)
             os.remove(save_path)
+
+            if send_feedback and teacher_email:
+                feedback = f"Dear {teacher},
+
+Your lesson observation has been saved.
+Observer: {observer}
+Duration: {duration_label}
+Subject: {subject}
+School: {school}
+
+Based on rubric ratings, please review your updated workbook for details.
+
+Regards,
+Observation Team"
+                st.success(f"Feedback generated for {teacher_email} (not sent, simulated):
+
+{feedback}")
 
 elif page == "Observation Analytics":
     st.title("Observation Analytics Dashboard")
