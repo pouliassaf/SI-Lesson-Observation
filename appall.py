@@ -151,52 +151,50 @@ elif page == "Observation Analytics":
                 
                 import io
                 reflection_buffer = io.StringIO()
-                reflection_buffer.write("""Reflection Summary Report
+reflection_buffer.write("""Reflection Summary Report
 
 """)
 
-                if not school_reflection.empty:
-                    reflection_buffer.write("School - Areas of Strength:
+if not school_reflection.empty:
+    reflection_buffer.write("School - Areas of Strength:
 ")
-reflection_buffer.write(school_reflection.head(3).to_string())
-                    reflection_buffer.write("
+    reflection_buffer.write(school_reflection.head(3).to_string())
+    reflection_buffer.write("
 
 School - Areas for Improvement:
 ")
-reflection_buffer.write(school_reflection.tail(3).to_string())
-                    reflection_buffer.write("
+    reflection_buffer.write(school_reflection.tail(3).to_string())
+    reflection_buffer.write("
 
 ")
 
-                if 'subject_reflection' in locals() and not subject_reflection.empty:
-                    reflection_buffer.write("Subject - Areas of Strength:
+if 'subject_reflection' in locals() and not subject_reflection.empty:
+    reflection_buffer.write("Subject - Areas of Strength:
 ")
-reflection_buffer.write(subject_reflection.head(3).to_string())
-                    reflection_buffer.write("
+    reflection_buffer.write(subject_reflection.head(3).to_string())
+    reflection_buffer.write("
 
 Subject - Areas for Improvement:
 ")
-reflection_buffer.write(subject_reflection.tail(3).to_string())
-                    reflection_buffer.write("
+    reflection_buffer.write(subject_reflection.tail(3).to_string())
+    reflection_buffer.write("
 
 ")
 
-                if 'grade_reflection' in locals() and not grade_reflection.empty:
-                    reflection_buffer.write("Grade - Areas of Strength:
+if 'grade_reflection' in locals() and not grade_reflection.empty:
+    reflection_buffer.write("Grade - Areas of Strength:
 ")
-reflection_buffer.write(grade_reflection.head(3).to_string())
-                    reflection_buffer.write("
+    reflection_buffer.write(grade_reflection.head(3).to_string())
+    reflection_buffer.write("
 
 Grade - Areas for Improvement:
 ")
-reflection_buffer.write(grade_reflection.tail(3).to_string())
-                    reflection_buffer.write("
+    reflection_buffer.write(grade_reflection.tail(3).to_string())
+    reflection_buffer.write("
 
 ")
 
-                from fpdf import FPDF
-
-        pdf = FPDF()
+pdf = FPDF()
         if os.path.exists("logos"):
             logo_path = (
                 f"logos/{school}.png" if os.path.exists(f"logos/{school}.png") else
@@ -477,6 +475,7 @@ Observation Type: {obs_type}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
