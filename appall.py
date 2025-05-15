@@ -12,6 +12,8 @@ page = st.sidebar.selectbox("Choose a page:", ["Lesson Input", "Observation Anal
 if page == "Lesson Input":
     st.title("Weekly Lesson Observation Input Tool")
 
+    
+
 email = st.text_input("Enter your school email to continue")
 allowed_domains = ["@charterschools.ae", "@adek.gov.ae", "@nceducation.com"]
 
