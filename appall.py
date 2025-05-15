@@ -5,8 +5,7 @@ from datetime import datetime
 import os
 import statistics
 
-
-
+st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
 
 uploaded_file = None
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
@@ -14,12 +13,18 @@ if not uploaded_file and os.path.exists(DEFAULT_FILE):
     uploaded_file = open(DEFAULT_FILE, "rb")
     st.info("Using default template workbook.")
 
-st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
-
 page = st.sidebar.selectbox("Choose a page:", ["Lesson Input", "Observation Analytics"])
 
 if page == "Lesson Input":
     st.title("Weekly Lesson Observation Input Tool")
+
+    st.markdown("""
+    <style>
+    .block-container {
+        padding-top: 2rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     if uploaded_file:
         wb = load_workbook(uploaded_file)
@@ -90,164 +95,125 @@ if page == "Lesson Input":
         period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
         obs_type = st.selectbox("Observation Type", ["Individual", "Joint"])
 
-        st.session_state.update({
-            "observer": observer, "teacher": teacher, "operator": operator, "school": school,
-            "grade": grade, "subject": subject, "gender": gender, "students": students,
-            "males": males, "females": females, "time_in": time_in, "time_out": time_out,
-            "duration_label": duration_label, "period": period, "obs_type": obs_type
-        })
+        rubric_domains = {
+    "Domain 1": ("I11", 5),
+    "Domain 2": ("I20", 3),
+    "Domain 3": ("I27", 4),
+    "Domain 4": ("I35", 3),
+    "Domain 5": ("I42", 2),
+    "Domain 6": ("I48", 2),
+    "Domain 7": ("I54", 2),
+    "Domain 8": ("I60", 3),
+    "Domain 9": ("I67", 2)
+}
 
-    
+st.markdown("---")
+st.subheader("Rubric Scores")
 
-    
+for domain, (start_cell, count) in rubric_domains.items():
+    col = start_cell[0]
+    row = int(start_cell[1:])
+    st.markdown(f"**{domain}**: {ws[f'A{row}'].value}")
+    for i in range(count):
+        label = ws[f"B{row + i}"].value or f"Element {domain[-1]}.{i+1}"
+        rating = st.selectbox(f"Rating for {label}", [6, 5, 4, 3, 2, 1, "NA"], key=f"{domain}_{i}")
+        ws[f"{col}{row + i}"] = rating
 
+if st.button("💾 Save Observation"):
+            ws["Z1"] = "Observer Name"
+            ws["AA1"] = observer
+            ws["Z2"] = "Teacher"
+            ws["AA2"] = teacher
+            ws["Z3"] = "Observation Type"
+            ws["AA3"] = obs_type
+            ws["Z4"] = "Operator"
+            ws["AA4"] = operator
+            ws["Z5"] = "School"
+            ws["AA5"] = school
+            ws["Z6"] = "Subject"
+            ws["AA6"] = subject
+            ws["Z7"] = "Grade"
+            ws["AA7"] = grade
+            ws["Z8"] = "Gender"
+            ws["AA8"] = gender
+            ws["Z9"] = "Students"
+            ws["AA9"] = students
+            ws["Z10"] = "Males"
+            ws["AA10"] = males
+            ws["Z11"] = "Females"
+            ws["AA11"] = females
+            ws["Z12"] = "Duration"
+            ws["AA12"] = duration_label
+            ws["Z13"] = "Time In"
+            ws["AA13"] = time_in.strftime("%H:%M")
+            ws["Z14"] = "Time Out"
+            ws["AA14"] = time_out.strftime("%H:%M")
 
-
-
+            save_path = f"updated_{sheet_name}.xlsx"
+            wb.save(save_path)
+            with open(save_path, "rb") as f:
+                st.download_button("📥 Download updated workbook", f, file_name=save_path)
+            os.remove(save_path)
 
 elif page == "Observation Analytics":
-    import pandas as pd
-    import matplotlib.pyplot as plt
+    st.title("Observation Analytics Dashboard")
 
-    st.title("Observation Analytics")
+    if uploaded_file:
+        wb = load_workbook(uploaded_file, data_only=True)
+        sheets = [s for s in wb.sheetnames if s.startswith("LO ")]
 
-    if "Email Log" in wb.sheetnames:
-        st.subheader("📬 Email Report Summary")
-        email_ws = wb["Email Log"]
-        email_data = list(email_ws.values)
-        email_headers, *email_rows = email_data
-        email_df = pd.DataFrame(email_rows, columns=email_headers)
+        domain_scores = {domain: [] for domain in [f"Domain {i}" for i in range(1, 10)]}
+        metadata = []
 
-        st.markdown("**Total Feedback Reports Sent:**")
-        st.metric("Total Sent", len(email_df))
+        for sheet in sheets:
+            ws = wb[sheet]
+            row_info = {
+                "School": ws["AA5"].value,
+                "Grade": ws["AA7"].value,
+                "Subject": ws["AA6"].value,
+                "Observer": ws["AA1"].value
+            }
+            metadata.append(row_info)
+            for i, (domain, (start_cell, count)) in enumerate({
+                "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
+                "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
+            }.items()):
+                col = start_cell[0]
+                row = int(start_cell[1:])
+                ratings = [ws[f"{col}{row + j}"].value for j in range(count) if isinstance(ws[f"{col}{row + j}"].value, int)]
+                if ratings:
+                    domain_scores[domain].append(statistics.mean(ratings))
 
-        email_by_teacher = email_df["Teacher"].value_counts()
-        st.markdown("**Most Frequently Contacted Teachers:**")
-        st.bar_chart(email_by_teacher.head(10))
+        import pandas as pd
+        import matplotlib.pyplot as plt
 
-        email_by_observer = email_df["Observer"].value_counts()
-        st.markdown("**Emails Sent per Observer:**")
-        st.bar_chart(email_by_observer)
+        avg_scores = {domain: round(statistics.mean(scores), 2) if scores else 0 for domain, scores in domain_scores.items()}
+        df_avg = pd.DataFrame(list(avg_scores.items()), columns=["Domain", "Average Score"])
 
-    if os.path.exists(DEFAULT_FILE):
-        wb = load_workbook(DEFAULT_FILE)
-        if "Observation Log" in wb.sheetnames:
-            ws = wb["Observation Log"]
-            data = list(ws.values)
-            headers, *rows = data
-            df = pd.DataFrame(rows, columns=headers)
-            df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
-            st.success("Observation Log loaded successfully.")
+        st.subheader("Average Score per Domain")
+        st.bar_chart(df_avg.set_index("Domain"))
 
-            if not df.empty:
-                st.subheader("Filter Observations")
-                with st.expander("🔎 Filter Options"):
-                    selected_school = st.multiselect("Filter by School", sorted(df["School"].dropna().unique()))
-                    selected_subject = st.multiselect("Filter by Subject", sorted(df["Subject"].dropna().unique()) if "Subject" in df.columns else [])
-                    selected_grade = st.multiselect("Filter by Grade", sorted(df["Grade"].dropna().unique()) if "Grade" in df.columns else [])
+        df_meta = pd.DataFrame(metadata)
+        if not df_meta.empty:
+            st.subheader("Filter by School, Grade, or Subject")
+            col1, col2, col3 = st.columns(3)
+            school_filter = col1.selectbox("School", ["All"] + sorted(df_meta["School"].dropna().unique().tolist()))
+            grade_filter = col2.selectbox("Grade", ["All"] + sorted(df_meta["Grade"].dropna().unique().tolist()))
+            subject_filter = col3.selectbox("Subject", ["All"] + sorted(df_meta["Subject"].dropna().unique().tolist()))
 
-                    filtered_df = df.copy()
-                    if selected_school:
-                        filtered_df = filtered_df[filtered_df["School"].isin(selected_school)]
-                    if selected_subject:
-                        filtered_df = filtered_df[filtered_df["Subject"].isin(selected_subject)]
-                    if selected_grade:
-                        filtered_df = filtered_df[filtered_df["Grade"].isin(selected_grade)]
+            filtered = df_meta.copy()
+            if school_filter != "All":
+                filtered = filtered[filtered["School"] == school_filter]
+            if grade_filter != "All":
+                filtered = filtered[filtered["Grade"] == grade_filter]
+            if subject_filter != "All":
+                filtered = filtered[filtered["Subject"] == subject_filter]
 
-                st.subheader("Observer Summary")
-                observer_avg = df.groupby("Observer")["Overall Avg"].mean().sort_values(ascending=False)
-                st.bar_chart(observer_avg)
+            st.dataframe(filtered)
 
-                observer_count = df["Observer"].value_counts()
-                st.markdown("#### Observations per Observer")
-                st.bar_chart(observer_count)
-
-                st.subheader("Overall Judgment Distribution")
-                st.bar_chart(filtered_df["Final Judgment"].value_counts())
-
-                st.subheader("Average Score by School")
-                avg_school = filtered_df.groupby("School")["Overall Avg"].mean().sort_values()
-                st.bar_chart(avg_school)
-
-                st.subheader("Average Score by Subject")
-                if "Subject" in filtered_df.columns:
-                    avg_subject = filtered_df.groupby("Subject")["Overall Avg"].mean().sort_values()
-                    st.bar_chart(avg_subject)
-
-                st.subheader("Average Score by Grade")
-                if "Grade" in filtered_df.columns:
-                    avg_grade = filtered_df.groupby("Grade")["Overall Avg"].mean().sort_values()
-                    st.bar_chart(avg_grade)
-
-                st.subheader("📈 School Comparison Over Time")
-                df_time = df.dropna(subset=["Timestamp"])
-                df_time['Month'] = df_time['Timestamp'].dt.to_period('M').astype(str)
-                trend_df = df_time.groupby(['Month', 'School'])['Overall Avg'].mean().reset_index()
-                for school_name in trend_df['School'].unique():
-                    st.markdown(f"#### {school_name}")
-                    school_trend = trend_df[trend_df['School'] == school_name]
-                    fig, ax = plt.subplots()
-                    ax.plot(school_trend['Month'], school_trend['Overall Avg'], marker='o')
-                    ax.set_title(f"Average Observation Score Over Time for {school_name}")
-                    ax.set_xlabel("Month")
-                    ax.set_ylabel("Average Score")
-                    ax.tick_params(axis='x', rotation=45)
-                    st.pyplot(fig)
-
-                trend_csv = trend_df.pivot(index='Month', columns='School', values='Overall Avg').fillna('').reset_index()
-                import io
-                trend_io = io.StringIO()
-                trend_csv.to_csv(trend_io, index=False)
-
-    if st.button("💾 Save this Observation"):
-        for domain_label, (start_cell, count) in rubric_domains.items():
-            col = start_cell[0]
-            row = int(start_cell[1:])
-            score_range = f"{col}{row}:{col}{row + count - 1}"
-            avg_cell = f"{col}{row + count}"
-            judgment_cell = f"{col}{row + count + 1}"
-            ws[avg_cell] = f'=IF(COUNTA({score_range})=0, "", AVERAGEIF({score_range}, "<>NA"))'
-            ws[judgment_cell] = f'=IF({avg_cell}="", "", IF({avg_cell}>=5.5,"Outstanding",IF({avg_cell}>=4.5,"Very Good",IF({avg_cell}>=3.5,"Good",IF({avg_cell}>=2.5,"Acceptable",IF({avg_cell}>=1.5,"Weak","Very Weak"))))))'
-
-        ws["B5"] = gender
-        ws["B6"] = students
-        ws["B7"] = males
-        ws["B8"] = females
-        ws["D2"] = subject
-        ws["D3"] = duration_label
-        ws["D4"] = period
-        ws["D7"] = time_in.strftime("%H:%M")
-        ws["D8"] = time_out.strftime("%H:%M")
-
-        ws["Z1"] = "Observer Name"
-        ws["AA1"] = observer
-        ws["Z2"] = "Teacher Observed"
-        ws["AA2"] = teacher
-        ws["Z3"] = "Observation Type"
-        ws["AA3"] = obs_type
-        ws["Z4"] = "Timestamp"
-        ws["AA4"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ws["Z5"] = "Operator"
-        ws["AA5"] = operator
-        ws["Z6"] = "School Name"
-        ws["AA6"] = school
-        ws["Z7"] = "General Notes"
-        ws["AA7"] = overall_notes
-        ws["Z8"] = "Overall Average"
-        ws["AA8"] = overall_avg if all_scores else ""
-        ws["Z9"] = "Final Judgment"
-        ws["AA9"] = overall_judgment if all_scores else ""
-
-        if "Observation Log" not in wb.sheetnames:
-            log_ws = wb.create_sheet("Observation Log")
-            log_ws.append(["Sheet", "Observer", "Teacher", "Operator", "School", "Type", "Timestamp", "Notes", "Overall Avg", "Final Judgment"])
-        else:
-            log_ws: Worksheet = wb["Observation Log"]
-
-        log_ws.append([sheet_name, observer, teacher, operator, school, obs_type, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), overall_notes, overall_avg if all_scores else "", overall_judgment if all_scores else ""])
-
-        save_path = f"updated_{sheet_name}.xlsx"
-        wb.save(save_path)
-        with open(save_path, "rb") as f:
-            st.download_button("📅 Download updated workbook", f, file_name=save_path)
-        os.remove(save_path)
+            st.subheader("Observer Distribution")
+            observer_counts = filtered["Observer"].value_counts()
+            fig, ax = plt.subplots()
+            observer_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax)
+            ax.set_ylabel("")
+            st.pyplot(fig)
