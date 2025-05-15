@@ -64,8 +64,7 @@ elif page == "Observation Analytics":
     else:
         st.warning("Default file not found. Please upload or run a lesson observation first.")
 
-else:
-    if uploaded_file:
+if page == "Lesson Input" and uploaded_file:
     wb = load_workbook(uploaded_file)
     lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
     st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
@@ -285,6 +284,7 @@ else:
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
