@@ -151,48 +151,30 @@ elif page == "Observation Analytics":
                 
                 import io
                 reflection_buffer = io.StringIO()
-reflection_buffer.write("Reflection Summary Report
-
-")
+import io
+reflection_buffer = io.StringIO()
+reflection_buffer.write("Reflection Summary Report\n\n")
 
 if not school_reflection.empty:
-    reflection_buffer.write("School - Areas of Strength:
-")
+    reflection_buffer.write("School - Areas of Strength:\n")
     reflection_buffer.write(school_reflection.head(3).to_string())
-    reflection_buffer.write("
-
-School - Areas for Improvement:
-")
+    reflection_buffer.write("\n\nSchool - Areas for Improvement:\n")
     reflection_buffer.write(school_reflection.tail(3).to_string())
-    reflection_buffer.write("
-
-")
+    reflection_buffer.write("\n\n")
 
 if 'subject_reflection' in locals() and not subject_reflection.empty:
-    reflection_buffer.write("Subject - Areas of Strength:
-")
+    reflection_buffer.write("Subject - Areas of Strength:\n")
     reflection_buffer.write(subject_reflection.head(3).to_string())
-    reflection_buffer.write("
-
-Subject - Areas for Improvement:
-")
+    reflection_buffer.write("\n\nSubject - Areas for Improvement:\n")
     reflection_buffer.write(subject_reflection.tail(3).to_string())
-    reflection_buffer.write("
-
-")
+    reflection_buffer.write("\n\n")
 
 if 'grade_reflection' in locals() and not grade_reflection.empty:
-    reflection_buffer.write("Grade - Areas of Strength:
-")
+    reflection_buffer.write("Grade - Areas of Strength:\n")
     reflection_buffer.write(grade_reflection.head(3).to_string())
-    reflection_buffer.write("
-
-Grade - Areas for Improvement:
-")
+    reflection_buffer.write("\n\nGrade - Areas for Improvement:\n")
     reflection_buffer.write(grade_reflection.tail(3).to_string())
-    reflection_buffer.write("
-
-")
+    reflection_buffer.write("\n\n")
 
 pdf = FPDF()
         if os.path.exists("logos"):
