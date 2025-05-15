@@ -199,13 +199,13 @@ Grade - Areas for Improvement:
         pdf = FPDF()
         if os.path.exists("logos"):
             logo_path = (
-            f"logos/{school}.png" if os.path.exists(f"logos/{school}.png") else
-            f"logos/{school}.jpg" if os.path.exists(f"logos/{school}.jpg") else
-            f"logos/{school}.jpeg" if os.path.exists(f"logos/{school}.jpeg") else
-            "logos/default.png" if os.path.exists("logos/default.png") else
-            "logos/default.jpg" if os.path.exists("logos/default.jpg") else
-            "logos/default.jpeg"
-        )
+                f"logos/{school}.png" if os.path.exists(f"logos/{school}.png") else
+                f"logos/{school}.jpg" if os.path.exists(f"logos/{school}.jpg") else
+                f"logos/{school}.jpeg" if os.path.exists(f"logos/{school}.jpeg") else
+                "logos/default.png" if os.path.exists("logos/default.png") else
+                "logos/default.jpg" if os.path.exists("logos/default.jpg") else
+                "logos/default.jpeg"
+            )
             if os.path.exists(logo_path):
                 pdf.image(logo_path, x=170, y=8, w=30)
         pdf.add_page()
@@ -286,8 +286,9 @@ Score: {score if score else 'N/A'}")
 
         pdf_lang = st.radio("Select PDF language", ["English", "Arabic"], horizontal=True)
 
-        pdf = FPDF()
-        pdf.add_page()
+        # PDF already initialized and logo added above
+        # pdf = FPDF()
+        # pdf.add_page()
         pdf.set_font("Arial", size=12)
         if pdf_lang == "Arabic":
             pdf.cell(200, 10, txt="ملخص ملاحظة الحصة الدراسية", ln=True, align='C')
