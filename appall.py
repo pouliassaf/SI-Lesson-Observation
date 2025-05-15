@@ -224,24 +224,22 @@ pdf_output = pdf.output(dest='S').encode('latin-1')
 pdf_lang = st.radio("Select PDF language", ["English", "Arabic"], horizontal=True)
 
 pdf.set_font("Arial", size=12)
-
 pdf.add_page()
+
 if pdf_lang == "Arabic":
     pdf.cell(200, 10, txt="ملخص ملاحظة الحصة الدراسية", ln=True, align='C')
     pdf.ln(10)
-    pdf.multi_cell(0, 10, txt="ملاحظات عامة:\n")
-
-")
+    pdf.multi_cell(0, 10, txt="ملاحظات عامة:
+لم يتم إدخال ملاحظات.")
     support_plan = "الخطوات التالية:
-"
+يرجى مراجعة عناصر التقييم لتوليد خطة دعم."
 else:
     pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
     pdf.ln(10)
-    pdf.multi_cell(0, 10, txt="General Notes:\n")
-
-")
+    pdf.multi_cell(0, 10, txt="General Notes:
+No notes were entered.")
     support_plan = "Next Steps:
-"
+Please review rubric input to generate a support plan."
 
 pdf.multi_cell(0, 10, txt=support_plan)
 pdf_output = pdf.output(dest='S').encode('latin-1')
