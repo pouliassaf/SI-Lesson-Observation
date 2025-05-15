@@ -228,8 +228,8 @@ pdf.set_font("Arial", size=12)
 if pdf_lang == "Arabic":
     pdf.cell(200, 10, txt="ملخص ملاحظة الحصة الدراسية", ln=True, align='C')
     pdf.ln(10)
-pdf.multi_cell(0, 10, txt="ملاحظات عامة:\n" + str(overall_notes))
-
+    pdf.multi_cell(0, 10, txt="ملاحظات عامة:
+" + str(overall_notes))
     pdf.ln(5)
     support_plan = "الخطوات التالية:
 "
@@ -279,8 +279,8 @@ else:
     pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
     pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
     pdf.ln(5)
-pdf.multi_cell(0, 10, txt="General Notes:\n" + str(overall_notes))
-
+    pdf.multi_cell(0, 10, txt="General Notes:
+" + str(overall_notes))
     pdf.ln(5)
     support_plan = "Next Steps:
 "
