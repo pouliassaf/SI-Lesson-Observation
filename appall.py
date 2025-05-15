@@ -194,9 +194,9 @@ if os.path.exists("logos"):
 
 pdf.add_page()
 pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
-        pdf.ln(10)
-        pdf.multi_cell(0, 10, txt=f"Observer: {observer}
+pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
+pdf.ln(10)
+pdf.multi_cell(0, 10, txt=f"Observer: {observer}
 Teacher: {teacher}
 Subject: {subject}
 School: {school}
@@ -206,67 +206,19 @@ Date: {date}
 Duration: {duration_label}
 Period: {period}
 Observation Type: {obs_type}")
-        pdf.ln(5)
-        pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
-        pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
-        pdf.ln(5)
-        pdf.multi_cell(0, 10, txt=f"General Notes:
+pdf.ln(5)
+pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
+pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
+pdf.ln(5)
+pdf.multi_cell(0, 10, txt=f"General Notes:
 {overall_notes}")
-        pdf.ln(5)
+pdf.ln(5)
+pdf.multi_cell(0, 10, txt=support_plan)
+pdf.set_y(-20)
+pdf.set_font("Arial", size=8)
+pdf.cell(0, 10, txt=f"{school} • {date.strftime('%Y-%m-%d')}", ln=True, align='C')
 
-        support_plan = "Next Steps:
-"
-        if overall_judgment in ["Weak", "Very Weak"]:
-            support_plan += "- A follow-up coaching session should be scheduled within 2 weeks.
-- Targeted professional development should be prioritized.
-- Provide classroom support and peer observation opportunities."
-        elif overall_judgment == "Acceptable":
-            support_plan += "- Encourage reflection on areas of improvement.
-- Recommend joining PLC sessions.
-- Track follow-up observations within the term."
-        elif overall_judgment in ["Good", "Very Good"]:
-            support_plan += "- Maintain consistency across lessons.
-- Support other teachers through mentorship or peer reviews."
-        elif overall_judgment == "Outstanding":
-            support_plan += "- Consider leading PD sessions.
-- Share exemplary practices across teams.
-- Contribute to strategic improvement projects."
-        else:
-            support_plan += "- No judgment available. Please review rubric input."
-
-        arabic_labels = {
-            "Learning Objective Visible": "الهدف التعليمي ظاهر",
-            "Questioning Techniques": "تقنيات طرح الأسئلة",
-            "Student Engagement": "مشاركة الطلاب",
-            "Use of Resources": "استخدام الموارد",
-            "Assessment for Learning": "التقويم من أجل التعلم",
-            "Classroom Management": "إدارة الصف",
-            "Differentiation": "التمايز",
-            "Student-Centered Learning": "التعلم المتمحور حول الطالب",
-            "Use of Technology": "استخدام التقنية"
-        }
-
-        pdf.ln(10)
-        pdf.set_font("Arial", 'B', size=12)
-        pdf.cell(0, 10, txt="Rubric Elements Summary:", ln=True)
-        pdf.set_font("Arial", size=11)
-
-        for domain, (start_cell, count) in rubric_domains.items():
-            col = start_cell[0]
-            row = int(start_cell[1:])
-            for i in range(count):
-                label = ws[f"B{row + i}"].value
-                score = ws[f"{col}{row + i}"].value
-                label_ar = arabic_labels.get(label, "")
-                pdf.multi_cell(0, 10, txt=f"{label} ({label_ar})
-Score: {score if score else 'N/A'}")
-
-        pdf.multi_cell(0, 10, txt=support_plan)
-        pdf.set_y(-20)
-        pdf.set_font("Arial", size=8)
-        pdf.cell(0, 10, txt=f"{school} • {date.strftime('%Y-%m-%d')}", ln=True, align='C')
-
-        pdf_output = pdf.output(dest='S').encode('latin-1')
+pdf_output = pdf.output(dest='S').encode('latin-1')
 
         pdf_lang = st.radio("Select PDF language", ["English", "Arabic"], horizontal=True)
 
@@ -461,6 +413,7 @@ Observation Type: {obs_type}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
