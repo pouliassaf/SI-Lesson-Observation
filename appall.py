@@ -5,6 +5,12 @@ from datetime import datetime
 import os
 import statistics
 
+uploaded_file = None
+DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
+if not uploaded_file and os.path.exists(DEFAULT_FILE):
+    uploaded_file = open(DEFAULT_FILE, "rb")
+    st.info("Using default template workbook.")
+
 st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
 
 page = st.sidebar.selectbox("Choose a page:", ["Lesson Input", "Observation Analytics"])
@@ -94,11 +100,7 @@ if page == "Lesson Input":
 
 
 
-uploaded_file = None
-DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
-if not uploaded_file and os.path.exists(DEFAULT_FILE):
-    uploaded_file = open(DEFAULT_FILE, "rb")
-    st.info("Using default template workbook.")
+
 
 elif page == "Observation Analytics":
     import pandas as pd
