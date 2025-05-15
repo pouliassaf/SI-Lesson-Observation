@@ -179,6 +179,7 @@ if 'grade_reflection' in locals() and not grade_reflection.empty:
 from fpdf import FPDF
 
 pdf = FPDF()
+
 if os.path.exists("logos"):
             logo_path = (
                 f"logos/{school}.png" if os.path.exists(f"logos/{school}.png") else
@@ -190,7 +191,7 @@ if os.path.exists("logos"):
             )
             if os.path.exists(logo_path):
                 pdf.image(logo_path, x=170, y=8, w=30)
-        pdf.add_page()
+    pdf.add_page()
         pdf.set_font("Arial", size=12)
         pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
         pdf.ln(10)
@@ -459,6 +460,7 @@ Observation Type: {obs_type}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
