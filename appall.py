@@ -48,7 +48,7 @@ if page == "Lesson Input":
 
         observer = st.text_input("Observer Name")
         teacher = st.text_input("Teacher Name")
-teacher_email = st.text_input("Teacher Email")
+        teacher_email = st.text_input("Teacher Email")
         operator = st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]))
 
         school_options = {
