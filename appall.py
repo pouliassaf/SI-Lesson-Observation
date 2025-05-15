@@ -12,6 +12,82 @@ page = st.sidebar.selectbox("Choose a page:", ["Lesson Input", "Observation Anal
 if page == "Lesson Input":
     st.title("Weekly Lesson Observation Input Tool")
 
+    if uploaded_file:
+        wb = load_workbook(uploaded_file)
+        lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
+        st.success(f"Found {len(lo_sheets)} LO sheets in workbook.")
+
+        selected_option = st.selectbox("Select existing LO sheet or create a new one:", ["Create new"] + lo_sheets)
+
+        if selected_option == "Create new":
+            next_index = 1
+            while f"LO {next_index}" in wb.sheetnames:
+                next_index += 1
+            sheet_name = f"LO {next_index}"
+            wb.copy_worksheet(wb["LO 1"]).title = sheet_name
+            st.success(f"Created new sheet: {sheet_name}")
+        else:
+            sheet_name = selected_option
+
+        ws = wb[sheet_name]
+        st.subheader(f"Filling data for: {sheet_name}")
+
+        observer = st.text_input("Observer Name")
+        teacher = st.text_input("Teacher Name")
+        operator = st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]))
+
+        school_options = {
+            "New Century Education": [
+                "Al Bayan School", "Al Bayraq School", "Al Dhaher School", "Al Hosoon School",
+                "Al Mutanabi School", "Al Nahdha School", "Jern Yafoor School", "Maryam Bint Omran School"
+            ],
+            "Taaleem": [
+                "Al Ahad Charter School", "Al Azm Charter School", "Al Riyadh Charter School", "Al Majd Charter School",
+                "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School",
+                "Al Walaa Charter Kindergarten", "Al Forsan Charter Kindergarten", "Al Wafaa Charter Kindergarten",
+                "Al Watan Charter School"
+            ],
+            "Al Dar": [
+                "Al Ghad Charter School", "Al Mushrif Charter Kindergarten", "Al Danah Charter School",
+                "Al Rayaheen Charter School", "Al Rayana Charter School", "Al Qurm Charter School",
+                "Mubarak Bin Mohammed Charter School (Cycle 2 & 3)"
+            ],
+            "Bloom": [
+                "Al Ain Charter School", "Al Dana Charter School", "Al Ghadeer Charter School", "Al Hili Charter School",
+                "Al Manhal Charter School", "Al Qattara Charter School", "Al Towayya Charter School",
+                "Jabel Hafeet Charter School"
+            ]
+        }
+
+        school_list = sorted(school_options.get(operator, []))
+        school = st.selectbox("School Name", school_list)
+        grade = st.selectbox("Grade", [f"Grade {i}" for i in range(1, 13)] + ["K1", "K2"])
+        subject = st.selectbox("Subject", ["Math", "English", "Arabic", "Science", "Islamic", "Social Studies"])
+        gender = st.selectbox("Gender", ["Male", "Female", "Mixed"])
+        students = st.text_input("Number of Students")
+        males = st.text_input("Number of Males")
+        females = st.text_input("Number of Females")
+        time_in = st.time_input("Time In")
+        time_out = st.time_input("Time Out")
+
+        try:
+            lesson_duration = datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)
+            minutes = round(lesson_duration.total_seconds() / 60)
+            duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
+            st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
+        except Exception:
+            st.warning("Could not calculate lesson duration.")
+
+        period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
+        obs_type = st.selectbox("Observation Type", ["Individual", "Joint"])
+
+        st.session_state.update({
+            "observer": observer, "teacher": teacher, "operator": operator, "school": school,
+            "grade": grade, "subject": subject, "gender": gender, "students": students,
+            "males": males, "females": females, "time_in": time_in, "time_out": time_out,
+            "duration_label": duration_label, "period": period, "obs_type": obs_type
+        })
+
     
 
     
