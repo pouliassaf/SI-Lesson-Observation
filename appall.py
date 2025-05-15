@@ -222,7 +222,6 @@ pdf.cell(0, 10, txt=f"{school} • {date.strftime('%Y-%m-%d')}", ln=True, align=
 
 pdf_output = pdf.output(dest='S').encode('latin-1')
 pdf_lang = st.radio("Select PDF language", ["English", "Arabic"], horizontal=True)
-
         # PDF already initialized and logo added above
         # pdf = FPDF()
         # pdf.add_page()
@@ -411,6 +410,7 @@ pdf.multi_cell(0, 10, txt=f"ملاحظات عامة:\n{overall_notes}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
