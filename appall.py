@@ -212,7 +212,8 @@ pdf.ln(5)
 pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
 pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
 pdf.ln(5)
-pdf.multi_cell(0, 10, txt=(f"General Notes:\n{overall_notes}"))
+pdf.multi_cell(0, 10, txt=f"General Notes:
+{overall_notes}")
 ))
 pdf.ln(5)
 pdf.multi_cell(0, 10, txt=support_plan)
@@ -232,7 +233,8 @@ pdf_output = pdf.output(dest='S').encode('latin-1')
             pdf.cell(200, 10, txt="ملخص ملاحظة الحصة الدراسية", ln=True, align='C')
             pdf.ln(10)
             pdf.set_font("Arial", size=12)
-pdf.multi_cell(0, 10, txt=(f"ملاحظات عامة:\n{overall_notes}"))
+pdf.multi_cell(0, 10, txt=f"ملاحظات عامة:
+{overall_notes}")
 
 ))
             pdf.ln(5)
@@ -413,6 +415,7 @@ pdf.multi_cell(0, 10, txt=(f"ملاحظات عامة:\n{overall_notes}"))
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
