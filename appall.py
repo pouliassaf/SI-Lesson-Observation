@@ -196,16 +196,27 @@ pdf.add_page()
 pdf.set_font("Arial", size=12)
 pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
 pdf.ln(10)
-pdf.multi_cell(0, 10, txt=f"Observer: {observer}
-Teacher: {teacher}
-Subject: {subject}
-School: {school}
-Grade: {grade}
-Gender: {gender}
-Date: {date}
-Duration: {duration_label}
-Period: {period}
-Observation Type: {obs_type}")
+pdf.multi_cell(0, 10, txt=(
+    f"Observer: {observer}
+"
+    f"Teacher: {teacher}
+"
+    f"Subject: {subject}
+"
+    f"School: {school}
+"
+    f"Grade: {grade}
+"
+    f"Gender: {gender}
+"
+    f"Date: {date}
+"
+    f"Duration: {duration_label}
+"
+    f"Period: {period}
+"
+    f"Observation Type: {obs_type}"
+))
 pdf.ln(5)
 pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
 pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
@@ -230,16 +241,27 @@ pdf_output = pdf.output(dest='S').encode('latin-1')
             pdf.cell(200, 10, txt="ملخص ملاحظة الحصة الدراسية", ln=True, align='C')
             pdf.ln(10)
             pdf.set_font("Arial", size=12)
-            pdf.multi_cell(0, 10, txt=f"الملاحظ: {observer}
-المعلم: {teacher}
-المادة: {subject}
-المدرسة: {school}
-الصف: {grade}
-الجنس: {gender}
-التاريخ: {date}
-المدة: {duration_label}
-الحصة: {period}
-نوع الملاحظة: {obs_type}")
+            pdf.multi_cell(0, 10, txt=(
+    f"الملاحظ: {observer}
+"
+    f"المعلم: {teacher}
+"
+    f"المادة: {subject}
+"
+    f"المدرسة: {school}
+"
+    f"الصف: {grade}
+"
+    f"الجنس: {gender}
+"
+    f"التاريخ: {date}
+"
+    f"المدة: {duration_label}
+"
+    f"الحصة: {period}
+"
+    f"نوع الملاحظة: {obs_type}"
+))
             pdf.ln(5)
             pdf.cell(200, 10, txt=f"المعدل العام: {overall_avg if all_scores else 'N/A'}", ln=True)
             pdf.cell(200, 10, txt=f"الحكم النهائي: {overall_judgment if all_scores else 'N/A'}", ln=True)
@@ -269,16 +291,27 @@ pdf_output = pdf.output(dest='S').encode('latin-1')
         else:
             pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
             pdf.ln(10)
-            pdf.multi_cell(0, 10, txt=f"Observer: {observer}
-Teacher: {teacher}
-Subject: {subject}
-School: {school}
-Grade: {grade}
-Gender: {gender}
-Date: {date}
-Duration: {duration_label}
-Period: {period}
-Observation Type: {obs_type}")
+            pdf.multi_cell(0, 10, txt=(
+    f"Observer: {observer}
+"
+    f"Teacher: {teacher}
+"
+    f"Subject: {subject}
+"
+    f"School: {school}
+"
+    f"Grade: {grade}
+"
+    f"Gender: {gender}
+"
+    f"Date: {date}
+"
+    f"Duration: {duration_label}
+"
+    f"Period: {period}
+"
+    f"Observation Type: {obs_type}"
+))
             pdf.ln(5)
             pdf.cell(200, 10, txt=f"Overall Average: {overall_avg if all_scores else 'N/A'}", ln=True)
             pdf.cell(200, 10, txt=f"Final Judgment: {overall_judgment if all_scores else 'N/A'}", ln=True)
@@ -413,6 +446,7 @@ Observation Type: {obs_type}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
