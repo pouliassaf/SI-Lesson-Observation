@@ -151,7 +151,9 @@ elif page == "Observation Analytics":
                 
                 import io
                 reflection_buffer = io.StringIO()
-reflection_buffer.write("Reflection Summary Report\n")
+reflection_buffer.write("Reflection Summary Report
+
+")
 
 if not school_reflection.empty:
     reflection_buffer.write("School - Areas of Strength:
@@ -473,6 +475,7 @@ Observation Type: {obs_type}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
