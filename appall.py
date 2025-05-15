@@ -197,24 +197,15 @@ pdf.set_font("Arial", size=12)
 pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
 pdf.ln(10)
 pdf.multi_cell(0, 10, txt=(
-    f"Observer: {observer}
-"
-    f"Teacher: {teacher}
-"
-    f"Subject: {subject}
-"
-    f"School: {school}
-"
-    f"Grade: {grade}
-"
-    f"Gender: {gender}
-"
-    f"Date: {date}
-"
-    f"Duration: {duration_label}
-"
-    f"Period: {period}
-"
+    f"Observer: {observer}\n"
+    f"Teacher: {teacher}\n"
+    f"Subject: {subject}\n"
+    f"School: {school}\n"
+    f"Grade: {grade}\n"
+    f"Gender: {gender}\n"
+    f"Date: {date}\n"
+    f"Duration: {duration_label}\n"
+    f"Period: {period}\n"
     f"Observation Type: {obs_type}"
 ))
 pdf.ln(5)
@@ -446,6 +437,7 @@ pdf_output = pdf.output(dest='S').encode('latin-1')
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
