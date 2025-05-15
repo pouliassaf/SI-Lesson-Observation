@@ -118,12 +118,6 @@ elif page == "Observation Analytics":
                 import io
                 trend_io = io.StringIO()
                 trend_csv.to_csv(trend_io, index=False)
-                
-
-        
-        )
-
-        # Remaining unchanged code for saving to Excel, etc.
 
     if st.button("💾 Save this Observation"):
         for domain_label, (start_cell, count) in rubric_domains.items():
