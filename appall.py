@@ -229,14 +229,16 @@ pdf.add_page()
 if pdf_lang == "Arabic":
     pdf.cell(200, 10, txt="ملخص ملاحظة الحصة الدراسية", ln=True, align='C')
     pdf.ln(10)
-    pdf.multi_cell(0, 10, txt="ملاحظات عامة:
+    pdf.multi_cell(0, 10, txt="ملاحظات عامة:\n")
+
 ")
     support_plan = "الخطوات التالية:
 "
 else:
     pdf.cell(200, 10, txt="Lesson Observation Summary", ln=True, align='C')
     pdf.ln(10)
-    pdf.multi_cell(0, 10, txt="General Notes:
+    pdf.multi_cell(0, 10, txt="General Notes:\n")
+
 ")
     support_plan = "Next Steps:
 "
