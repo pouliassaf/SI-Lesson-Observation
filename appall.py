@@ -176,8 +176,10 @@ if 'grade_reflection' in locals() and not grade_reflection.empty:
     reflection_buffer.write(grade_reflection.tail(3).to_string())
     reflection_buffer.write("\n\n")
 
+from fpdf import FPDF
+
 pdf = FPDF()
-        if os.path.exists("logos"):
+if os.path.exists("logos"):
             logo_path = (
                 f"logos/{school}.png" if os.path.exists(f"logos/{school}.png") else
                 f"logos/{school}.jpg" if os.path.exists(f"logos/{school}.jpg") else
@@ -457,6 +459,7 @@ Observation Type: {obs_type}")
         with open(save_path, "rb") as f:
             st.download_button("📅 Download updated workbook", f, file_name=save_path)
         os.remove(save_path)
+
 
 
 
