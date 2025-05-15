@@ -5,6 +5,8 @@ from datetime import datetime
 import os
 import statistics
 
+
+
 uploaded_file = None
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 if not uploaded_file and os.path.exists(DEFAULT_FILE):
