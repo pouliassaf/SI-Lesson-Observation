@@ -1,9 +1,11 @@
 import streamlit as st
 from openpyxl import load_workbook
-from openpyxl.worksheet.worksheet import Worksheet
 from datetime import datetime
 import os
 import statistics
+import pandas as pd
+import matplotlib.pyplot as plt
+import csv
 
 st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
 
@@ -38,14 +40,8 @@ if page == "Lesson Input":
             while f"LO {next_index}" in wb.sheetnames:
                 next_index += 1
             sheet_name = f"LO {next_index}"
-            # Ensure the template sheet "LO 1" exists before copying
-            if "LO 1" in wb.sheetnames:
-                 wb.copy_worksheet(wb["LO 1"]).title = sheet_name
-                 st.success(f"Created new sheet: {sheet_name}")
-            else:
-                 st.error("Error: 'LO 1' template sheet not found in the workbook!")
-                 st.stop() # Stop execution if template is missing
-
+            wb.copy_worksheet(wb["LO 1"]).title = sheet_name
+            st.success(f"Created new sheet: {sheet_name}")
         else:
             sheet_name = selected_option
 
@@ -58,26 +54,10 @@ if page == "Lesson Input":
         operator = st.selectbox("Operator", sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]))
 
         school_options = {
-            "New Century Education": [
-                "Al Bayan School", "Al Bayraq School", "Al Dhaher School", "Al Hosoon School",
-                "Al Mutanabi School", "Al Nahdha School", "Jern Yafoor School", "Maryam Bint Omran School"
-            ],
-            "Taaleem": [
-                "Al Ahad Charter School", "Al Azm Charter School", "Al Riyadh Charter School", "Al Majd Charter School",
-                "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School",
-                "Al Walaa Charter Kindergarten", "Al Forsan Charter Kindergarten", "Al Wafaa Charter Kindergarten",
-                "Al Watan Charter School"
-            ],
-            "Al Dar": [
-                "Al Ghad Charter School", "Al Mushrif Charter Kindergarten", "Al Danah Charter School",
-                "Al Rayaheen Charter School", "Al Rayana Charter School", "Al Qurm Charter School",
-                "Mubarak Bin Mohammed Charter School (Cycle 2 & 3)"
-            ],
-            "Bloom": [
-                "Al Ain Charter School", "Al Dana Charter School", "Al Ghadeer Charter School", "Al Hili Charter School",
-                "Al Manhal Charter School", "Al Qattara Charter School", "Al Towayya Charter School",
-                "Jabel Hafeet Charter School"
-            ]
+            "New Century Education": ["Al Bayan School", "Al Bayraq School", "Al Dhaher School", "Al Hosoon School", "Al Mutanabi School", "Al Nahdha School", "Jern Yafoor School", "Maryam Bint Omran School"],
+            "Taaleem": ["Al Ahad Charter School", "Al Azm Charter School", "Al Riyadh Charter School", "Al Majd Charter School", "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School", "Al Walaa Charter Kindergarten", "Al Forsan Charter Kindergarten", "Al Wafaa Charter Kindergarten", "Al Watan Charter School"],
+            "Al Dar": ["Al Ghad Charter School", "Al Mushrif Charter Kindergarten", "Al Danah Charter School", "Al Rayaheen Charter School", "Al Rayana Charter School", "Al Qurm Charter School", "Mubarak Bin Mohammed Charter School (Cycle 2 & 3)"],
+            "Bloom": ["Al Ain Charter School", "Al Dana Charter School", "Al Ghadeer Charter School", "Al Hili Charter School", "Al Manhal Charter School", "Al Qattara Charter School", "Al Towayya Charter School", "Jabel Hafeet Charter School"]
         }
 
         school_list = sorted(school_options.get(operator, []))
@@ -91,298 +71,100 @@ if page == "Lesson Input":
         time_in = st.time_input("Time In")
         time_out = st.time_input("Time Out")
 
-        lesson_duration = None # Initialize outside try block
-        duration_label = "N/A" # Initialize outside try block
-        minutes = 0 # Initialize outside try block
-
         try:
-            # Ensure both time_in and time_out are not None before calculating
-            if time_in is not None and time_out is not None:
-                lesson_duration = datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)
-                minutes = round(lesson_duration.total_seconds() / 60)
-                duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
-                st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
-            else:
-                 st.warning("Please enter both 'Time In' and 'Time Out' to calculate duration.")
-        except Exception as e:
-            st.warning(f"Could not calculate lesson duration: {e}")
-
+            lesson_duration = datetime.combine(datetime.today(), time_out) - datetime.combine(datetime.today(), time_in)
+            minutes = round(lesson_duration.total_seconds() / 60)
+            duration_label = "Full Lesson" if minutes >= 40 else "Walkthrough"
+            st.markdown(f"🕒 **Lesson Duration:** {minutes} minutes — _{duration_label}_")
+        except Exception:
+            st.warning("Could not calculate lesson duration.")
 
         period = st.selectbox("Period", [f"Period {i}" for i in range(1, 9)])
         obs_type = st.selectbox("Observation Type", ["Individual", "Joint"])
 
         rubric_domains = {
-            "Domain 1": ("I11", 5),
-            "Domain 2": ("I20", 3),
-            "Domain 3": ("I27", 4),
-            "Domain 4": ("I35", 3),
-            "Domain 5": ("I42", 2),
-            "Domain 6": ("I48", 2),
-            "Domain 7": ("I54", 2),
-            "Domain 8": ("I60", 3),
-            "Domain 9": ("I67", 2)
+            "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
+            "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
         }
 
         st.markdown("---")
         st.subheader("Rubric Scores")
 
-        for domain, (start_cell, count) in rubric_domains.items():
+        domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff", "#f2ffe6", "#ffe6f2"]
+        for idx, (domain, (start_cell, count)) in enumerate(rubric_domains.items()):
+            background = domain_colors[idx % len(domain_colors)]
+            st.markdown(f"""
+            <div style='background-color:{background};padding:12px;border-radius:10px;margin-bottom:5px;'>
+            <h4 style='margin-bottom:5px;'>{domain}: {ws[f'A{int(start_cell[1:])}'].value}</h4>
+            </div>
+            """, unsafe_allow_html=True)
             col = start_cell[0]
             row = int(start_cell[1:])
-            domain_title = ws[f'A{row}'].value or domain # Get domain title from A
-            st.markdown(f"**{domain_title}**") # Display domain title
-
             for i in range(count):
-                element_row = row + i
-                # Get the description from column B for the current element row
-                description = ws[f"B{element_row}"].value
-
-                # Display the description using markdown before the selectbox
-                if description: # Only display if the cell B has content
-                     st.markdown(f"**Element {domain[-1]}.{i+1}:** {description}")
-                else:
-                     st.markdown(f"**Element {domain[-1]}.{i+1}:** No description available.")
-
-
-                # Use a simpler label for the selectbox now that the description is displayed above
-                # The key remains important for Streamlit to track the widget state correctly
-                rating = st.selectbox(f"Rating for Element {domain[-1]}.{i+1}", [6, 5, 4, 3, 2, 1, "NA"], key=f"{sheet_name}_{domain}_{i}")
-
-                ws[f"{col}{element_row}"] = rating
+                label = ws[f"B{row + i}"].value or f"Element {domain[-1]}.{i+1}"
+                rubric = [ws[f"C{row + i}"].value, ws[f"D{row + i}"].value, ws[f"E{row + i}"].value, ws[f"F{row + i}"].value, ws[f"G{row + i}"].value, ws[f"H{row + i}"].value]
+                rubric_text = "\n\n".join([f"**{6-j}:** {desc}" for j, desc in enumerate(rubric) if desc])
+                st.markdown(f"**{label}**")
+                with st.expander("Rubric Descriptors"):
+                    st.markdown(rubric_text)
+                rating = st.selectbox(f"Rating for {label}", [6, 5, 4, 3, 2, 1, "NA"], key=f"{sheet_name}_{domain}_{i}")
+                ws[f"{col}{row + i}"] = rating
 
         send_feedback = st.checkbox("✉️ Send Feedback to Teacher")
 
         if st.button("💾 Save Observation"):
-            # Ensure essential fields are filled before saving (optional but good practice)
-            if not all([observer, teacher, school, grade, subject, students, males, females, time_in, time_out]):
-                 st.warning("Please fill in all basic information fields before saving.")
-                 #st.stop() # Don't stop, just warn. Let them fill and click save again.
-            else: # Proceed only if essential fields are filled
-                ws["Z1"] = "Observer Name"
-                ws["AA1"] = observer
-                ws["Z2"] = "Teacher"
-                ws["AA2"] = teacher
-                ws["Z3"] = "Observation Type"
-                ws["AA3"] = obs_type
-                ws["Z4"] = "Operator"
-                ws["AA4"] = operator
-                ws["Z5"] = "School"
-                ws["AA5"] = school
-                ws["Z6"] = "Subject"
-                ws["AA6"] = subject
-                ws["Z7"] = "Grade"
-                ws["AA7"] = grade
-                ws["Z8"] = "Gender"
-                ws["AA8"] = gender
-                ws["Z9"] = "Students"
-                ws["AA9"] = students # Consider converting to int if needed elsewhere
-                ws["Z10"] = "Males"
-                ws["AA10"] = males # Consider converting to int if needed elsewhere
-                ws["Z11"] = "Females"
-                ws["AA11"] = females # Consider converting to int if needed elsewhere
-                ws["Z12"] = "Duration"
-                ws["AA12"] = duration_label
-                ws["Z13"] = "Time In"
-                # Check if time_in is not None before formatting
-                ws["AA13"] = time_in.strftime("%H:%M") if time_in else "N/A"
-                ws["Z14"] = "Time Out"
-                 # Check if time_out is not None before formatting
-                ws["AA14"] = time_out.strftime("%H:%M") if time_out else "N/A"
+            ws["Z1"] = "Observer Name"; ws["AA1"] = observer
+            ws["Z2"] = "Teacher"; ws["AA2"] = teacher
+            ws["Z3"] = "Observation Type"; ws["AA3"] = obs_type
+            ws["Z4"] = "Operator"; ws["AA4"] = operator
+            ws["Z5"] = "School"; ws["AA5"] = school
+            ws["Z6"] = "Subject"; ws["AA6"] = subject
+            ws["Z7"] = "Grade"; ws["AA7"] = grade
+            ws["Z8"] = "Gender"; ws["AA8"] = gender
+            ws["Z9"] = "Students"; ws["AA9"] = students
+            ws["Z10"] = "Males"; ws["AA10"] = males
+            ws["Z11"] = "Females"; ws["AA11"] = females
+            ws["Z12"] = "Duration"; ws["AA12"] = duration_label
+            ws["Z13"] = "Time In"; ws["AA13"] = time_in.strftime("%H:%M")
+            ws["Z14"] = "Time Out"; ws["AA14"] = time_out.strftime("%H:%M")
 
+            save_path = f"updated_{sheet_name}.xlsx"
+            wb.save(save_path)
+            with open(save_path, "rb") as f:
+                st.download_button("📥 Download updated workbook", f, file_name=save_path)
+            os.remove(save_path)
 
-                save_path = f"updated_{sheet_name}.xlsx"
-                try:
-                    wb.save(save_path)
-                    st.success(f"Observation data saved to {sheet_name} in {save_path}")
-                    with open(save_path, "rb") as f:
-                        st.download_button("📥 Download updated workbook", f, file_name=save_path)
-                    os.remove(save_path) # Clean up the temporary file
-                except Exception as e:
-                     st.error(f"Error saving workbook: {e}")
+            if send_feedback and teacher_email:
+                feedback = (
+                    f"Dear {teacher},\n\n"
+                    "Your lesson observation has been saved.\n"
+                    f"Observer: {observer}\n"
+                    f"Duration: {duration_label}\n"
+                    f"Subject: {subject}\n"
+                    f"School: {school}\n\n"
+                    "Based on rubric ratings, please review your updated workbook for details.\n\n"
+                    "Regards,\nSchool Leadership Team"
+                )
+                st.success("Feedback generated (simulated):\n\n" + feedback)
 
-
-                # Corrected feedback string formatting
-                if send_feedback and teacher_email:
-                    feedback = (
-                        f"Dear {teacher},\n\n"  # Use \n\n for blank lines
-                        "Your lesson observation has been saved.\n" # Use \n for single lines
-                        f"Observer: {observer}\n"
-                        f"Duration: {duration_label}\n"
-                        f"Subject: {subject}\n"
-                        f"School: {school}\n\n" # Use \n\n
-                        "Based on rubric ratings, please review your updated workbook for details.\n\n" # Use \n\n
-                        "Regards,\n" # Use \n
-                        "School Leadership Team"
-                    )
-                    st.success("Feedback generated (simulated):\n\n" + feedback)
-
-
-# This elif block is correctly indented at the top level
-elif page == "Observation Analytics":
-    st.title("Observation Analytics Dashboard")
-
-    if uploaded_file:
-        # Use data_only=True to get calculated values from the Excel file
-        wb = load_workbook(uploaded_file, data_only=True)
-        sheets = [s for s in wb.sheetnames if s.startswith("LO ")]
-
-        if not sheets:
-            st.warning("No 'LO ' sheets found in the workbook for analytics.")
-        else:
-            domain_scores = {domain: [] for domain in [f"Domain {i}" for i in range(1, 10)]}
-            metadata = []
-
-            for sheet in sheets:
-                ws = wb[sheet]
-                row_info = {
-                    "Sheet": sheet, # Add sheet name for reference
-                    "Observer": ws["AA1"].value,
-                    "Teacher": ws["AA2"].value, # Added Teacher name
-                    "Observation Type": ws["AA3"].value, # Added Observation Type
-                    "Operator": ws["AA4"].value, # Added Operator
-                    "School": ws["AA5"].value,
-                    "Subject": ws["AA6"].value,
-                    "Grade": ws["AA7"].value,
-                    "Gender": ws["AA8"].value, # Added Gender
-                    "Students": ws["AA9"].value, # Added Student counts
-                    "Males": ws["AA10"].value,
-                    "Females": ws["AA11"].value,
-                    "Duration": ws["AA12"].value, # Added duration label
-                    "Time In": ws["AA13"].value, # Added times
-                    "Time Out": ws["AA14"].value,
-                 }
-                metadata.append(row_info)
-
-                # Collect individual rubric element scores (convert to float if possible, ignore non-numeric)
-                # Calculate average score for each domain in this sheet and append if ratings exist
-                sheet_domain_avg = {} # Store average for each domain in the current sheet
-                for domain, (start_cell, count) in {
-                    "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
-                    "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
-                }.items():
-                    col = start_cell[0]
-                    row = int(start_cell[1:])
-                    domain_element_ratings = [] # Ratings for elements within THIS domain in THIS sheet
-                    for j in range(count):
-                        cell_value = ws[f"{col}{row + j}"].value
-                        try:
-                            rating = float(cell_value)
-                            domain_element_ratings.append(rating)
-                        except (ValueError, TypeError):
-                            pass # Ignore non-numeric
-
-                    if domain_element_ratings:
-                        # Calculate average for this domain in THIS sheet
-                        sheet_domain_avg[domain] = statistics.mean(domain_element_ratings)
-
-
-                # Append this sheet's domain averages to the overall list of averages for each domain
-                for domain, avg in sheet_domain_avg.items():
-                     domain_scores[domain].append(avg)
-
-
-
-            import pandas as pd
-            import matplotlib.pyplot as plt
-
-            # Calculate overall averages from domain_scores (which now holds averages per sheet)
-            avg_scores = {domain: round(statistics.mean(scores), 2) if scores else 0 for domain, scores in domain_scores.items() if scores}
-
-            # Ensure all domains are included, using 0 if no scores were collected
-            all_domains_list = [f"Domain {i}" for i in range(1, 10)]
-            overall_avg_data = [{"Domain": d, "Average Score": avg_scores.get(d, 0)} for d in all_domains_list]
-            df_avg = pd.DataFrame(overall_avg_data)
-
-            st.subheader("Average Score per Domain (Across all observations)")
-            if not df_avg.empty and df_avg["Average Score"].sum() > 0:
-                st.bar_chart(df_avg.set_index("Domain"))
-            else:
-                 st.info("No numeric scores found across all observations to calculate overall domain averages.")
-
-
-            df_meta = pd.DataFrame(metadata)
-            if not df_meta.empty:
-                st.subheader("Observation Data Summary")
-                st.dataframe(df_meta) # Show the full metadata table
-
-                st.subheader("Filter and Analyze")
-                # Use unique values from the dataframe for filters
-                col1, col2, col3 = st.columns(3)
-                school_filter = col1.selectbox("Filter by School", ["All"] + sorted(df_meta["School"].dropna().unique().tolist()))
-                grade_filter = col2.selectbox("Filter by Grade", ["All"] + sorted(df_meta["Grade"].dropna().unique().tolist()))
-                subject_filter = col3.selectbox("Filter by Subject", ["All"] + sorted(df_meta["Subject"].dropna().unique().tolist()))
-
-                # Filter metadata based on selection
-                filtered_meta_df = df_meta.copy()
-                if school_filter != "All":
-                    filtered_meta_df = filtered_meta_df[filtered_meta_df["School"] == school_filter]
-                if grade_filter != "All":
-                    filtered_meta_df = filtered_meta_df[filtered_meta_df["Grade"] == grade_filter]
-                if subject_filter != "All":
-                    filtered_meta_df = filtered_meta_df[filtered_meta_df["Subject"] == subject_filter]
-
-                filtered_sheet_names = filtered_meta_df["Sheet"].tolist()
-
-                # Recalculate domain averages only for the filtered sheets
-                filtered_domain_scores = {domain: [] for domain in all_domains_list}
-
-                for sheet_name_filtered in filtered_sheet_names:
-                     ws_filtered = wb[sheet_name_filtered]
-                     sheet_domain_avg_filtered = {}
-                     for domain, (start_cell, count) in {
-                        "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
-                        "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
-                     }.items():
-                        col = start_cell[0]
-                        row = int(start_cell[1:])
-                        domain_element_ratings = [] # Ratings for elements within THIS domain in THIS sheet
-                        for j in range(count):
-                            cell_value = ws_filtered[f"{col}{row + j}"].value
-                            try:
-                                rating = float(cell_value)
-                                domain_element_ratings.append(rating)
-                            except (ValueError, TypeError):
-                                pass # Ignore non-numeric
-
-                        if domain_element_ratings:
-                            sheet_domain_avg_filtered[domain] = statistics.mean(domain_element_ratings)
-
-                     # Append this filtered sheet's domain averages
-                     for domain, avg in sheet_domain_avg_filtered.items():
-                         filtered_domain_scores[domain].append(avg)
-
-
-                # Calculate and display filtered averages
-                # Only calculate mean if there are scores collected for that domain after filtering
-                filtered_avg_scores = {domain: round(statistics.mean(scores), 2) if scores else 0 for domain, scores in filtered_domain_scores.items() if scores}
-
-                # Convert to DataFrame for charting, ensure all domains are present even if avg is 0
-                filtered_avg_data = [{"Domain": d, "Average Score": filtered_avg_scores.get(d, 0)} for d in all_domains_list]
-                df_filtered_avg = pd.DataFrame(filtered_avg_data)
-
-
-                st.subheader(f"Average Score per Domain (Filtered)")
-                # Check if there's any data after filtering (sum of scores is > 0)
-                if not df_filtered_avg.empty and df_filtered_avg["Average Score"].sum() > 0:
-                    st.bar_chart(df_filtered_avg.set_index("Domain"))
+                # Feedback log to sheet
+                if "Feedback Log" not in wb.sheetnames:
+                    log_ws = wb.create_sheet("Feedback Log")
+                    log_ws.append(["Sheet", "Teacher", "Email", "Observer", "School", "Subject", "Date", "Summary"])
                 else:
-                    st.info("No observations matching the selected filters contain numeric scores for domain averages.")
+                    log_ws = wb["Feedback Log"]
+                log_ws.append([
+                    sheet_name, teacher, teacher_email, observer, school, subject,
+                    datetime.now().strftime("%Y-%m-%d %H:%M"), feedback[:100] + ("..." if len(feedback) > 100 else "")
+                ])
 
-
-                st.subheader("Observer Distribution (Filtered)")
-                # Use the already filtered_meta_df for observer counts
-                if not filtered_meta_df.empty:
-                    observer_counts = filtered_meta_df["Observer"].value_counts()
-                    if not observer_counts.empty:
-                         fig, ax = plt.subplots()
-                         observer_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax)
-                         ax.set_ylabel("") # Hide the default y-label for pie charts
-                         st.pyplot(fig)
-                    else:
-                        st.info("No observer data found for the selected filters.")
-                else:
-                    st.info("No observation data found for the selected filters.")
-
-
-    else:
-        st.warning("Please upload the workbook or ensure 'Teaching Rubric Tool_WeekTemplate.xlsx' exists to view analytics.")
+                # Feedback log as CSV
+                log_csv_path = "feedback_log.csv"
+                with open(log_csv_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["Sheet", "Teacher", "Email", "Observer", "School", "Subject", "Date", "Summary"])
+                    for row in log_ws.iter_rows(min_row=2, values_only=True):
+                        writer.writerow(row)
+                with open(log_csv_path, "rb") as f:
+                    st.download_button("📥 Download Feedback Log (CSV)", f, file_name=log_csv_path)
+                os.remove(log_csv_path)
