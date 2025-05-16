@@ -1,13 +1,14 @@
 import streamlit as st
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
-from datetime import datetime, timedelta # Import timedelta for time calculation
+from datetime import datetime, timedelta, date
 import os
 import statistics
 import pandas as pd
-import matplotlib.pyplot as plt # This requires matplotlib to be installed
+import matplotlib.pyplot as plt
 import csv
-import math # Import math for isnan check
+import math
+import io
 
 # --- Text Strings for Localization ---
 # You need to replace the placeholder Arabic strings with actual translations
@@ -103,7 +104,22 @@ en_strings = {
     "feedback_log_sheet_name": "Feedback Log",
     "feedback_log_header": ["Sheet", "Teacher", "Email", "Observer", "School", "Subject", "Date", "Summary"],
     "download_feedback_log_csv": "📥 Download Feedback Log (CSV)",
-    "error_generating_log_csv": "Error generating feedback log CSV:",
+    "error_generating_log_csv": "Error generating log CSV:",
+    "download_overall_avg_csv": "📥 Download Overall Domain Averages (CSV)",
+    "download_overall_avg_excel": "📥 Download Overall Domain Averages (Excel)",
+    "download_filtered_avg_csv": "📥 Download Filtered Domain Averages (CSV)",
+    "download_filtered_avg_excel": "📥 Download Filtered Domain Averages (Excel)",
+    "download_filtered_data_csv": "📥 Download Filtered Observation Data (CSV)",
+    "download_filtered_data_excel": "📥 Download Filtered Observation Data (Excel)",
+    "label_observation_date": "Observation Date", # New string for date input
+    "filter_start_date": "Start Date", # New string for start date filter
+    "filter_end_date": "End Date", # New string for end date filter
+    "filter_teacher": "Filter by Teacher", # New string for teacher filter
+    "subheader_teacher_performance": "Teacher Performance Over Time", # New subheader
+    "info_select_teacher": "Select a teacher to view individual performance analytics.",
+    "info_no_obs_for_teacher": "No observations found for the selected teacher within the applied filters.",
+    "subheader_teacher_domain_trend": "{} Domain Performance Trend", # New subheader for teacher trend chart
+    "subheader_teacher_overall_avg": "{} Overall Average Score (Filtered)", # New subheader for teacher overall avg
 
     # Performance Level Descriptors (English)
     "perf_level_very_weak": "Very Weak",
@@ -218,6 +234,21 @@ ar_strings = {
     "feedback_log_header": ["الورقة", "المعلم", "البريد الإلكتروني", "المراقب", "المدرسة", "المادة", "التاريخ", "الملخص"], # Placeholder
     "download_feedback_log_csv": "📥 تنزيل سجل الملاحظات (CSV)", # Placeholder
     "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Placeholder
+    "download_overall_avg_csv": "📥 تنزيل متوسطات المجال الإجمالية (CSV)", # Placeholder
+    "download_overall_avg_excel": "📥 تنزيل متوسطات المجال الإجمالية (Excel)", # Placeholder
+    "download_filtered_avg_csv": "📥 تنزيل متوسطات المجال المصفاة (CSV)", # Placeholder
+    "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Placeholder
+    "download_filtered_data_csv": "📥 تنزيل بيانات الملاحظة المصفاة (CSV)", # Placeholder
+    "download_filtered_data_excel": "📥 تنزيل بيانات الملاحظة المصفاة (Excel)", # Placeholder
+    "label_observation_date": "تاريخ الملاحظة", # Placeholder
+    "filter_start_date": "تاريخ البدء", # Placeholder
+    "filter_end_date": "تاريخ الانتهاء", # Placeholder
+    "filter_teacher": "تصفية حسب المعلم", # Placeholder
+    "subheader_teacher_performance": "أداء المعلم بمرور الوقت", # Placeholder
+    "info_select_teacher": "حدد معلمًا لعرض تحليلات الأداء الفردي.", # Placeholder
+    "info_no_obs_for_teacher": "لم يتم العثور على ملاحظات للمعلم المحدد ضمن المرشحات المطبقة.", # Placeholder
+    "subheader_teacher_domain_trend": "اتجاه أداء مجال {}", # Placeholder
+    "subheader_teacher_overall_avg": "متوسط الدرجة الإجمالي لـ {} (مصفى)", # Placeholder
 
     # Performance Level Descriptors (Arabic) - **Translate these**
     "perf_level_very_weak": "ضعيف جداً", # Placeholder
@@ -244,18 +275,24 @@ def get_strings(arabic_mode):
 
 # --- Function to determine performance level based on score ---
 def get_performance_level(score, strings):
-    if score is None:
+    if score is None or (isinstance(score, float) and math.isnan(score)):
         return strings["overall_score_na"] # Or a specific string for no score
-    if score >= 5.5: # Example thresholds - Adjust as needed
-        return strings["perf_level_excellent"]
-    elif score >= 4.5:
-        return strings["perf_level_good"]
-    elif score >= 3.5:
-        return strings["perf_level_acceptable"]
-    elif score >= 2.5:
-        return strings["perf_level_weak"]
-    else:
-        return strings["perf_level_very_weak"]
+    # Ensure score is treated as a number for comparison
+    try:
+        numeric_score = float(score)
+        if numeric_score >= 5.5: # Example thresholds - Adjust as needed
+            return strings["perf_level_excellent"]
+        elif numeric_score >= 4.5:
+            return strings["perf_level_good"]
+        elif numeric_score >= 3.5:
+            return strings["perf_level_acceptable"]
+        elif numeric_score >= 2.5:
+            return strings["perf_level_weak"]
+        else:
+            return strings["perf_level_very_weak"]
+    except (ValueError, TypeError):
+        return strings["overall_score_na"] # Handle cases where score is not a valid number
+
 
 # --- Streamlit App Layout ---
 # Add Arabic toggle early to affect language throughout the app
@@ -346,6 +383,9 @@ if page == strings["page_lesson_input"]:
             females = st.text_input(strings["label_females"])
             time_in = st.time_input(strings["label_time_in"])
             time_out = st.time_input(strings["label_time_out"])
+            # New date input field
+            observation_date = st.date_input(strings["label_observation_date"], datetime.now().date())
+
 
             lesson_duration = None # Initialize outside try block
             duration_label = "N/A" # Initialize outside try block
@@ -477,7 +517,7 @@ if page == strings["page_lesson_input"]:
 
             if st.button(strings["button_save_observation"]):
                 # Ensure essential fields are filled before saving (optional but good practice)
-                if not all([observer, teacher, school, grade, subject, students, males, females, time_in, time_out]):
+                if not all([observer, teacher, school, grade, subject, students, males, females, time_in, time_out, observation_date]):
                      st.warning(strings["warning_fill_essential"])
                 else: # Proceed only if essential fields are filled
                     ws["Z1"] = strings["label_observer_name"]; ws["AA1"] = observer
@@ -501,14 +541,19 @@ if page == strings["page_lesson_input"]:
                     # Save the overall score to the sheet
                     ws["Z15"] = strings["overall_score_label"]
                     ws["AA15"] = overall_score if overall_score is not None else "N/A"
+                    # Save the observation date to the sheet
+                    ws["Z16"] = strings["label_observation_date"] # New row for date label
+                    ws["AA16"] = observation_date # New row for date value (saved as datetime.date object)
+
 
                     # Save domain average scores to the sheet (Optional - choose columns)
-                    # Example: Save to columns AB onwards
-                    domain_avg_start_col = ord('AB') # ASCII value of 'AB'
-                    for domain, avg_score in domain_avg_scores.items():
-                         col_letter = chr(domain_avg_start_col + int(domain.split(" ")[-1]) - 1) # AB, AC, AD...
-                         ws[f"{col_letter}15"] = f"{domain} Avg"
-                         ws[f"{col_letter}16"] = avg_score if avg_score is not None else "N/A"
+                    # Example: Save to columns AB onwards, starting from row 15
+                    domain_avg_start_col_idx = ord('AB') # ASCII value of 'AB'
+                    domain_avg_start_row = 15
+                    for domain_idx, (domain, (start_cell, count)) in enumerate(rubric_domains.items()):
+                         col_letter = chr(domain_avg_start_col_idx + domain_idx) # AB, AC, AD...
+                         ws[f"{col_letter}{domain_avg_start_row}"] = f"{domain} Avg"
+                         ws[f"{col_letter}{domain_avg_start_row + 1}"] = domain_avg_scores.get(domain, "N/A") # Save avg score below label
 
 
                     save_path = f"updated_{sheet_name}.xlsx"
@@ -525,7 +570,7 @@ if page == strings["page_lesson_input"]:
 
                     # Generate and send feedback
                     if send_feedback and teacher_email:
-                        feedback_content = strings["feedback_greeting"].format(teacher, datetime.now().strftime('%Y-%m-%d'))
+                        feedback_content = strings["feedback_greeting"].format(teacher, observation_date.strftime('%Y-%m-%d')) # Use observation_date
                         feedback_content += strings["feedback_observer"].format(observer)
                         feedback_content += strings["feedback_duration"].format(duration_label)
                         feedback_content += strings["feedback_subject_fb"].format(subject)
@@ -640,7 +685,8 @@ if page == strings["page_lesson_input"]:
                             # Append log entry
                             log_ws.append([
                                 sheet_name, teacher, teacher_email, observer, school, subject,
-                                datetime.now().strftime("%Y-%m-%d %H:%M"), feedback_content[:500] + ("..." if len(feedback_content) > 500 else "") # Truncate summary
+                                observation_date.strftime("%Y-%m-%d"), # Use observation_date for log
+                                feedback_content[:500] + ("..." if len(feedback_content) > 500 else "") # Truncate summary
                             ])
 
                             # Save the workbook again to include the log entry
@@ -684,11 +730,34 @@ elif page == strings["page_analytics"]:
             if not sheets:
                 st.warning(strings["warning_no_lo_sheets_analytics"])
             else:
-                domain_scores = {domain: [] for domain in [f"Domain {i}" for i in range(1, 10)]}
+                # Define rubric domains again for analytics page calculations
+                rubric_domains = {
+                    "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
+                    "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
+                }
+                all_domains_list = [f"Domain {i}" for i in range(1, 10)]
+
+
                 metadata = []
+                all_observations_domain_scores = [] # To store domain scores for each observation
 
                 for sheet in sheets:
                     ws = wb[sheet]
+                    # Read the observation date from the new cell (AA16)
+                    observation_date_value = ws["AA16"].value
+                    # Attempt to convert to date object, handle errors
+                    obs_date = None
+                    if isinstance(observation_date_value, datetime):
+                        obs_date = observation_date_value.date()
+                    elif isinstance(observation_date_value, date):
+                         obs_date = observation_date_value
+                    elif isinstance(observation_date_value, str):
+                         try:
+                             obs_date = datetime.strptime(observation_date_value, "%Y-%m-%d").date() # Assuming YYYY-MM-DD format if saved as string
+                         except (ValueError, TypeError):
+                              pass # Ignore if string format is unexpected
+
+
                     row_info = {
                         "Sheet": sheet, # Add sheet name for reference
                         "Observer": ws["AA1"].value,
@@ -705,16 +774,14 @@ elif page == strings["page_analytics"]:
                         "Duration": ws["AA12"].value, # Added duration label
                         "Time In": ws["AA13"].value, # Added times
                         "Time Out": ws["AA14"].value,
-                        "Overall Score": ws["AA15"].value # Added Overall Score from saved data
+                        "Overall Score": ws["AA15"].value, # Added Overall Score from saved data
+                        "Observation Date": obs_date # Add the observation date
                      }
                     metadata.append(row_info)
 
-                    # Calculate average score for each domain in this sheet and append if ratings exist
+                    # Calculate average score for each domain in this sheet and store
                     sheet_domain_avg = {} # Store average for each domain in the current sheet
-                    for domain, (start_cell, count) in {
-                        "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
-                        "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
-                    }.items():
+                    for domain, (start_cell, count) in rubric_domains.items():
                         col = start_cell[0]
                         row = int(start_cell[1:])
                         domain_element_ratings = [] # Ratings for elements within THIS domain in THIS sheet
@@ -732,22 +799,39 @@ elif page == strings["page_analytics"]:
                         if domain_element_ratings:
                             # Calculate average for this domain in THIS sheet
                             sheet_domain_avg[domain] = statistics.mean(domain_element_ratings)
+                        else:
+                             sheet_domain_avg[domain] = None # Store None if no numeric ratings for the domain
 
 
-                    # Append this sheet's domain averages to the overall list of averages for each domain
-                    for domain, avg in sheet_domain_avg.items():
-                         domain_scores[domain].append(avg)
+                    # Store domain averages for this observation, linked to the sheet name and date
+                    observation_domain_data = {"Sheet": sheet, "Observation Date": obs_date}
+                    observation_domain_data.update(sheet_domain_avg)
+                    all_observations_domain_scores.append(observation_domain_data)
 
 
-                import pandas as pd
-                import matplotlib.pyplot as plt
+                # Create DataFrames
+                df_meta = pd.DataFrame(metadata)
+                df_domain_scores_all = pd.DataFrame(all_observations_domain_scores)
 
-                # Calculate overall averages from domain_scores (which now holds averages per sheet)
-                # Only calculate mean if there are scores collected for that domain across sheets
-                avg_scores = {domain: round(statistics.mean(scores), 2) if scores else 0 for domain, scores in domain_scores.items() if scores}
+                # Ensure 'Observation Date' is datetime type for sorting and filtering
+                df_meta['Observation Date'] = pd.to_datetime(df_meta['Observation Date'], errors='coerce').dt.date
+                df_domain_scores_all['Observation Date'] = pd.to_datetime(df_domain_scores_all['Observation Date'], errors='coerce').dt.date
+
+                # Sort by date for trend analysis
+                df_meta = df_meta.sort_values(by="Observation Date")
+                df_domain_scores_all = df_domain_scores_all.sort_values(by="Observation Date")
+
+
+                # Calculate overall averages from df_domain_scores_all for the overall chart
+                # Filter out rows with no valid date before calculating overall averages
+                df_domain_scores_valid_dates = df_domain_scores_all.dropna(subset=['Observation Date'])
+                avg_scores = {
+                    domain: round(df_domain_scores_valid_dates[domain].mean(), 2) if not df_domain_scores_valid_dates[domain].isnull().all() else 0
+                    for domain in all_domains_list
+                }
+
 
                 # Ensure all domains are included, using 0 if no scores were collected
-                all_domains_list = [f"Domain {i}" for i in range(1, 10)]
                 overall_avg_data = [{"Domain": d, "Average Score": avg_scores.get(d, 0)} for d in all_domains_list]
                 df_avg = pd.DataFrame(overall_avg_data)
 
@@ -755,21 +839,49 @@ elif page == strings["page_analytics"]:
                 # Check if there's any data to chart (sum of scores is > 0)
                 if not df_avg.empty and df_avg["Average Score"].sum() > 0:
                     st.bar_chart(df_avg.set_index("Domain"))
+
+                    # Add download buttons for Overall Domain Averages
+                    col_download1, col_download2 = st.columns(2)
+                    csv_buffer = io.StringIO()
+                    df_avg.to_csv(csv_buffer, index=False)
+                    col_download1.download_button(
+                        label=strings["download_overall_avg_csv"],
+                        data=csv_buffer.getvalue(),
+                        file_name='overall_domain_averages.csv',
+                        mime='text/csv',
+                    )
+                    excel_buffer = io.BytesIO()
+                    df_avg.to_excel(excel_buffer, index=False)
+                    col_download2.download_button(
+                        label=strings["download_overall_avg_excel"],
+                        data=excel_buffer.getvalue(),
+                        file_name='overall_domain_averages.xlsx',
+                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    )
+
                 else:
                      st.info(strings["info_no_numeric_scores_overall"])
 
 
-                df_meta = pd.DataFrame(metadata)
                 if not df_meta.empty:
-                    st.subheader(strings["subheader_data_summary"])
-                    st.dataframe(df_meta) # Show the full metadata table
-
                     st.subheader(strings["subheader_filter_analyze"])
                     # Use unique values from the dataframe for filters
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2, col3, col4, col5 = st.columns(5) # Added column for teacher filter
                     school_filter = col1.selectbox(strings["filter_by_school"], ["All"] + sorted(df_meta["School"].dropna().unique().tolist()))
                     grade_filter = col2.selectbox(strings["filter_by_grade"], ["All"] + sorted(df_meta["Grade"].dropna().unique().tolist()))
                     subject_filter = col3.selectbox(strings["filter_by_subject"], ["All"] + sorted(df_meta["Subject"].dropna().unique().tolist()))
+
+                    # Add date range filters
+                    min_date = df_meta["Observation Date"].min() if pd.notnull(df_meta["Observation Date"].min()) else datetime.now().date()
+                    max_date = df_meta["Observation Date"].max() if pd.notnull(df_meta["Observation Date"].max()) else datetime.now().date()
+
+                    start_date = col4.date_input(strings["filter_start_date"], min_date)
+                    end_date = col4.date_input(strings["filter_end_date"], max_date)
+
+                    # Add teacher filter
+                    teacher_list = ["All"] + sorted(df_meta["Teacher"].dropna().unique().tolist())
+                    teacher_filter = col5.selectbox(strings["filter_teacher"], teacher_list)
+
 
                     # Filter metadata based on selection
                     filtered_meta_df = df_meta.copy()
@@ -779,73 +891,158 @@ elif page == strings["page_analytics"]:
                         filtered_meta_df = filtered_meta_df[filtered_meta_df["Grade"] == grade_filter]
                     if subject_filter != "All":
                         filtered_meta_df = filtered_meta_df[filtered_meta_df["Subject"] == subject_filter]
+                    if teacher_filter != "All":
+                         filtered_meta_df = filtered_meta_df[filtered_meta_df["Teacher"] == teacher_filter]
 
+
+                    # Apply date filter - ensure 'Observation Date' is a datetime object or comparable
+                    # Filter out rows where 'Observation Date' is None before comparison
+                    filtered_meta_df = filtered_meta_df[filtered_meta_df['Observation Date'].notna()]
+                    filtered_meta_df = filtered_meta_df[
+                        (filtered_meta_df['Observation Date'] >= start_date) &
+                        (filtered_meta_df['Observation Date'] <= end_date)
+                    ]
+
+
+                    # Filter the domain scores DataFrame based on the sheets in the filtered metadata
                     filtered_sheet_names = filtered_meta_df["Sheet"].tolist()
+                    df_domain_scores_filtered = df_domain_scores_all[df_domain_scores_all['Sheet'].isin(filtered_sheet_names)].copy()
 
-                    # Recalculate domain averages only for the filtered sheets
-                    filtered_domain_scores = {domain: [] for domain in all_domains_list}
-
-                    for sheet_name_filtered in filtered_sheet_names:
-                         ws_filtered = wb[sheet_name_filtered]
-                         sheet_domain_avg_filtered = {}
-                         for domain, (start_cell, count) in {
-                            "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
-                            "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
-                         }.items():
-                            col = start_cell[0]
-                            row = int(start_cell[1:])
-                            domain_element_ratings = [] # Ratings for elements within THIS domain in THIS sheet
-                            for j in range(count):
-                                cell_value = ws_filtered[f"{col}{row + j}"].value
-                                try:
-                                    rating = float(cell_value)
-                                    if not math.isnan(rating): # Check if it's not NaN
-                                        domain_element_ratings.append(rating)
-                                except (ValueError, TypeError):
-                                    pass # Ignore non-numeric
-
-                            if domain_element_ratings:
-                                sheet_domain_avg_filtered[domain] = statistics.mean(domain_element_ratings)
-
-                         # Append this filtered sheet's domain averages
-                         for domain, avg in sheet_domain_avg_filtered.items():
-                             filtered_domain_scores[domain].append(avg)
-
-
-                    # Calculate and display filtered averages
-                    # Only calculate mean if there are scores collected for that domain after filtering
-                    filtered_avg_scores = {domain: round(statistics.mean(scores), 2) if scores else 0 for domain, scores in filtered_domain_scores.items() if scores}
-
-                    # Convert to DataFrame for charting, ensure all domains are present even if avg is 0
-                    filtered_avg_data = [{"Domain": d, "Average Score": filtered_avg_scores.get(d, 0)} for d in all_domains_list]
-                    df_filtered_avg = pd.DataFrame(filtered_avg_data)
-
-
-                    st.subheader(strings["subheader_avg_score_filtered"])
-                    # Check if there's any data after filtering (sum of scores is > 0)
-                    if not df_filtered_avg.empty and df_filtered_avg["Average Score"].sum() > 0:
-                        st.bar_chart(df_filtered_avg.set_index("Domain"))
-                    else:
-                        st.info(strings["info_no_numeric_scores_filtered"])
-
-
-                    st.subheader(strings["subheader_observer_distribution"])
-                    # Use the already filtered_meta_df for observer counts
+                    # Add download buttons for Filtered Observation Data and display filtered table
+                    st.subheader("Filtered Observation Data") # Added subheader for filtered data table
                     if not filtered_meta_df.empty:
-                        observer_counts = filtered_meta_df["Observer"].value_counts()
-                        if not observer_counts.empty:
-                             fig, ax = plt.subplots()
-                             observer_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax)
-                             ax.set_ylabel("") # Hide the default y-label for pie charts
-                             st.pyplot(fig)
-                        else:
-                            st.info(strings["info_no_observer_data_filtered"])
+                         st.dataframe(filtered_meta_df) # Display filtered data
+
+                         col_download3, col_download4 = st.columns(2)
+                         csv_buffer_filtered_data = io.StringIO()
+                         filtered_meta_df.to_csv(csv_buffer_filtered_data, index=False)
+                         col_download3.download_button(
+                             label=strings["download_filtered_data_csv"],
+                             data=csv_buffer_filtered_data.getvalue(),
+                             file_name='filtered_observation_data.csv',
+                             mime='text/csv',
+                         )
+                         excel_buffer_filtered_data = io.BytesIO()
+                         filtered_meta_df.to_excel(excel_buffer_filtered_data, index=False)
+                         col_download4.download_button(
+                             label=strings["download_filtered_data_excel"],
+                             data=excel_buffer_filtered_data.getvalue(),
+                             file_name='filtered_observation_data.xlsx',
+                             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                         )
                     else:
                         st.info(strings["info_no_observation_data_filtered"])
+
+
+                    # --- Teacher Performance Over Time ---
+                    if teacher_filter != "All":
+                        st.subheader(strings["subheader_teacher_performance"].format(teacher_filter))
+
+                        if not df_domain_scores_filtered.empty:
+                            # Calculate overall average for the filtered observations of this teacher
+                            teacher_overall_avg = df_domain_scores_filtered['Overall Score'].mean() if 'Overall Score' in df_domain_scores_filtered.columns and df_domain_scores_filtered['Overall Score'].notna().any() else None
+
+                            st.subheader(strings["subheader_teacher_overall_avg"].format(teacher_filter))
+                            if teacher_overall_avg is not None:
+                                st.markdown(strings["overall_score_value"].format(teacher_overall_avg))
+                            else:
+                                st.markdown(strings["overall_score_na"])
+
+
+                            # Prepare data for domain trend chart
+                            # Need to melt the DataFrame to have 'Date', 'Domain', 'Score' columns
+                            df_domain_scores_filtered_melted = df_domain_scores_filtered.melt(
+                                id_vars=['Observation Date'],
+                                value_vars=all_domains_list,
+                                var_name='Domain',
+                                value_name='Average Score'
+                            )
+
+                            # Drop rows where Average Score is None/NaN for charting
+                            df_domain_scores_filtered_melted = df_domain_scores_filtered_melted.dropna(subset=['Average Score'])
+
+                            if not df_domain_scores_filtered_melted.empty:
+                                st.subheader(strings["subheader_teacher_domain_trend"].format(teacher_filter))
+
+                                fig, ax = plt.subplots(figsize=(10, 6))
+                                # Plot each domain's trend
+                                for domain in all_domains_list:
+                                    domain_data = df_domain_scores_filtered_melted[df_domain_scores_filtered_melted['Domain'] == domain]
+                                    if not domain_data.empty:
+                                         ax.plot(domain_data['Observation Date'], domain_data['Average Score'], marker='o', linestyle='-', label=domain)
+
+                                ax.set_xlabel("Observation Date")
+                                ax.set_ylabel("Average Score")
+                                ax.set_title(strings["subheader_teacher_domain_trend"].format(teacher_filter))
+                                ax.legend(title="Domains", bbox_to_anchor=(1.05, 1), loc='upper left')
+                                plt.xticks(rotation=45, ha='right')
+                                plt.tight_layout() # Adjust layout to prevent labels overlapping
+                                st.pyplot(fig)
+
+                            else:
+                                st.info("No numeric domain scores found for the selected teacher within the applied filters to show trend.")
+
+
+                        else:
+                            st.info(strings["info_no_obs_for_teacher"])
+
+
+                    else:
+                        # Display overall filtered domain averages and observer distribution if "All" teachers selected
+                        # Calculate and display filtered averages
+                        # Only calculate mean if there are scores collected for that domain after filtering
+                        filtered_avg_scores = {domain: round(statistics.mean(scores), 2) if scores else 0 for domain, scores in filtered_domain_scores.items() if scores}
+
+                        # Convert to DataFrame for charting, ensure all domains are present even if avg is 0
+                        filtered_avg_data = [{"Domain": d, "Average Score": filtered_avg_scores.get(d, 0)} for d in all_domains_list]
+                        df_filtered_avg = pd.DataFrame(filtered_avg_data)
+
+
+                        st.subheader(strings["subheader_avg_score_filtered"])
+                        # Check if there's any data after filtering (sum of scores is > 0)
+                        if not df_filtered_avg.empty and df_filtered_avg["Average Score"].sum() > 0:
+                            st.bar_chart(df_filtered_avg.set_index("Domain"))
+
+                            # Add download buttons for Filtered Domain Averages
+                            col_download5, col_download6 = st.columns(2)
+                            csv_buffer_filtered_avg = io.StringIO()
+                            df_filtered_avg.to_csv(csv_buffer_filtered_avg, index=False)
+                            col_download5.download_button(
+                                label=strings["download_filtered_avg_csv"],
+                                data=csv_buffer_filtered_avg.getvalue(),
+                                file_name='filtered_domain_averages.csv',
+                                mime='text/csv',
+                            )
+                            excel_buffer_filtered_avg = io.BytesIO()
+                            df_filtered_avg.to_excel(excel_buffer_filtered_avg, index=False)
+                            col_download6.download_button(
+                                label=strings["download_filtered_avg_excel"],
+                                data=excel_buffer_filtered_avg.getvalue(),
+                                file_name='filtered_domain_averages.xlsx',
+                                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            )
+
+                        else:
+                            st.info(strings["info_no_numeric_scores_filtered"])
+
+
+                        st.subheader(strings["subheader_observer_distribution"])
+                        # Use the already filtered_meta_df for observer counts
+                        if not filtered_meta_df.empty:
+                            observer_counts = filtered_meta_df["Observer"].value_counts()
+                            if not observer_counts.empty:
+                                 fig, ax = plt.subplots()
+                                 observer_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax)
+                                 ax.set_ylabel("") # Hide the default y-label for pie charts
+                                 st.pyplot(fig)
+                            else:
+                                st.info(strings["info_no_observer_data_filtered"])
+                        else:
+                            st.info(strings["info_no_observation_data_filtered"])
+
 
         except Exception as e:
              st.error(strings["error_loading_analytics"].format(e))
 
     else:
         st.warning(strings["warning_default_not_found"].format(DEFAULT_FILE)) # Use the same warning as input page
-
