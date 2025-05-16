@@ -460,8 +460,9 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
                      descriptor_paragraphs = description_en.split('\n\n')
                      for desc_para in descriptor_paragraphs:
                           if desc_para.strip():
-                               desc_para = desc_para.replace('**', '<b>').replace('**', '</b>')
-                               story.append(Paragraph(desc_para.replace('\n', '<br/>'), styles['RubricDescriptor']))
+                               # Remove bold markdown from descriptors for PDF to avoid parsing issues
+                               cleaned_desc_para = desc_para.replace('**', '')
+                               story.append(Paragraph(cleaned_desc_para.replace('\n', '<br/>'), styles['RubricDescriptor']))
                          # story.append(Spacer(1, 0.05*inch)) # Smaller space between descriptor paragraphs
                 story.append(Spacer(1, 0.1*inch)) # Space after each element
 
