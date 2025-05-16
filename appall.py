@@ -532,9 +532,9 @@ if page == strings["page_lesson_input"]:
             lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
             st.success(strings["success_lo_sheets_found"].format(len(lo_sheets)))
 
-            selected_option = st.selectbox(strings["select_sheet_or_create"], [strings["option_create_new"]] + lo_sheets)
+            selected_option = st.selectbox(strings["select_sheet_or_create"], ["Create new"] + lo_sheets)
 
-            if selected_option == strings["option_create_new"]:
+            if selected_option == "Create new":
                 next_index = 1
                 while f"LO {next_index}" in wb.sheetnames:
                     next_index += 1
