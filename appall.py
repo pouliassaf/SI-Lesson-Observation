@@ -186,7 +186,7 @@ School Leadership Team"
 
 " + feedback):
 
-{feedback}")
+" + feedback)
 
 elif page == "Observation Analytics":
     st.title("Observation Analytics Dashboard")
