@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import csv
 import math
 import io
-from openpyxl.utils import get_column_letter # Import get_column_letter
 
 # Import ReportLab modules for PDF generation
 from reportlab.lib.pagesizes import letter
@@ -324,20 +323,23 @@ def get_performance_level(score, strings):
         return strings["overall_score_na"] # Handle cases where score is not a valid number
 
 
+# --- Define ReportLab Styles (DEFINED ONCE) ---
+# Get default stylesheet
+styles = getSampleStyleSheet()
+
+# Add custom styles
+styles.add(ParagraphStyle(name='Heading1Centered', alignment=1, fontSize=16, spaceAfter=14, bold=1))
+styles.add(ParagraphStyle(name='Heading2', fontSize=12, spaceAfter=10, bold=1))
+styles.add(ParagraphStyle(name='Normal', fontSize=10, spaceAfter=6))
+styles.add(ParagraphStyle(name='RubricDescriptor', fontSize=9, spaceAfter=4, leftIndent=18)) # Indent descriptors
+styles.add(ParagraphStyle(name='RubricDomainHeading', fontSize=11, spaceAfter=8, bold=1)) # Style for domain headings in PDF
+styles.add(ParagraphStyle(name='RubricElementRating', fontSize=10, spaceAfter=4, leftIndent=10)) # Style for element rating in PDF
+
+
 # --- Function to generate PDF ---
 def generate_observation_pdf(data, feedback_content, strings, rubric_domains_structure):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-
-    # Custom styles
-    styles.add(ParagraphStyle(name='Heading1Centered', alignment=1, fontSize=16, spaceAfter=14, bold=1))
-    styles.add(ParagraphStyle(name='Heading2', fontSize=12, spaceAfter=10, bold=1))
-    styles.add(ParagraphStyle(name='Normal', fontSize=10, spaceAfter=6))
-    styles.add(ParagraphStyle(name='RubricDescriptor', fontSize=9, spaceAfter=4, leftIndent=18)) # Indent descriptors
-    styles.add(ParagraphStyle(name='RubricDomainHeading', fontSize=11, spaceAfter=8, bold=1)) # Style for domain headings in PDF
-    styles.add(ParagraphStyle(name='RubricElementRating', fontSize=10, spaceAfter=4, leftIndent=10)) # Style for element rating in PDF
-
 
     story = []
 
@@ -488,9 +490,6 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
 # Add Arabic toggle early to affect language throughout the app
 arabic_mode = st.sidebar.toggle(en_strings["arabic_toggle_label"], False)
 strings = get_strings(arabic_mode)
-
-# Set page config using the selected language
-# MOVED TO TOP
 
 # Sidebar page selection
 page = st.sidebar.selectbox(strings["sidebar_select_page"], [strings["page_lesson_input"], strings["page_analytics"]])
