@@ -64,7 +64,7 @@ if page == "Lesson Input":
             ],
             "Taaleem": [
                 "Al Ahad Charter School", "Al Azm Charter School", "Al Riyadh Charter School", "Al Majd Charter School",
-                "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School",
+                "Al Qeyam Charter School", "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School",
                 "Al Walaa Charter Kindergarten", "Al Forsan Charter Kindergarten", "Al Wafaa Charter Kindergarten",
                 "Al Watan Charter School"
             ],
@@ -143,7 +143,7 @@ if page == "Lesson Input":
             # Ensure essential fields are filled before saving (optional but good practice)
             if not all([observer, teacher, school, grade, subject, students, males, females, time_in, time_out]):
                  st.warning("Please fill in all basic information fields before saving.")
-                 st.stop() # Stop execution if required fields are empty
+                 #st.stop() # Don't stop, just warn. Let them fill and click save again.
 
             ws["Z1"] = "Observer Name"
             ws["AA1"] = observer
@@ -188,34 +188,24 @@ if page == "Lesson Input":
                  st.error(f"Error saving workbook: {e}")
 
 
-            # **Corrected Indentation Starts Here**
+            # **Corrected feedback string formatting**
             if send_feedback and teacher_email:
                 feedback = (
-                    f"Dear {teacher},
-
-"
-                    "Your lesson observation has been saved.
-"
-                    f"Observer: {observer}
-"
-                    f"Duration: {duration_label}
-"
-                    f"Subject: {subject}
-"
-                    f"School: {school}
-
-"
-                    "Based on rubric ratings, please review your updated workbook for details.
-
-"
-                    "Regards,
-School Leadership Team"
+                    f"Dear {teacher},\n\n"  # Use \n\n for blank lines
+                    "Your lesson observation has been saved.\n" # Use \n for single lines
+                    f"Observer: {observer}\n"
+                    f"Duration: {duration_label}\n"
+                    f"Subject: {subject}\n"
+                    f"School: {school}\n\n" # Use \n\n
+                    "Based on rubric ratings, please review your updated workbook for details.\n\n" # Use \n\n
+                    "Regards,\n" # Use \n
+                    "School Leadership Team"
                 )
-                # Corrected the typo in the st.success call
+                # This line's indentation was already corrected
                 st.success("Feedback generated (simulated):\n\n" + feedback)
-            # **Corrected Indentation Ends Here**
 
-# This elif block needs to be at the same indentation level as the first 'if page == "Lesson Input":'
+
+# This elif block is correctly indented at the top level
 elif page == "Observation Analytics":
     st.title("Observation Analytics Dashboard")
 
@@ -297,23 +287,23 @@ elif page == "Observation Analytics":
                 grade_filter = col2.selectbox("Filter by Grade", ["All"] + sorted(df_meta["Grade"].dropna().unique().tolist()))
                 subject_filter = col3.selectbox("Filter by Subject", ["All"] + sorted(df_meta["Subject"].dropna().unique().tolist()))
 
-                filtered_meta_indices = df_meta.index # Start with all indices
+                # Re-calculate filtered averages based on metadata filter
+                filtered_meta_df = df_meta.copy()
                 if school_filter != "All":
-                    filtered_meta_indices = filtered_meta_indices[df_meta["School"] == school_filter]
+                    filtered_meta_df = filtered_meta_df[filtered_meta_df["School"] == school_filter]
                 if grade_filter != "All":
-                    filtered_meta_indices = filtered_meta_indices[df_meta["Grade"] == grade_filter]
+                    filtered_meta_df = filtered_meta_df[filtered_meta_df["Grade"] == grade_filter]
                 if subject_filter != "All":
-                    filtered_meta_indices = filtered_meta_indices[df_meta["Subject"] == subject_filter]
+                    filtered_meta_df = filtered_meta_df[filtered_meta_df["Subject"] == subject_filter]
 
-                # Now filter the original domain scores based on the indices of filtered metadata
-                # This requires reconstructing filtered scores for domains or calculating on the fly
-                # A simpler approach is to re-calculate averages for filtered sheets
-                filtered_sheet_names = df_meta.loc[filtered_meta_indices, "Sheet"].tolist()
+                filtered_sheet_names = filtered_meta_df["Sheet"].tolist()
 
                 filtered_domain_scores = {domain: [] for domain in domain_scores.keys()}
 
                 # Re-process sheets that match the filter criteria
                 for sheet_name_filtered in filtered_sheet_names:
+                     # Need to re-load the workbook or access sheets from the original loaded wb
+                     # Accessing from wb (loaded data_only=True) is fine
                      ws_filtered = wb[sheet_name_filtered]
                      for domain, (start_cell, count) in {
                         "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
@@ -345,9 +335,9 @@ elif page == "Observation Analytics":
 
 
                 st.subheader("Observer Distribution (Filtered)")
-                filtered_metadata_df = df_meta.loc[filtered_meta_indices] # Get the filtered metadata DataFrame
-                if not filtered_metadata_df.empty:
-                    observer_counts = filtered_metadata_df["Observer"].value_counts()
+                # Use the already filtered_meta_df for observer counts
+                if not filtered_meta_df.empty:
+                    observer_counts = filtered_meta_df["Observer"].value_counts()
                     if not observer_counts.empty:
                          fig, ax = plt.subplots()
                          observer_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax)
