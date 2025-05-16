@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import csv
 import math
 import io
+from openpyxl.utils import get_column_letter # Import get_column_letter
 
 # Import ReportLab modules for PDF generation
 from reportlab.lib.pagesizes import letter
@@ -737,10 +738,10 @@ if page == strings["page_lesson_input"]:
 
                     # Save domain average scores to the sheet (Optional - choose columns)
                     # Example: Save to columns AB onwards, starting from row 15
-                    domain_avg_start_col_idx = ord('AB') # ASCII value of 'AB'
+                    domain_avg_start_col_idx = 28 # Start from column AB (1-based index 28)
                     domain_avg_start_row = 15
                     for domain_idx, (domain, (start_cell, count)) in enumerate(rubric_domains.items()):
-                         col_letter = chr(domain_avg_start_col_idx + domain_idx) # AB, AC, AD...
+                         col_letter = get_column_letter(domain_avg_start_col_idx + domain_idx) # AB, AC, AD...
                          ws[f"{col_letter}{domain_avg_start_row}"] = f"{domain} Avg"
                          ws[f"{col_letter}{domain_avg_start_row + 1}"] = domain_avg_scores.get(domain, "N/A") # Save avg score below label
 
