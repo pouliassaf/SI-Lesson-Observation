@@ -184,17 +184,6 @@ School Leadership Team"
 
 " + feedback):
 
-{feedback}"):
-
-{feedback}"):
-
-{feedback}"):
-
-{feedback}")
-
-
-st.success(f"Feedback generated for {teacher_email} (not sent, simulated):
-
 {feedback}")
 
 elif page == "Observation Analytics":
