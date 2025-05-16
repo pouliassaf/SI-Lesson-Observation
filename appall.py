@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import csv
 import math
 import io
+from openpyxl.utils import get_column_letter # Import get_column_letter
 
 # Import ReportLab modules for PDF generation
 from reportlab.lib.pagesizes import letter
@@ -327,13 +328,19 @@ def get_performance_level(score, strings):
 # Get default stylesheet
 styles = getSampleStyleSheet()
 
-# Add custom styles
-styles.add(ParagraphStyle(name='Heading1Centered', alignment=1, fontSize=16, spaceAfter=14, bold=1))
-styles.add(ParagraphStyle(name='Heading2', fontSize=12, spaceAfter=10, bold=1))
-styles.add(ParagraphStyle(name='Normal', fontSize=10, spaceAfter=6))
-styles.add(ParagraphStyle(name='RubricDescriptor', fontSize=9, spaceAfter=4, leftIndent=18)) # Indent descriptors
-styles.add(ParagraphStyle(name='RubricDomainHeading', fontSize=11, spaceAfter=8, bold=1)) # Style for domain headings in PDF
-styles.add(ParagraphStyle(name='RubricElementRating', fontSize=10, spaceAfter=4, leftIndent=10)) # Style for element rating in PDF
+# Add custom styles if they don't exist
+if 'Heading1Centered' not in styles:
+    styles.add(ParagraphStyle(name='Heading1Centered', alignment=1, fontSize=16, spaceAfter=14, bold=1))
+if 'Heading2' not in styles:
+    styles.add(ParagraphStyle(name='Heading2', fontSize=12, spaceAfter=10, bold=1))
+if 'Normal' not in styles:
+    styles.add(ParagraphStyle(name='Normal', fontSize=10, spaceAfter=6))
+if 'RubricDescriptor' not in styles:
+    styles.add(ParagraphStyle(name='RubricDescriptor', fontSize=9, spaceAfter=4, leftIndent=18)) # Indent descriptors
+if 'RubricDomainHeading' not in styles:
+    styles.add(ParagraphStyle(name='RubricDomainHeading', fontSize=11, spaceAfter=8, bold=1)) # Style for domain headings in PDF
+if 'RubricElementRating' not in styles:
+    styles.add(ParagraphStyle(name='RubricElementRating', fontSize=10, spaceAfter=4, leftIndent=10)) # Style for element rating in PDF
 
 
 # --- Function to generate PDF ---
