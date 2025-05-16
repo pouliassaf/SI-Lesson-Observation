@@ -1051,8 +1051,10 @@ elif page == strings["page_analytics"]:
                 df_domain_scores_all = pd.DataFrame(all_observations_domain_scores)
 
                 # Ensure 'Observation Date' is datetime type for sorting and filtering
+                # Convert to datetime objects first, coercing errors, then to date objects
                 df_meta['Observation Date'] = pd.to_datetime(df_meta['Observation Date'], errors='coerce').dt.date
                 df_domain_scores_all['Observation Date'] = pd.to_datetime(df_domain_scores_all['Observation Date'], errors='coerce').dt.date
+
 
                 # Sort by date for trend analysis
                 df_meta = df_meta.sort_values(by="Observation Date")
