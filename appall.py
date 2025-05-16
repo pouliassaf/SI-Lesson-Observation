@@ -17,6 +17,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+import re # Import regex for cleaning HTML tags
 
 # --- Set Streamlit Page Config (MUST BE THE FIRST STREAMLIT COMMAND) ---
 st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
@@ -159,15 +160,16 @@ en_strings = {
     "perf_level_excellent": "Excellent",
 
     # Support Plan / Next Steps Text (English) - **Customize these extensively**
-    "plan_very_weak_overall": "Overall performance is Very Weak. A comprehensive support plan is required, focusing on fundamental teaching practices across multiple domains.",
-    "plan_weak_overall": "Overall performance is Weak. A support plan is recommended, targeting key areas for improvement identified in the observation.",
-    "plan_weak_domain": "Performance in {} is Weak. Focus on developing skills related to: {}", # Domain Name, specific elements
-    "steps_acceptable_overall": "Overall performance is Acceptable. Continue to build on strengths and focus on refining practices in specific areas.",
-    "steps_good_overall": "Overall performance is Good. Explore opportunities to share best practices and mentor colleagues.",
-    "steps_good_domain": "Performance in {} is Good. Consider advanced strategies related to: {}", # Domain Name, specific elements
-    "steps_excellent_overall": "Overall performance is Excellent. You are a role model for effective teaching. Consider leading professional development.",
-    "steps_excellent_domain": "Performance in {} is Excellent. Continue to innovate and refine your practice.",
-    "no_specific_plan_needed": "Performance is at an acceptable level or above. No immediate support plan required based on this observation."
+    # More detailed recommendations based on performance levels
+    "plan_very_weak_overall": "Overall performance is Very Weak. A comprehensive support plan is required. Focus on fundamental teaching practices such as classroom management, lesson planning, and basic instructional strategies. Seek guidance from your mentor teacher and school leadership.",
+    "plan_weak_overall": "Overall performance is Weak. A support plan is recommended. Identify 1-2 key areas for improvement from the observation and work with your mentor teacher to develop targeted strategies. Consider observing experienced colleagues in these areas.",
+    "plan_weak_domain": "Performance in **{}** is Weak. Focus on developing skills related to: {}. Suggested actions include: [Specific action 1], [Specific action 2].", # Domain Name, specific elements
+    "steps_acceptable_overall": "Overall performance is Acceptable. Continue to build on your strengths. Identify one area for growth to refine your practice and enhance student learning.",
+    "steps_good_overall": "Overall performance is Good. You demonstrate effective teaching practices. Explore opportunities to share your expertise with colleagues, perhaps through informal mentoring or presenting successful strategies.",
+    "steps_good_domain": "Performance in **{}** is Good. You demonstrate strong skills in this area. Consider exploring advanced strategies related to: {}. Suggested actions include: [Specific advanced action 1], [Specific advanced action 2].", # Domain Name, specific elements
+    "steps_excellent_overall": "Overall performance is Excellent. You are a role model for effective teaching. Consider leading professional development sessions or mentoring less experienced teachers.",
+    "steps_excellent_domain": "Performance in **{}** is Excellent. Your practice in this area is exemplary. Continue to innovate and refine your practice, perhaps by researching and implementing cutting-edge strategies related to: {}.", # Domain Name, specific elements
+    "no_specific_plan_needed": "Performance is at an acceptable level or above. No immediate support plan required based on this observation. Focus on continuous improvement based on your professional goals."
 }
 
 # Placeholder Arabic strings - REPLACE THESE WITH ACTUAL TRANSLATIONS
@@ -288,15 +290,16 @@ ar_strings = {
     "perf_level_excellent": "ممتاز", # Guessed translation
 
     # Support Plan / Next Steps Text (Arabic) - **Translate and Customize these extensively**
-    "plan_very_weak_overall": "الأداء الإجمالي ضعيف جداً. تتطلب خطة دعم شاملة، تركز على الممارسات التعليمية الأساسية عبر مجالات متعددة.", # Guessed translation
-    "plan_weak_overall": "الأداء الإجمالي ضعيف. يوصى بخطة دعم، تستهدف المجالات الرئيسية للتحسين المحددة في الملاحظة.", # Guessed translation
-    "plan_weak_domain": "الأداء في {} ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}", # Guessed translation
-    "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط القوة وركز على تحسين الممارسات في مجالات محددة.", # Guessed translation
-    "steps_good_overall": "الأداء الإجمالي جيد. استكشف فرص مشاركة أفضل الممارسات وتوجيه الزملاء.", # Guessed translation
-    "steps_good_domain": "الأداء في {} جيد. فكر في استراتيجيات متقدمة تتعلق بـ: {}", # Guessed translation
-    "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة التطوير المهني.", # Guessed translation
-    "steps_excellent_domain": "الأداء في {} ممتاز. استمر في الابتكار وتحسين ممارستك.", # Guessed translation
-    "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة.", # Guessed translation
+    # More detailed recommendations based on performance levels
+    "plan_very_weak_overall": "الأداء الإجمالي ضعيف جداً. تتطلب خطة دعم شاملة. ركز على الممارسات التعليمية الأساسية مثل إدارة الصف، وتخطيط الدرس، والاستراتيجيات التعليمية الأساسية. اطلب التوجيه من معلمك الموجه وقيادة المدرسة.", # Guessed translation - Enhanced
+    "plan_weak_overall": "الأداء الإجمالي ضعيف. يوصى بخطة دعم. حدد 1-2 من المجالات الرئيسية للتحسين من الملاحظة واعمل مع معلمك الموجه لتطوير استراتيجيات مستهدفة. فكر في ملاحظة الزملاء ذوي الخبرة في هذه المجالات.", # Guessed translation - Enhanced
+    "plan_weak_domain": "الأداء في **{}** ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}. الإجراءات المقترحة تشمل: [إجراء محدد 1]، [إجراء محدد 2].", # Guessed translation - Enhanced
+    "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط قوتك. حدد مجالًا واحدًا للنمو لتحسين ممارستك وتعزيز تعلم الطلاب.", # Guessed translation - Enhanced
+    "steps_good_overall": "الأداء الإجمالي جيد. أنت تظهر ممارسات تعليمية فعالة. استكشف فرص مشاركة خبرتك مع الزملاء، ربما من خلال التوجيه غير الرسمي أو تقديم استراتيجيات ناجحة.", # Guessed translation - Enhanced
+    "steps_good_domain": "الأداء في **{}** جيد. أنت تظهر مهارات قوية في هذا المجال. فكر في استكشاف استراتيجيات متقدمة تتعلق بـ: {}. الإجراءات المقترحة تشمل: [إجراء متقدم محدد 1]، [إجراء متقدم محدد 2].", # Guessed translation - Enhanced
+    "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة جلسات التطوير المهني أو توجيه المعلمين الأقل خبرة.", # Guessed translation - Enhanced
+    "steps_excellent_domain": "الأداء في **{}** ممتاز. ممارستك في هذا المجال نموذجية. استمر في الابتكار وتحسين ممارستك، ربما من خلال البحث وتطبيق استراتيجيات حديثة تتعلق بـ: {}.", # Guessed translation - Enhanced
+    "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة. ركز على التحسين المستمر بناءً على أهدافك المهنية." # Guessed translation - Enhanced
 }
 
 # --- Function to get strings based on language toggle ---
@@ -457,12 +460,13 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
                 # Include the full descriptor text if available
                 if description_en:
                      # Convert the markdown-like descriptor text to ReportLab flowables
-                     descriptor_paragraphs = description_en.split('\n\n')
-                     for desc_para in descriptor_paragraphs:
+                     # Remove bold markdown and other potential HTML tags from descriptors for PDF
+                     cleaned_desc_para = re.sub(r'<.*?>', '', description_en).replace('**', '')
+                     # Split by newline for separate paragraphs in PDF
+                     desc_paragraphs = cleaned_desc_para.split('\n')
+                     for desc_para in desc_paragraphs:
                           if desc_para.strip():
-                               # Remove bold markdown from descriptors for PDF to avoid parsing issues
-                               cleaned_desc_para = desc_para.replace('**', '')
-                               story.append(Paragraph(cleaned_desc_para.replace('\n', '<br/>'), styles['RubricDescriptor']))
+                               story.append(Paragraph(desc_para, styles['RubricDescriptor']))
                          # story.append(Spacer(1, 0.05*inch)) # Smaller space between descriptor paragraphs
                 story.append(Spacer(1, 0.1*inch)) # Space after each element
 
@@ -712,6 +716,7 @@ if page == strings["page_lesson_input"]:
 
             send_feedback = st.checkbox(strings["checkbox_send_feedback"])
 
+            # Adjusted button order
             if st.button(strings["button_save_observation"]):
                 # Ensure essential fields are filled before saving (optional but good practice)
                 if not all([observer, teacher, school, grade, subject, students, males, females, time_in, time_out, observation_date]):
@@ -767,6 +772,7 @@ if page == strings["page_lesson_input"]:
 
 
                     # Generate and send feedback
+                    # This block is now inside the save button logic, but the checkbox still controls if feedback is sent
                     if send_feedback and teacher_email:
                         feedback_content = strings["feedback_greeting"].format(teacher, observation_date.strftime('%Y-%m-%d')) # Use observation_date
                         feedback_content += strings["feedback_observer"].format(observer)
@@ -831,19 +837,15 @@ if page == strings["page_lesson_input"]:
                         # Add Support Plan or Next Steps based on Overall Score
                         if overall_score is not None:
                              if overall_score < 3.5: # Example threshold for Weak/Very Weak
-                                 feedback_content += strings["feedback_support_plan_intro"]
-                                 if overall_score < 2.5: # Example threshold for Very Weak
-                                      feedback_content += strings["plan_very_weak_overall"] + "\n"
-                                 else: # Weak
-                                      feedback_content += strings["plan_weak_overall"] + "\n"
-
-                                 # Suggest domains to focus on if weak
+                                 feedback_content += strings["feedback_support_plan_intro"] + strings["plan_very_weak_overall"] + "\n"
+                                 # Add domain-specific weak suggestions
                                  weak_domains = [d for d, avg in domain_avg_scores.items() if avg is not None and avg < 3.5] # Example threshold
                                  if weak_domains:
-                                      feedback_content += "Areas for focus include: " + ", ".join([ws[f'A{int(rubric_domains[d][0][1:])}'].value or d for d in weak_domains]) + "\n"
+                                      feedback_content += "Areas for focus include: " + ", ".join([ws[f'A{int(rubric_domains[d][0][1:])}'].value or d for d in weak_domains]) + ".\n"
+                                      # Add more specific weak domain suggestions - CUSTOMIZE THIS TEXT
+                                      for d in weak_domains:
+                                           feedback_content += strings["plan_weak_domain"].format(ws[f'A{int(rubric_domains[d][0][1:])}'].value or d, "[Specific elements for this domain]") + "\n"
 
-                                 # Placeholder for more specific AI-generated support plan items
-                                 feedback_content += "\n[Placeholder: Specific support plan items to be discussed with school leadership or generated with AI assistance.]\n"
 
                              elif overall_score >= 3.5: # Example threshold for Acceptable and above
                                  feedback_content += strings["feedback_next_steps_intro"]
@@ -857,10 +859,10 @@ if page == strings["page_lesson_input"]:
                                  # Suggest domains of strength if good/excellent
                                  strong_domains = [d for d, avg in domain_avg_scores.items() if avg is not None and avg >= 4.5] # Example threshold
                                  if strong_domains:
-                                      feedback_content += "Areas of strength include: " + ", ".join([ws[f'A{int(rubric_domains[d][0][1:])}'].value or d for d in strong_domains]) + "\n"
-
-                                 # Placeholder for more specific AI-generated next steps
-                                 feedback_content += "\n[Placeholder: Specific next steps to be discussed with school leadership or generated with AI assistance.]\n"
+                                      feedback_content += "Areas of strength include: " + ", ".join([ws[f'A{int(rubric_domains[d][0][1:])}'].value or d for d in strong_domains]) + ".\n"
+                                      # Add more specific strong domain suggestions - CUSTOMIZE THIS TEXT
+                                      for d in strong_domains:
+                                           feedback_content += strings["steps_good_domain"].format(ws[f'A{int(rubric_domains[d][0][1:])}'].value or d, "[Specific advanced strategies for this domain]") + "\n"
 
                              else:
                                   feedback_content += strings["no_specific_plan_needed"] + "\n"
@@ -1227,7 +1229,7 @@ elif page == strings["page_analytics"]:
 
 
                         else:
-                            st.info(strings["info_no_obs_for_teacher"])
+                            st.info(strings["info_info_no_obs_for_teacher"])
 
 
                     else:
