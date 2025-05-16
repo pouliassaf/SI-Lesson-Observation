@@ -10,14 +10,40 @@ import csv
 import math
 import io
 
+# Import ReportLab modules for PDF generation
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image # Import Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+
+# --- Logo File Paths ---
+# Define a dictionary mapping school names to logo file paths
+# Ensure these paths are correct relative to your script location
+# Add more school logos here as needed
+LOGO_PATHS = {
+    "Default": "logos/default.jpeg", # Default logo for schools not listed
+    "Al Bayan School": "logos/CS_Al Bayan Charter School_Logo.png",
+    "Al Bayraq School": "logos/CS_Al Bayraq_Logo_PNG.png",
+    "Al Dhaher School": "logos/CS_Al Dhaher_Logo_PNG.png",
+    "Al Hosoon School": "logos/CS_Al Hosoon Charter School_Logo.png",
+    "Al Mutanabi School": "logos/CS_Al Mutanabi_Logo_PNG.png",
+    "Al Nahdha School": "logos/CS_Al Nahdha_Logo_PNG.png",
+    "Jern Yafoor School": "logos/CS_Jern Yafoor_Logo_PNG.png",
+    "Maryam Bint Omran School": "logos/CS_Maryam Bint Omran_Logo_PNG.png",
+    # Add other school logos here following the pattern:
+    # "School Name as it appears in the app": "logos/your_logo_file.png",
+}
+
+
 # --- Text Strings for Localization ---
 # You need to replace the placeholder Arabic strings with actual translations
 en_strings = {
-    "page_title": "Lesson Observation Tool",
+    "page_title": "Lesson Observation Tool", # Reverted to Lesson Observation
     "sidebar_select_page": "Choose a page:",
-    "page_lesson_input": "Lesson Input",
-    "page_analytics": "Observation Analytics",
-    "title_lesson_input": "Weekly Lesson Observation Input Tool",
+    "page_lesson_input": "Lesson Observation Input", # Reverted to Lesson Observation
+    "page_analytics": "Lesson Observation Analytics", # Reverted to Lesson Observation
+    "title_lesson_input": "Weekly Lesson Observation Input Tool", # Reverted to Lesson Observation
     "info_default_workbook": "Using default template workbook:",
     "warning_default_not_found": "Default template workbook '{}' not found. Please upload a workbook.",
     "error_opening_default": "Error opening default template file:",
@@ -46,7 +72,7 @@ en_strings = {
     "warning_calculate_duration": "Please enter both 'Time In' and 'Time Out' to calculate duration.",
     "warning_could_not_calculate_duration": "Could not calculate lesson duration:",
     "label_period": "Period",
-    "label_obs_type": "Observation Type",
+    "label_obs_type": "Observation Type", # Reverted to Observation Type
     "option_individual": "Individual",
     "option_joint": "Joint",
     "subheader_rubric_scores": "Rubric Scores",
@@ -54,13 +80,13 @@ en_strings = {
     "info_no_descriptors": "No rubric descriptors available for this element.",
     "label_rating_for": "Rating for {}",
     "checkbox_send_feedback": "✉️ Send Feedback to Teacher",
-    "button_save_observation": "💾 Save Observation",
+    "button_save_observation": "💾 Save Observation", # Reverted to Save Observation
     "warning_fill_essential": "Please fill in all basic information fields before saving.",
-    "success_data_saved": "Observation data saved to {} in {}",
+    "success_data_saved": "Observation data saved to {} in {}", # Reverted to Observation data
     "error_saving_workbook": "Error saving workbook:",
     "download_workbook": "📥 Download updated workbook",
-    "feedback_subject": "Lesson Observation Feedback",
-    "feedback_greeting": "Dear {},\n\nYour lesson observation from {} has been saved.\n\n",
+    "feedback_subject": "Lesson Observation Feedback", # Reverted to Lesson Observation
+    "feedback_greeting": "Dear {},\n\nYour lesson observation from {} has been saved.\n\n", # Reverted to lesson observation
     "feedback_observer": "Observer: {}\n",
     "feedback_duration": "Duration: {}\n",
     "feedback_subject_fb": "Subject: {}\n", # Renamed to avoid conflict with label_subject
@@ -81,21 +107,21 @@ en_strings = {
     "success_feedback_generated": "Feedback generated (simulated):\n\n",
     "success_feedback_log_updated": "Feedback log updated in {}",
     "error_updating_log": "Error updating feedback log in workbook:",
-    "title_analytics": "Observation Analytics Dashboard",
+    "title_analytics": "Lesson Observation Analytics Dashboard", # Reverted to Lesson Observation
     "warning_no_lo_sheets_analytics": "No 'LO ' sheets found in the workbook for analytics.",
-    "subheader_avg_score_overall": "Average Score per Domain (Across all observations)",
-    "info_no_numeric_scores_overall": "No numeric scores found across all observations to calculate overall domain averages.",
-    "subheader_data_summary": "Observation Data Summary",
+    "subheader_avg_score_overall": "Average Score per Domain (Across all observations)", # Reverted to observations
+    "info_no_numeric_scores_overall": "No numeric scores found across all observations to calculate overall domain averages.", # Reverted to observations
+    "subheader_data_summary": "Observation Data Summary", # Reverted to Observation
     "subheader_filter_analyze": "Filter and Analyze",
     "filter_by_school": "Filter by School",
     "filter_by_grade": "Filter by Grade",
     "filter_by_subject": "Filter by Subject",
     "option_all": "All",
     "subheader_avg_score_filtered": "Average Score per Domain (Filtered)",
-    "info_no_numeric_scores_filtered": "No observations matching the selected filters contain numeric scores for domain averages.",
+    "info_no_numeric_scores_filtered": "No observations matching the selected filters contain numeric scores for domain averages.", # Reverted to observations
     "subheader_observer_distribution": "Observer Distribution (Filtered)",
     "info_no_observer_data_filtered": "No observer data found for the selected filters.",
-    "info_no_observation_data_filtered": "No observation data found for the selected filters.",
+    "info_no_observation_data_filtered": "No observation data found for the selected filters.", # Reverted to observation
     "error_loading_analytics": "Error loading or processing workbook for analytics:",
     "overall_score_label": "Overall Score:", # Label for displaying overall score
     "overall_score_value": "**{:.2f}**", # Format for displaying overall score
@@ -109,15 +135,15 @@ en_strings = {
     "download_overall_avg_excel": "📥 Download Overall Domain Averages (Excel)",
     "download_filtered_avg_csv": "📥 Download Filtered Domain Averages (CSV)",
     "download_filtered_avg_excel": "📥 Download Filtered Domain Averages (Excel)",
-    "download_filtered_data_csv": "📥 Download Filtered Observation Data (CSV)",
-    "download_filtered_data_excel": "📥 Download Filtered Observation Data (Excel)",
-    "label_observation_date": "Observation Date", # New string for date input
+    "download_filtered_data_csv": "📥 Download Filtered Observation Data (CSV)", # Reverted to Observation
+    "download_filtered_data_excel": "📥 Download Filtered Observation Data (Excel)", # Reverted to Observation
+    "label_observation_date": "Observation Date", # Reverted to Observation
     "filter_start_date": "Start Date", # New string for start date filter
     "filter_end_date": "End Date", # New string for end date filter
     "filter_teacher": "Filter by Teacher", # New string for teacher filter
     "subheader_teacher_performance": "Teacher Performance Over Time", # New subheader
     "info_select_teacher": "Select a teacher to view individual performance analytics.",
-    "info_no_obs_for_teacher": "No observations found for the selected teacher within the applied filters.",
+    "info_no_obs_for_teacher": "No observations found for the selected teacher within the applied filters.", # Reverted to observations
     "subheader_teacher_domain_trend": "{} Domain Performance Trend", # New subheader for teacher trend chart
     "subheader_teacher_overall_avg": "{} Overall Average Score (Filtered)", # New subheader for teacher overall avg
 
@@ -142,131 +168,131 @@ en_strings = {
 
 # Placeholder Arabic strings - REPLACE THESE WITH ACTUAL TRANSLATIONS
 ar_strings = {
-    "page_title": "أداة ملاحظة الدرس", # Placeholder
-    "sidebar_select_page": "اختر صفحة:", # Placeholder
-    "page_lesson_input": "إدخال الدرس", # Placeholder
-    "page_analytics": "تحليلات الملاحظة", # Placeholder
-    "title_lesson_input": "أداة إدخال ملاحظة الدرس الأسبوعية", # Placeholder
-    "info_default_workbook": "استخدام مصنف القالب الافتراضي:", # Placeholder
-    "warning_default_not_found": "لم يتم العثور على مصنف القالب الافتراضي '{}'. يرجى تحميل مصنف.", # Placeholder
-    "error_opening_default": "خطأ في فتح ملف القالب الافتراضي:", # Placeholder
-    "success_lo_sheets_found": "تم العثور على {} أوراق LO في المصنف.", # Placeholder
-    "select_sheet_or_create": "حدد ورقة LO موجودة أو أنشئ واحدة جديدة:", # Placeholder
-    "option_create_new": "إنشاء جديد", # Placeholder
-    "success_sheet_created": "تم إنشاء ورقة جديدة: {}", # Placeholder
-    "error_template_not_found": "خطأ: لم يتم العثور على ورقة القالب 'LO 1' في المصنف! لا يمكن إنشاء ورقة جديدة.", # Placeholder
-    "subheader_filling_data": "ملء البيانات لـ: {}", # Placeholder
-    "label_observer_name": "اسم المراقب", # Placeholder
-    "label_teacher_name": "اسم المعلم", # Placeholder
-    "label_teacher_email": "البريد الإلكتروني للمعلم", # Placeholder
-    "label_operator": "المشغل", # Placeholder
-    "label_school_name": "اسم المدرسة", # Placeholder
-    "label_grade": "الصف", # Placeholder
-    "label_subject": "المادة", # Placeholder
-    "label_gender": "الجنس", # Placeholder
-    "label_students": "عدد الطلاب", # Placeholder
-    "label_males": "عدد الذكور", # Placeholder
-    "label_females": "عدد الإناث", # Placeholder
-    "label_time_in": "وقت الدخول", # Placeholder
-    "label_time_out": "وقت الخروج", # Placeholder
-    "label_lesson_duration": "🕒 **مدة الدرس:** {} دقيقة — _{}_", # Placeholder
-    "duration_full_lesson": "درس كامل", # Placeholder
-    "duration_walkthrough": "جولة سريعة", # Placeholder
-    "warning_calculate_duration": "يرجى إدخال وقت الدخول ووقت الخروج لحساب المدة.", # Placeholder
-    "warning_could_not_calculate_duration": "تعذر حساب مدة الدرس:", # Placeholder
-    "label_period": "الفترة", # Placeholder
-    "label_obs_type": "نوع الملاحظة", # Placeholder
-    "option_individual": "فردي", # Placeholder
-    "option_joint": "مشترك", # Placeholder
-    "subheader_rubric_scores": "درجات الدليل", # Placeholder
-    "expander_rubric_descriptors": "واصفات الدليل", # Placeholder
-    "info_no_descriptors": "لا توجد واصفات دليل متاحة لهذا العنصر.", # Placeholder
-    "label_rating_for": "التقييم لـ {}", # Placeholder
-    "checkbox_send_feedback": "✉️ إرسال ملاحظات إلى المعلم", # Placeholder
-    "button_save_observation": "💾 حفظ الملاحظة", # Placeholder
-    "warning_fill_essential": "يرجى ملء جميع حقول المعلومات الأساسية قبل الحفظ.", # Placeholder
-    "success_data_saved": "تم حفظ بيانات الملاحظة في {} في {}", # Placeholder
-    "error_saving_workbook": "خطأ في حفظ المصنف:", # Placeholder
-    "download_workbook": "📥 تنزيل المصنف المحدث", # Placeholder
-    "feedback_subject": "ملاحظات ملاحظة الدرس", # Placeholder
-    "feedback_greeting": "عزيزي {},\n\nتم حفظ ملاحظة درسك من {}.\n\n", # Placeholder
-    "feedback_observer": "المراقب: {}\n", # Placeholder
-    "feedback_duration": "المدة: {}\n", # Placeholder
-    "feedback_subject_fb": "المادة: {}\n", # Placeholder
-    "feedback_school": "المدرسة: {}\n\n", # Placeholder
-    "feedback_summary_header": "إليك ملخص لتقييماتك بناءً على الدليل:\n\n", # Placeholder
-    "feedback_domain_header": "**{}: {}**\n", # Placeholder
-    "feedback_element_rating": "- **{}:** التقييم **{}**\n", # Placeholder
-    "feedback_descriptor_for_rating": "  *واصف للتقييم {}:* {}\n", # Placeholder
-    "feedback_overall_score": "\n**متوسط الدرجة الإجمالي:** {:.2f}\n\n", # Placeholder
-    "feedback_domain_average": "  *متوسط المجال:* {:.2f}\n", # Placeholder
-    "feedback_performance_summary": "**ملخص الأداء:**\n", # Placeholder
-    "feedback_overall_performance": "الإجمالي: {}\n", # Placeholder
-    "feedback_domain_performance": "{}: {}\n", # Placeholder
-    "feedback_support_plan_intro": "\n**خطة الدعم الموصى بها:**\n", # Placeholder
-    "feedback_next_steps_intro": "\n**الخطوات التالية المقترحة:**\n", # Placeholder
-    "feedback_closing": "\nبناءً على هذه التقييمات، يرجى مراجعة المصنف المحدث للحصول على ملاحظات تفصيلية ومجالات التطوير.\n\n", # Placeholder
-    "feedback_regards": "مع التحيات,\nفريق قيادة المدرسة", # Placeholder
-    "success_feedback_generated": "تم إنشاء الملاحظات (محاكاة):\n\n", # Placeholder
-    "success_feedback_log_updated": "تم تحديث سجل الملاحظات في {}", # Placeholder
-    "error_updating_log": "خطأ في تحديث سجل الملاحظات في المصنف:", # Placeholder
-    "title_analytics": "لوحة تحليلات الملاحظة", # Placeholder
-    "warning_no_lo_sheets_analytics": "لم يتم العثور على أوراق 'LO ' في المصنف للتحليلات.", # Placeholder
-    "subheader_avg_score_overall": "متوسط الدرجة لكل مجال (عبر جميع الملاحظات)", # Placeholder
-    "info_no_numeric_scores_overall": "لم يتم العثور على درجات رقمية عبر جميع الملاحظات لحساب متوسطات المجال الإجمالية.", # Placeholder
-    "subheader_data_summary": "ملخص بيانات الملاحظة", # Placeholder
-    "subheader_filter_analyze": "تصفية وتحليل", # Placeholder
-    "filter_by_school": "تصفية حسب المدرسة", # Placeholder
-    "filter_by_grade": "تصفية حسب الصف", # Placeholder
-    "filter_by_subject": "تصفية حسب المادة", # Placeholder
-    "option_all": "الكل", # Placeholder
-    "subheader_avg_score_filtered": "متوسط الدرجة لكل مجال (مصفى)", # Placeholder
-    "info_no_numeric_scores_filtered": "لا توجد ملاحظات مطابقة للمرشحات المحددة تحتوي على درجات رقمية لمتوسطات المجال.", # Placeholder
-    "subheader_observer_distribution": "توزيع المراقبين (مصفى)", # Placeholder
-    "info_no_observer_data_filtered": "لم يتم العثور على بيانات المراقب للمرشحات المحددة.", # Placeholder
-    "info_no_observation_data_filtered": "لم يتم العثور على بيانات الملاحظة للمرشحات المحددة.", # Placeholder
-    "error_loading_analytics": "خطأ في تحميل أو معالجة المصنف للتحليلات:", # Placeholder
-    "overall_score_label": "النتيجة الإجمالية:", # Placeholder
-    "overall_score_value": "**{:.2f}**", # Placeholder
-    "overall_score_na": "**غير متوفر**", # Placeholder
-    "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # Placeholder - Keep English part for clarity
-    "feedback_log_sheet_name": "سجل الملاحظات", # Placeholder
-    "feedback_log_header": ["الورقة", "المعلم", "البريد الإلكتروني", "المراقب", "المدرسة", "المادة", "التاريخ", "الملخص"], # Placeholder
-    "download_feedback_log_csv": "📥 تنزيل سجل الملاحظات (CSV)", # Placeholder
-    "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Placeholder
-    "download_overall_avg_csv": "📥 تنزيل متوسطات المجال الإجمالية (CSV)", # Placeholder
-    "download_overall_avg_excel": "📥 تنزيل متوسطات المجال الإجمالية (Excel)", # Placeholder
-    "download_filtered_avg_csv": "📥 تنزيل متوسطات المجال المصفاة (CSV)", # Placeholder
-    "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Placeholder
-    "download_filtered_data_csv": "📥 تنزيل بيانات الملاحظة المصفاة (CSV)", # Placeholder
-    "download_filtered_data_excel": "📥 تنزيل بيانات الملاحظة المصفاة (Excel)", # Placeholder
-    "label_observation_date": "تاريخ الملاحظة", # Placeholder
-    "filter_start_date": "تاريخ البدء", # Placeholder
-    "filter_end_date": "تاريخ الانتهاء", # Placeholder
-    "filter_teacher": "تصفية حسب المعلم", # Placeholder
-    "subheader_teacher_performance": "أداء المعلم بمرور الوقت", # Placeholder
-    "info_select_teacher": "حدد معلمًا لعرض تحليلات الأداء الفردي.", # Placeholder
-    "info_no_obs_for_teacher": "لم يتم العثور على ملاحظات للمعلم المحدد ضمن المرشحات المطبقة.", # Placeholder
-    "subheader_teacher_domain_trend": "اتجاه أداء مجال {}", # Placeholder
-    "subheader_teacher_overall_avg": "متوسط الدرجة الإجمالي لـ {} (مصفى)", # Placeholder
+    "page_title": "أداة التقييم للزيارات الصفية", # User's preferred translation
+    "sidebar_select_page": "اختر صفحة:", # Updated translation
+    "page_lesson_input": "ادخال تقييم الزيارة", # User's preferred translation
+    "page_analytics": "تحليلات الزيارة", # User's preferred translation
+    "title_lesson_input": "أداة إدخال زيارة صفية أسبوعية", # Updated translation
+    "info_default_workbook": "استخدام مصنف القالب الافتراضي:", # Guessed translation
+    "warning_default_not_found": "تحذير: لم يتم العثور على مصنف القالب الافتراضي '{}'. يرجى تحميل مصنف.", # Guessed translation
+    "error_opening_default": "خطأ في فتح ملف القالب الافتراضي:", # Guessed translation
+    "success_lo_sheets_found": "تم العثور على {} أوراق LO في المصنف.", # Guessed translation
+    "select_sheet_or_create": "حدد ورقة LO موجودة أو أنشئ واحدة جديدة:", # Guessed translation
+    "option_create_new": "إنشاء جديد", # Guessed translation
+    "success_sheet_created": "تم إنشاء ورقة جديدة: {}", # Guessed translation
+    "error_template_not_found": "خطأ: لم يتم العثور على ورقة القالب 'LO 1' في المصنف! لا يمكن إنشاء ورقة جديدة.", # Guessed translation
+    "subheader_filling_data": "ملء البيانات لـ: {}", # Guessed translation
+    "label_observer_name": "اسم المراقب", # Guessed translation
+    "label_teacher_name": "اسم المعلم", # Guessed translation
+    "label_teacher_email": "البريد الإلكتروني للمعلم", # Guessed translation
+    "label_operator": "المشغل", # Guessed translation
+    "label_school_name": "اسم المدرسة", # Guessed translation
+    "label_grade": "الصف", # Guessed translation
+    "label_subject": "المادة", # Guessed translation
+    "label_gender": "الجنس", # Guessed translation
+    "label_students": "عدد الطلاب", # Guessed translation
+    "label_males": "عدد الذكور", # Guessed translation
+    "label_females": "عدد الإناث", # Guessed translation
+    "label_time_in": "وقت الدخول", # Guessed translation
+    "label_time_out": "وقت الخروج", # Guessed translation
+    "label_lesson_duration": "🕒 **مدة الدرس:** {} دقيقة — _{}_", # Guessed translation
+    "duration_full_lesson": "درس كامل", # Guessed translation
+    "duration_walkthrough": "جولة سريعة", # Guessed translation
+    "warning_calculate_duration": "يرجى إدخال وقت الدخول ووقت الخروج لحساب المدة.", # Guessed translation
+    "warning_could_not_calculate_duration": "تعذر حساب مدة الدرس:", # Guessed translation
+    "label_period": "الفترة", # Guessed translation
+    "label_obs_type": "نوع الزيارة", # Updated translation
+    "option_individual": "فردي", # Guessed translation
+    "option_joint": "مشترك", # Guessed translation
+    "subheader_rubric_scores": "درجات الدليل", # Guessed translation
+    "expander_rubric_descriptors": "واصفات الدليل", # Guessed translation
+    "info_no_descriptors": "لا توجد واصفات دليل متاحة لهذا العنصر.", # Guessed translation
+    "label_rating_for": "التقييم لـ {}", # Guessed translation
+    "checkbox_send_feedback": "✉️ إرسال ملاحظات إلى المعلم", # Guessed translation
+    "button_save_observation": "💾 حفظ الزيارة", # Updated translation
+    "warning_fill_essential": "يرجى ملء جميع حقول المعلومات الأساسية قبل الحفظ.", # Guessed translation
+    "success_data_saved": "تم حفظ بيانات الزيارة في {} في {}", # Updated translation
+    "error_saving_workbook": "خطأ في حفظ المصنف:", # Guessed translation
+    "download_workbook": "📥 تنزيل المصنف المحدث", # Guessed translation
+    "feedback_subject": "ملاحظات الزيارة الصفية", # Updated translation
+    "feedback_greeting": "عزيزي {},\n\nتم حفظ زيارتك الصفية من {}.\n\n", # Updated translation
+    "feedback_observer": "المراقب: {}\n", # Guessed translation
+    "feedback_duration": "المدة: {}\n", # Guessed translation
+    "feedback_subject_fb": "المادة: {}\n", # Guessed translation
+    "feedback_school": "المدرسة: {}\n\n", # Guessed translation
+    "feedback_summary_header": "إليك ملخص لتقييماتك بناءً على الدليل:\n\n", # Guessed translation
+    "feedback_domain_header": "**{}: {}**\n", # Guessed translation
+    "feedback_element_rating": "- **{}:** التقييم **{}**\n", # Guessed translation
+    "feedback_descriptor_for_rating": "  *واصف للتقييم {}:* {}\n", # Guessed translation
+    "feedback_overall_score": "\n**متوسط الدرجة الإجمالي:** {:.2f}\n\n", # Guessed translation
+    "feedback_domain_average": "  *متوسط المجال:* {:.2f}\n", # Guessed translation
+    "feedback_performance_summary": "**ملخص الأداء:**\n", # Guessed translation
+    "feedback_overall_performance": "الإجمالي: {}\n", # Guessed translation
+    "feedback_domain_performance": "{}: {}\n", # Guessed translation
+    "feedback_support_plan_intro": "\n**خطة الدعم الموصى بها:**\n", # Guessed translation
+    "feedback_next_steps_intro": "\n**الخطوات التالية المقترحة:**\n", # Guessed translation
+    "feedback_closing": "\nبناءً على هذه التقييمات، يرجى مراجعة المصنف المحدث للحصول على ملاحظات تفصيلية ومجالات التطوير.\n\n", # Guessed translation
+    "feedback_regards": "مع التحيات,\nفريق قيادة المدرسة", # Guessed translation
+    "success_feedback_generated": "تم إنشاء الملاحظات (محاكاة):\n\n", # Guessed translation
+    "success_feedback_log_updated": "تم تحديث سجل الملاحظات في {}", # Guessed translation
+    "error_updating_log": "خطأ في تحديث سجل الملاحظات في المصنف:", # Guessed translation
+    "title_analytics": "لوحة تحليلات الزيارة الصفية", # Updated translation
+    "warning_no_lo_sheets_analytics": "لم يتم العثور على أوراق 'LO ' في المصنف للتحليلات.", # Guessed translation
+    "subheader_avg_score_overall": "متوسط الدرجة لكل مجال (عبر جميع الزيارات)", # Updated translation
+    "info_no_numeric_scores_overall": "لم يتم العثور على درجات رقمية عبر جميع الزيارات لحساب متوسطات المجال الإجمالية.", # Updated translation
+    "subheader_data_summary": "ملخص بيانات الزيارة", # Updated translation
+    "subheader_filter_analyze": "تصفية وتحليل", # Guessed translation
+    "filter_by_school": "تصفية حسب المدرسة", # Guessed translation
+    "filter_by_grade": "تصفية حسب الصف", # Guessed translation
+    "filter_by_subject": "تصفية حسب المادة", # Guessed translation
+    "option_all": "الكل", # Guessed translation
+    "subheader_avg_score_filtered": "متوسط الدرجة لكل مجال (مصفى)", # Guessed translation
+    "info_no_numeric_scores_filtered": "لا توجد زيارات مطابقة للمرشحات المحددة تحتوي على درجات رقمية لمتوسطات المجال.", # Updated translation
+    "subheader_observer_distribution": "توزيع المراقبين (مصفى)", # Guessed translation
+    "info_no_observer_data_filtered": "لم يتم العثور على بيانات المراقب للمرشحات المحددة.", # Guessed translation
+    "info_no_observation_data_filtered": "لم يتم العثور على بيانات الزيارة للمرشحات المحددة.", # Updated translation
+    "error_loading_analytics": "خطأ في تحميل أو معالجة المصنف للتحليلات:", # Guessed translation
+    "overall_score_label": "النتيجة الإجمالية:", # Guessed translation
+    "overall_score_value": "**{:.2f}**", # Guessed translation
+    "overall_score_na": "**غير متوفر**", # Guessed translation
+    "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # Keep English part as requested
+    "feedback_log_sheet_name": "سجل الملاحظات", # Guessed translation
+    "feedback_log_header": ["الورقة", "المعلم", "البريد الإلكتروني", "المراقب", "المدرسة", "المادة", "التاريخ", "الملخص"], # Guessed translation
+    "download_feedback_log_csv": "📥 تنزيل سجل الملاحظات (CSV)", # Guessed translation
+    "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Guessed translation
+    "download_overall_avg_csv": "📥 تنزيل متوسطات المجال الإجمالية (CSV)", # Guessed translation
+    "download_overall_avg_excel": "📥 تنزيل متوسطات المجال الإجمالية (Excel)", # Guessed translation
+    "download_filtered_avg_csv": "📥 تنزيل متوسطات المجال المصفاة (CSV)", # Guessed translation
+    "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Guessed translation
+    "download_filtered_data_csv": "📥 تنزيل بيانات الزيارة المصفاة (CSV)", # Updated translation
+    "download_filtered_data_excel": "📥 تنزيل بيانات الزيارة المصفاة (Excel)", # Updated translation
+    "label_observation_date": "تاريخ الزيارة", # Updated translation
+    "filter_start_date": "تاريخ البدء", # Guessed translation
+    "filter_end_date": "تاريخ الانتهاء", # Guessed translation
+    "filter_teacher": "تصفية حسب المعلم", # Guessed translation
+    "subheader_teacher_performance": "أداء المعلم بمرور الوقت", # Guessed translation
+    "info_select_teacher": "حدد معلمًا لعرض تحليلات الأداء الفردي.", # Guessed translation
+    "info_no_obs_for_teacher": "لم يتم العثور على زيارات للمعلم المحدد ضمن المرشحات المطبقة.", # Updated translation
+    "subheader_teacher_domain_trend": "اتجاه أداء مجال {}", # Guessed translation
+    "subheader_teacher_overall_avg": "متوسط الدرجة الإجمالي لـ {} (مصفى)", # Guessed translation
 
     # Performance Level Descriptors (Arabic) - **Translate these**
-    "perf_level_very_weak": "ضعيف جداً", # Placeholder
-    "perf_level_weak": "ضعيف", # Placeholder
-    "perf_level_acceptable": "مقبول", # Placeholder
-    "perf_level_good": "جيد", # Placeholder
-    "perf_level_excellent": "ممتاز", # Placeholder
+    "perf_level_very_weak": "ضعيف جداً", # Guessed translation
+    "perf_level_weak": "ضعيف", # Guessed translation
+    "perf_level_acceptable": "مقبول", # Guessed translation
+    "perf_level_good": "جيد", # Guessed translation
+    "perf_level_excellent": "ممتاز", # Guessed translation
 
     # Support Plan / Next Steps Text (Arabic) - **Translate and Customize these extensively**
-    "plan_very_weak_overall": "الأداء الإجمالي ضعيف جداً. تتطلب خطة دعم شاملة، تركز على الممارسات التعليمية الأساسية عبر مجالات متعددة.", # Placeholder
-    "plan_weak_overall": "الأداء الإجمالي ضعيف. يوصى بخطة دعم، تستهدف المجالات الرئيسية للتحسين المحددة في الملاحظة.", # Placeholder
-    "plan_weak_domain": "الأداء في {} ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}", # Placeholder
-    "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط القوة وركز على تحسين الممارسات في مجالات محددة.", # Placeholder
-    "steps_good_overall": "الأداء الإجمالي جيد. استكشف فرص مشاركة أفضل الممارسات وتوجيه الزملاء.", # Placeholder
-    "steps_good_domain": "الأداء في {} جيد. فكر في استراتيجيات متقدمة تتعلق بـ: {}", # Placeholder
-    "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة التطوير المهني.", # Placeholder
-    "steps_excellent_domain": "الأداء في {} ممتاز. استمر في الابتكار وتحسين ممارستك.", # Placeholder
-    "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة.", # Placeholder
+    "plan_very_weak_overall": "الأداء الإجمالي ضعيف جداً. تتطلب خطة دعم شاملة، تركز على الممارسات التعليمية الأساسية عبر مجالات متعددة.", # Guessed translation
+    "plan_weak_overall": "الأداء الإجمالي ضعيف. يوصى بخطة دعم، تستهدف المجالات الرئيسية للتحسين المحددة في الملاحظة.", # Guessed translation
+    "plan_weak_domain": "الأداء في {} ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}", # Guessed translation
+    "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط القوة وركز على تحسين الممارسات في مجالات محددة.", # Guessed translation
+    "steps_good_overall": "الأداء الإجمالي جيد. استكشف فرص مشاركة أفضل الممارسات وتوجيه الزملاء.", # Guessed translation
+    "steps_good_domain": "الأداء في {} جيد. فكر في استراتيجيات متقدمة تتعلق بـ: {}", # Guessed translation
+    "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة التطوير المهني.", # Guessed translation
+    "steps_excellent_domain": "الأداء في {} ممتاز. استمر في الابتكار وتحسين ممارستك.", # Guessed translation
+    "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة.", # Guessed translation
 }
 
 # --- Function to get strings based on language toggle ---
@@ -292,6 +318,127 @@ def get_performance_level(score, strings):
             return strings["perf_level_very_weak"]
     except (ValueError, TypeError):
         return strings["overall_score_na"] # Handle cases where score is not a valid number
+
+
+# --- Function to generate PDF ---
+def generate_observation_pdf(data, feedback_content, strings):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+
+    # Custom styles
+    styles.add(ParagraphStyle(name='Heading1Centered', alignment=1, fontSize=16, spaceAfter=14, bold=1))
+    styles.add(ParagraphStyle(name='Heading2', fontSize=12, spaceAfter=10, bold=1))
+    styles.add(ParagraphStyle(name='Normal', fontSize=10, spaceAfter=6))
+    styles.add(ParagraphStyle(name='RubricDescriptor', fontSize=9, spaceAfter=4, leftIndent=18)) # Indent descriptors
+
+    story = []
+
+    # --- Add School Logo ---
+    school_name = data.get("School", "Default")
+    logo_path = LOGO_PATHS.get(school_name, LOGO_PATHS["Default"])
+
+    if os.path.exists(logo_path):
+        try:
+            # Adjust width and height as needed
+            img = Image(logo_path, width=1.5*inch, height=0.75*inch)
+            img.hAlign = 'CENTER' # Center the logo
+            story.append(img)
+            story.append(Spacer(1, 0.2*inch)) # Add space after the logo
+        except Exception as e:
+            st.warning(f"Could not add logo for {school_name}: {e}")
+            # Optionally add a text placeholder if logo fails
+            # story.append(Paragraph(f"[{school_name} Logo Placeholder]", styles['Normal']))
+    else:
+        st.warning(f"Logo file not found for {school_name} at {logo_path}. Using text title.")
+        # Fallback to just the title if logo file is missing
+        story.append(Paragraph(strings["page_title"], styles['Heading1Centered']))
+        story.append(Spacer(1, 0.2*inch))
+
+
+    # Title (only if logo was not added successfully)
+    # If logo was added, the title might be redundant or need different placement
+    # For now, keeping it simple: if logo fails, show title. If logo succeeds, trust the logo/template
+    # If you want title AND logo, you need to adjust ReportLab flowables/frames
+    # Removed redundant title if logo is present
+
+    # Basic Information Table
+    basic_info_data = [
+        [strings["label_observer_name"] + ":", data.get("Observer Name", "")],
+        [strings["label_teacher_name"] + ":", data.get("Teacher", "")],
+        [strings["label_teacher_email"] + ":", data.get("Teacher Email", "")],
+        [strings["label_operator"] + ":", data.get("Operator", "")],
+        [strings["label_school_name"] + ":", data.get("School", "")],
+        [strings["label_grade"] + ":", data.get("Grade", "")],
+        [strings["label_subject"] + ":", data.get("Subject", "")],
+        [strings["label_gender"] + ":", data.get("Gender", "")],
+        [strings["label_students"] + ":", data.get("Students", "")],
+        [strings["label_males"] + ":", data.get("Males", "")],
+        [strings["label_females"] + ":", data.get("Females", "")],
+        [strings["label_observation_date"] + ":", data.get("Observation Date", "")],
+        [strings["label_time_in"] + ":", data.get("Time In", "")],
+        [strings["label_time_out"] + ":", data.get("Time Out", "")],
+        [strings["label_lesson_duration"] + ":", data.get("Duration", "")], # Using the duration label
+        [strings["label_period"] + ":", data.get("Period", "")],
+        [strings["label_obs_type"] + ":", data.get("Observation Type", "")],
+        [strings["overall_score_label"] + ":", data.get("Overall Score", strings["overall_score_na"])] # Include Overall Score
+    ]
+
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BOX', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Need to handle potential None values in data
+    cleaned_basic_info_data = [[item[0], str(item[1]) if item[1] is not None else "N/A"] for item in basic_info_data]
+
+
+    table = Table(cleaned_basic_info_data, colWidths=[2*inch, 4*inch])
+    table.setStyle(table_style)
+    story.append(table)
+    story.append(Spacer(1, 0.2*inch))
+
+    # Rubric Scores - This part needs to be built based on the structure of your rubric data
+    # For simplicity, let's add a placeholder or a basic representation
+    story.append(Paragraph(strings["subheader_rubric_scores"], styles['Heading2']))
+    story.append(Paragraph("Detailed rubric scores and descriptors would be included here based on the data structure.", styles['Normal']))
+    story.append(Spacer(1, 0.2*inch))
+
+
+    # Feedback Content
+    story.append(Paragraph("Feedback Report:", styles['Heading2']))
+    # The feedback_content string already contains formatting (like **, \n)
+    # We need to convert this markdown-like text to ReportLab flowables
+    # This is a simplified conversion; a full markdown parser would be more robust
+    feedback_paragraphs = feedback_content.split('\n\n') # Split by double newline for paragraphs
+    for para in feedback_paragraphs:
+        if para.strip(): # Avoid empty paragraphs
+            # Simple bold conversion
+            para = para.replace('**', '<b>').replace('**', '</b>')
+            story.append(Paragraph(para.replace('\n', '<br/>'), styles['Normal'])) # Replace single newlines with breaks
+        story.append(Spacer(1, 0.1*inch)) # Add space between paragraphs
+
+
+    # Build the PDF
+    try:
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        st.error(f"Error generating PDF: {e}")
+        return None
 
 
 # --- Streamlit App Layout ---
@@ -674,6 +821,41 @@ if page == strings["page_lesson_input"]:
 
                         st.success(strings["success_feedback_generated"] + feedback_content)
 
+                        # --- Generate and Download PDF ---
+                        # Prepare data for PDF generation
+                        pdf_data = {
+                            "Observer Name": observer,
+                            "Teacher": teacher,
+                            "Teacher Email": teacher_email,
+                            "Operator": operator,
+                            "School": school,
+                            "Grade": grade,
+                            "Subject": subject,
+                            "Gender": gender,
+                            "Students": students,
+                            "Males": males,
+                            "Females": females,
+                            "Observation Date": observation_date.strftime('%Y-%m-%d') if observation_date else "N/A",
+                            "Time In": time_in.strftime("%H:%M") if time_in else "N/A",
+                            "Time Out": time_out.strftime("%H:%M") if time_out else "N/A",
+                            "Duration": duration_label,
+                            "Period": period,
+                            "Observation Type": obs_type,
+                            "Overall Score": overall_score # Pass the calculated score
+                        }
+                        # You might also want to pass domain_avg_scores and all_element_ratings for detailed rubric in PDF
+
+                        pdf_buffer = generate_observation_pdf(pdf_data, feedback_content, strings)
+
+                        if pdf_buffer:
+                            st.download_button(
+                                label="📥 Download Observation PDF",
+                                data=pdf_buffer,
+                                file_name=f"{sheet_name}_Observation_Report.pdf",
+                                mime="application/pdf"
+                            )
+
+
                         # Feedback log to sheet
                         try:
                             if strings["feedback_log_sheet_name"] not in wb.sheetnames:
@@ -725,7 +907,7 @@ elif page == strings["page_analytics"]:
         try:
             # Use data_only=True to get calculated values from the Excel file
             wb = load_workbook(uploaded_file, data_only=True)
-            sheets = [s for s in wb.sheetnames if s.startswith("LO ")]
+            sheets = [s for s in wb.sheetnames if s.startswith("LO ")] # Corrected variable name
 
             if not sheets:
                 st.warning(strings["warning_no_lo_sheets_analytics"])
@@ -753,7 +935,7 @@ elif page == strings["page_analytics"]:
                          obs_date = observation_date_value
                     elif isinstance(observation_date_value, str):
                          try:
-                             obs_date = datetime.strptime(observation_date_value, "%Y-%m-%d").date() # Assuming YYYY-MM-DD format if saved as string
+                             obs_date = datetime.strptime(observation_date_value, "%Y-%m-%d").date() # Assuming %Y-%m-%d format if saved as string
                          except (ValueError, TypeError):
                               pass # Ignore if string format is unexpected
 
@@ -940,7 +1122,10 @@ elif page == strings["page_analytics"]:
 
                         if not df_domain_scores_filtered.empty:
                             # Calculate overall average for the filtered observations of this teacher
-                            teacher_overall_avg = df_domain_scores_filtered['Overall Score'].mean() if 'Overall Score' in df_domain_scores_filtered.columns and df_domain_scores_filtered['Overall Score'].notna().any() else None
+                            # Ensure 'Overall Score' column exists and has non-NA values
+                            # Convert 'Overall Score' to numeric, coercing errors to NaN
+                            df_domain_scores_filtered['Overall Score'] = pd.to_numeric(df_domain_scores_filtered['Overall Score'], errors='coerce')
+                            teacher_overall_avg = df_domain_scores_filtered['Overall Score'].mean() if df_domain_scores_filtered['Overall Score'].notna().any() else None
 
                             st.subheader(strings["subheader_teacher_overall_avg"].format(teacher_filter))
                             if teacher_overall_avg is not None:
@@ -991,7 +1176,11 @@ elif page == strings["page_analytics"]:
                         # Display overall filtered domain averages and observer distribution if "All" teachers selected
                         # Calculate and display filtered averages
                         # Only calculate mean if there are scores collected for that domain after filtering
-                        filtered_avg_scores = {domain: round(statistics.mean(scores), 2) if scores else 0 for domain, scores in filtered_domain_scores.items() if scores}
+                        # Use df_domain_scores_filtered here which is already filtered by date, school, grade, subject
+                        filtered_avg_scores = {
+                            domain: round(df_domain_scores_filtered[domain].mean(), 2) if not df_domain_scores_filtered[domain].isnull().all() else 0
+                            for domain in all_domains_list
+                        }
 
                         # Convert to DataFrame for charting, ensure all domains are present even if avg is 0
                         filtered_avg_data = [{"Domain": d, "Average Score": filtered_avg_scores.get(d, 0)} for d in all_domains_list]
