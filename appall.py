@@ -180,7 +180,9 @@ if st.button("💾 Save Observation"):
         "Regards,
 School Leadership Team"
     )
-    st.success(f"Feedback generated for {teacher_email} (not sent, simulated):
+    st.success("Feedback generated (simulated):
+
+" + feedback):
 
 {feedback}"):
 
