@@ -178,6 +178,13 @@ en_strings = {
     "warning_numeric_fields": "Please enter valid numbers for Students, Males, and Females.", # Added string for numeric validation
     "success_pdf_generated": "Feedback PDF generated successfully.", # Added success message for PDF
     "download_feedback_pdf": "📥 Download Feedback PDF", # Added string for PDF download button label
+    "checkbox_cleanup_sheets": "🪟 Clean up unused LO sheets (no observer name)", # Added string for checkbox label
+    "warning_sheets_removed": "Removed {} unused LO sheets.", # Added string for warning message
+    "info_reloaded_workbook": "Reloaded workbook after cleanup.", # Added string for info message
+    "info_no_sheets_to_cleanup": "No unused LO sheets found to clean up.", # Added string for info message
+    "expander_guidelines": "📘 Click here to view observation guidelines", # Added string for expander label
+    "info_no_guidelines": "Guidelines sheet is empty or could not be read.", # Added string for info message
+    "warning_select_create_sheet": "Please select or create a valid sheet to proceed.", # Added string for warning message
 
 
 }
@@ -312,6 +319,14 @@ ar_strings = {
     "warning_numeric_fields": "يرجى إدخال أرقام صحيحة لحقول الطلاب، الذكور، والإناث.", # Guessed translation
     "success_pdf_generated": "تم إنشاء ملف الملاحظات PDF بنجاح.", # Guessed translation
     "download_feedback_pdf": "📥 تنزيل ملف الملاحظات PDF", # Guessed translation
+    "checkbox_cleanup_sheets": "🪟 Clean up unused LO sheets (no observer name)", # Added string for checkbox label
+    "warning_sheets_removed": "Removed {} unused LO sheets.", # Added string for warning message
+    "info_reloaded_workbook": "Reloaded workbook after cleanup.", # Added string for info message
+    "info_no_sheets_to_cleanup": "No unused LO sheets found to clean up.", # Added string for info message
+    "expander_guidelines": "📘 Click here to view observation guidelines", # Added string for expander label
+    "info_no_guidelines": "Guidelines sheet is empty or could not be read.", # Added string for info message
+    "warning_select_create_sheet": "Please select or create a valid sheet to proceed.", # Added string for warning message
+
 
 }
 
@@ -715,102 +730,187 @@ if wb: # Proceed only if workbook was loaded successfully
         sheet_name = None
         ws = None # Initialize worksheet variable
 
+        # Function to read existing data from a sheet (to pre-fill inputs)
+        def load_existing_data(worksheet: Worksheet):
+            data = {}
+            # Basic Info from snippet 2 save locations
+            data["gender"] = worksheet["B5"].value
+            data["students"] = worksheet["B6"].value
+            data["males"] = worksheet["B7"].value
+            data["females"] = worksheet["B8"].value
+            data["subject"] = worksheet["D2"].value
+            # Duration was calculated, need time in/out
+            try:
+                time_in_str = worksheet["D7"].value
+                # Handle both time objects from previous saves and strings
+                if isinstance(time_in_str, datetime.time):
+                     data["time_in"] = time_in_str
+                elif isinstance(time_in_str, str) and time_in_str:
+                     data["time_in"] = datetime.strptime(time_in_str, "%H:%M").time()
+            except (ValueError, TypeError):
+                 data["time_in"] = None # Ensure it's set to None on error
+
+            try:
+                time_out_str = worksheet["D8"].value
+                if isinstance(time_out_str, datetime.time):
+                     data["time_out"] = time_out_str
+                elif isinstance(time_out_str, str) and time_out_str:
+                     data["time_out"] = datetime.strptime(time_out_str, "%H:%M").time()
+            except (ValueError, TypeError):
+                 data["time_out"] = None # Ensure it's set to None on error
+
+            data["period"] = worksheet["D4"].value
+
+            # Metadata from snippet 2 save locations
+            data["observer_name"] = worksheet["AA1"].value
+            data["teacher_name"] = worksheet["AA2"].value
+            data["observation_type"] = worksheet["AA3"].value
+            # Timestamp AA4 - don't load into input
+            data["operator"] = worksheet["AA5"].value
+            data["school_name"] = worksheet["AA6"].value
+            data["overall_notes"] = worksheet["AA7"].value
+
+            # Date from assumed location D10
+            try:
+                 date_val = worksheet["D10"].value # Adjust cell as needed
+                 if isinstance(date_val, datetime): # openpyxl reads dates as datetime
+                     data["observation_date"] = date_val.date() # Store as date object
+                 elif isinstance(date_val, date):
+                      data["observation_date"] = date_val # Already a date object
+                 # Add other potential date formats if necessary
+            except Exception:
+                 data["observation_date"] = datetime.now().date() # Default to today if error
+
+
+            # Email - Assuming AA8 for email
+            data["teacher_email"] = worksheet["AA8"].value # Assuming AA8 for email
+
+            # Rubric Scores and Notes - Read values saved in the sheet
+            rubric_domains_structure = { # Need this structure to know where to read
+                "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
+                "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
+            }
+            data["element_inputs"] = {} # Store inputs keyed by unique key like f"{domain}_{i}_rating/note"
+            for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
+                 col_rating = start_cell[0] # Column for rating (e.g., 'I')
+                 col_note = 'J' # Column for notes (based on snippet 2 save logic)
+                 row_start = int(start_cell[1:])
+                 for i in range(count):
+                     row = row_start + i
+                     rating_key = f"{domain}_{i}_rating"
+                     note_key = f"{domain}_{i}_note"
+                     # Read value from sheet
+                     rating_value_from_sheet = worksheet[f"{col_rating}{row}"].value
+                     note_value_from_sheet = worksheet[f"{col_note}{row}"].value
+
+                     # Store in data dictionary (will be used to populate session state)
+                     data["element_inputs"][rating_key] = rating_value_from_sheet
+                     data["element_inputs"][note_key] = note_value_from_sheet
+
+            return data
+
+
+        # --- Logic based on selected sheet/create new ---
         if selected_option == strings["option_create_new"]:
-            # Logic to create new sheet happens on button click or sidebar action,
-            # But the selection box triggers reruns. We need to signal creating a new sheet here.
-            # The actual copy happens in the save logic or via an explicit button if desired.
-            # For simplicity, let's stick to the previous logic where copying happened implicitly on selection = "Create new"
-            # This requires a rethink with session state for efficiency.
-
-            # Let's simplify: selecting "Create new" just sets the name, the sheet is copied/used on save if that's the target sheet.
-            # This means we need a way to *target* a new sheet name without it existing immediately.
-            # A better approach for 'Create New' is to have a separate button for it.
-            # For now, let's revert to the simpler logic from snippet 2 where copying happens *on select*
-
+            # Determine the name for the new sheet
             next_index = 1
-            # Find the highest existing LO number + 1
             existing_lo_numbers = [int(sheet[3:]) for sheet in wb.sheetnames if sheet.startswith("LO ") and sheet[3:].isdigit()]
             if existing_lo_numbers:
                 next_index = max(existing_lo_numbers) + 1
-            else:
-                next_index = 1 # Start from 1 if no LO sheets exist
+            sheet_name_to_process = f"LO {next_index}"
 
-            sheet_name = f"LO {next_index}"
+            # Signal that this is a new sheet, inputs should be empty/default
+            is_new_sheet = True
+            st.session_state['target_sheet_name'] = sheet_name_to_process
+            # Clear relevant session state keys for new sheet, or rely on widget defaults
+            # Explicitly setting None might be safer if widgets don't reset perfectly
+            for key in ['observer_name', 'teacher_name', 'teacher_email', 'operator', 'school_name', 'grade',
+                        'subject', 'gender', 'students', 'males', 'females', 'time_in', 'time_out',
+                        'observation_date', 'period', 'observation_type', 'overall_notes', 'checkbox_send_feedback']:
+                 st.session_state[key] = None # Reset basic info and overall notes
 
-            # If "Create new" is selected, we are working towards this *new* sheet name.
-            # The sheet doesn't exist *yet* in the workbook loaded *now*.
-            # It will be copied from "LO 1" when saving if this sheet_name is the target.
-            # This means we *can't* load data from 'ws' immediately if selected_option is 'Create new'.
+            # Reset session state for element inputs
+            rubric_domains_structure = { # Need this structure here too
+                 "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
+                 "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
+            }
+            for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
+                 for i in range(count):
+                     rating_key = f"{domain}_{i}_rating"
+                     note_key = f"{domain}_{i}_note"
+                     st.session_state[rating_key] = "NA" # Default rating for new sheet
+                     st.session_state[note_key] = "" # Default note for new sheet
 
-            # Let's adjust the flow:
-            # 1. User selects 'Create new' or an existing sheet.
-            # 2. We determine the target sheet_name.
-            # 3. If target is existing, load its data into session state.
-            # 4. If target is new, session state remains empty/default.
-            # 5. Input widgets read from session state.
-            # 6. On Save, we operate on the target sheet_name (copying "LO 1" if it's the new name, or getting existing sheet).
 
-
-            # Set the target sheet name in session state
-            st.session_state['target_sheet_name'] = sheet_name # Store the determined new name
-
-            # Need a temporary worksheet object for a new sheet, or handle writing logic carefully
-            # For simplicity *now*, let's assume if 'Create new' is selected, we show empty fields,
-            # and the actual sheet creation + writing happens on save.
-            # We cannot load existing data if selected_option is 'Create new' because the sheet doesn't exist yet.
-            ws = None # No worksheet object available yet for a new sheet before saving
-
-            # Show info about the new sheet name
-            st.info(strings["subheader_filling_data"].format(sheet_name))
+            st.info(strings["subheader_filling_data"].format(sheet_name_to_process))
+            ws_to_load_from = wb["LO 1"] # Load rubric structure/descriptors from template
 
 
         else: # Selected an existing sheet
-            sheet_name = selected_option
-            st.session_state['target_sheet_name'] = sheet_name # Store the selected existing name
+            sheet_name_to_process = selected_option
+            st.session_state['target_sheet_name'] = sheet_name_to_process
+            is_new_sheet = False
             try:
-                 ws = wb[sheet_name] # Get the selected sheet object
-                 st.subheader(strings["subheader_filling_data"].format(sheet_name))
-                 # Load existing data into session state if it's an existing sheet
-                 existing_data = load_existing_data(ws)
+                 ws_to_load_from = wb[sheet_name_to_process] # Get the selected sheet object
+                 st.subheader(strings["subheader_filling_data"].format(sheet_name_to_process))
+
+                 # Load existing data into session state from the selected sheet
+                 existing_data = load_existing_data(ws_to_load_from)
                  for key, value in existing_data.items():
                      # Populate session state only if the key doesn't exist or is None,
-                     # to avoid overwriting user changes on rerun after load
-                     if key not in st.session_state or st.session_state[key] is None:
+                     # to avoid overwriting user changes on rerun after load.
+                     # Also handle specific cases like time/date where None might be a valid load value.
+                     if key not in st.session_state or st.session_state[key] is None or \
+                        (key in ['time_in', 'time_out', 'observation_date'] and value is not None): # Always load if not None for time/date
                          st.session_state[key] = value
+                     elif key in ['students', 'males', 'females'] and value is not None:
+                         # Ensure numbers are loaded as strings into text_input if needed
+                          st.session_state[key] = str(value) if value is not None else ''
 
             except KeyError:
-                 st.error(f"Error: Sheet '{sheet_name}' not found after potential cleanup/reload. Please select another sheet.")
-                 sheet_name = None # Indicate sheet is not available
-                 ws = None
-                 # Consider rerunning to reset the selectbox
-                 # st.experimental_rerun()
+                 st.error(f"Error: Sheet '{sheet_name_to_process}' not found or could not be accessed.")
+                 # Reset sheet selector if sheet is missing
+                 st.session_state['current_sheet_name'] = sheet_selection_options[0] # Reset to 'Create new'
+                 st.experimental_rerun() # Rerun to show the corrected state
+                 st.stop() # Stop execution if sheet loading fails
+            except Exception as e:
+                 st.error(f"Error loading data from sheet '{sheet_name_to_process}': {e}")
+                 # Reset sheet selector if loading fails
+                 st.session_state['current_sheet_name'] = sheet_selection_options[0] # Reset to 'Create new'
+                 st.experimental_rerun() # Rerun to show the corrected state
+                 st.stop() # Stop execution if sheet loading fails
 
 
-        # Store the selected sheet name in session state for the next rerun
+        # Store the selected sheet name in session state for the next rerun (mainly for selectbox)
         st.session_state['current_sheet_name'] = selected_option
 
-
         # Proceed with inputs only if a target sheet name is determined
-        if st.session_state.get('target_sheet_name'):
+        # This block contains all the input widgets and the save button
+        if st.session_state.get('target_sheet_name'): # Ensure we have a target sheet name
+
             # --- Basic Information Inputs ---
             # Inputs now read/write directly to st.session_state based on their keys
+            # Provide default values if session state keys are still None (e.g., after reset for new sheet)
             observer = st.text_input(strings["label_observer_name"], value=st.session_state.get('observer_name', ''), key='observer_name')
             teacher = st.text_input(strings["label_teacher_name"], value=st.session_state.get('teacher_name', ''), key='teacher_name')
             teacher_email = st.text_input(strings["label_teacher_email"], value=st.session_state.get('teacher_email', ''), key='teacher_email') # Added email
-            operator = st.selectbox(strings["label_operator"], sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]), index=sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]).index(st.session_state.get('operator', "Taaleem")) if st.session_state.get('operator', "Taaleem") in sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"]) else 0, key='operator')
+            operator_options = sorted(["Taaleem", "Al Dar", "New Century Education", "Bloom"])
+            initial_operator_index = operator_options.index(st.session_state.get('operator', operator_options[0])) if st.session_state.get('operator') in operator_options else 0
+            operator = st.selectbox(strings["label_operator"], operator_options, index=initial_operator_index, key='operator')
+
 
             school_options = { # Hardcoded - consider reading from Excel
                  "New Century Education": ["Al Bayan School", "Al Bayraq School", "Al Dhaher School", "Al Hosoon School", "Al Mutanabi School", "Al Nahdha School", "Jern Yafoor School", "Maryam Bint Omran School"],
                  "Taaleem": ["Al Ahad Charter School", "Al Azm Charter School", "Al Riyadh Charter School", "Al Majd Charter School", "Al Qeyam Charter School", "Al Nayfa Charter Kindergarten", "Al Salam Charter School", "Al Walaa Charter Kindergarten", "Al Forsan Charter Kindergarten", "Al Wafaa Charter Kindergarten", "Al Watan Charter School"],
-                "Al Dar": ["Al Ghad Charter School", "Al Mushrif Charter Kindergarten", "Al Danah Charter School", "Al Rayaheen Charter School", "Al Rayana Charter School", "Al Qurm Charter School", "Mubarak Bin Mohammed Charter School (Cycle 2 & 3)"],
+                 "Al Dar": ["Al Ghad Charter School", "Al Mushrif Charter Kindergarten", "Al Danah Charter School", "Al Rayaheen Charter School", "Al Rayana Charter School", "Al Qurm Charter School", "Mubarak Bin Mohammed Charter School (Cycle 2 & 3)"], # Corrected ]
                  "Bloom": ["Al Ain Charter School", "Al Dana Charter School", "Al Ghadeer Charter School", "Al Hili Charter School", "Al Manhal Charter School", "Al Qattara Charter School", "Al Towayya Charter School", "Jabel Hafeet Charter School"]
             }
             school_list = sorted(school_options.get(operator, []))
-            # Handle index safely, default to 0 if session state value is not in the current list
+            # Handle index safely, default to 0 if current operator has no schools or session state value is not in the current list
             initial_school_index = 0
             if st.session_state.get('school_name') in school_list:
                  initial_school_index = school_list.index(st.session_state.get('school_name'))
-            school = st.selectbox(strings["label_school_name"], school_list, index=initial_school_index, key='school_name') # Handle empty school_list
+            school = st.selectbox(strings["label_school_name"], school_list, index=initial_school_index, key='school_name')
 
 
             grade_options = [f"Grade {i}" for i in range(1, 13)] + ["K1", "K2"]
@@ -888,20 +988,20 @@ if wb: # Proceed only if workbook was loaded successfully
             obs_type = st.selectbox(strings["label_obs_type"], obs_type_options, index=initial_obstype_index, key='observation_type')
 
 
-            # --- Rubric Scores Input (Integrated and Localized from snippet 2) ---
+            # --- Rubric Scores Input (Integrated and Localized) ---
             st.markdown("---")
             st.subheader(strings["subheader_rubric_scores"])
 
-            # Re-define structure here to be accessible
+            # Structure defining domains, start cells, and element counts
             rubric_domains_structure = {
                 "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
                 "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
             }
 
-            # Dictionary to store element labels, notes, and descriptors for PDF/Feedback
-            # This needs to be populated *before* the save button click, based on what's in the template sheet
-            rubric_data_for_pdf = {}
+            # Dictionary to store element labels, notes, and descriptors from template for PDF/Feedback
+            rubric_template_data = {}
 
+            domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff", "#f2ffe6", "#ffe6f2"]
 
             try:
                 # Assuming "LO 1" sheet contains the rubric details
@@ -917,10 +1017,8 @@ if wb: # Proceed only if workbook was loaded successfully
                     except Exception:
                         domain_title = domain_name # Fallback if reading title fails
 
-                    # Store domain title for PDF/Feedback structure (will add elements later)
-                    if domain_name not in rubric_data_for_pdf:
-                         rubric_data_for_pdf[domain_name] = {"title": domain_title, "elements": []}
-
+                    # Store domain title and prepare elements list for template data structure
+                    rubric_template_data[domain_name] = {"title": domain_title, "elements": []}
 
                     # Display Domain Header
                     st.markdown(f"<div style='background-color:{background};padding:12px;border-radius:10px;margin-bottom:5px;'><h4 style='margin-bottom:5px;'>{domain_name}: {domain_title}</h4></div>", unsafe_allow_html=True)
@@ -928,7 +1026,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     col_label_template = 'B' # Column where element labels are in template
                     col_descriptors_start = 'C' # Column where descriptor for rating 6 starts
                     row_start_template = int(start_cell[1:])
-
 
                     for i in range(count):
                         element_number = f"{idx+1}.{i+1}"
@@ -939,7 +1036,6 @@ if wb: # Proceed only if workbook was loaded successfully
                              label = rubric_template_ws[f"{col_label_template}{element_row_template}"].value or f"Element {element_number}"
                         except Exception:
                              label = f"Element {element_number}" # Fallback label
-
 
                         # Read Descriptors from template (assuming C-H for 6 down to 1)
                         descriptors = {}
@@ -956,14 +1052,13 @@ if wb: # Proceed only if workbook was loaded successfully
                             except Exception:
                                  pass # Ignore if reading descriptor fails
 
-                        # Store element info from template for PDF/Feedback
-                        rubric_data_for_pdf[domain_name]["elements"].append({
+                        # Store element info from template for PDF/Feedback structure
+                        rubric_template_data[domain_name]["elements"].append({
                             "number": element_number,
                             "label": label,
                             "descriptors": descriptors, # Store all descriptors
                             "descriptor_text_full": descriptor_text_full.strip() # Store formatted text for expander
                         })
-
 
                         st.markdown(f"<div style='background-color:{background};padding:8px;border-radius:6px;'>", unsafe_allow_html=True)
                         st.markdown(f"**{element_number} – {label}**")
@@ -975,33 +1070,32 @@ if wb: # Proceed only if workbook was loaded successfully
                             else:
                                 st.info(strings["info_no_descriptors"])
 
-
                         # Input Widgets - Rating and Notes
                         col1, col2 = st.columns([1, 2])
                         with col1:
                             # Use session state for the value and unique key
                             rating_key = f"{domain_name}_{i}_rating" # Key for the rating selectbox
-                            current_rating = st.session_state.get(rating_key, "NA") # Default to "NA"
+                            current_rating = st.session_state.get(rating_key, "NA") # Default to "NA" for new, load for existing
                             # Ensure the default index logic handles the current_rating value correctly
+                            rating_options = [6, 5, 4, 3, 2, 1, "NA"]
                             try:
-                                 initial_rating_index = [6, 5, 4, 3, 2, 1, "NA"].index(current_rating)
+                                 initial_rating_index = rating_options.index(current_rating)
                             except ValueError:
-                                 initial_rating_index = 6 # Default to index of "NA" if current value is not in options
+                                 initial_rating_index = rating_options.index("NA") # Default to index of "NA" if current value is not in options
 
-                            val = st.selectbox(
+                            st.selectbox(
                                 strings["label_rating_for"].format(element_number),
-                                options=[6, 5, 4, 3, 2, 1, "NA"],
+                                options=rating_options,
                                 index=initial_rating_index,
                                 key=rating_key # Use the key from session state
                             )
                              # Value is automatically updated in st.session_state[rating_key]
 
-
                         with col2:
                             # Use session state for the value and unique key
                             note_key = f"{domain_name}_{i}_note" # Key for the notes text area
-                            current_note = st.session_state.get(note_key, "") # Default to empty string
-                            note = st.text_area(
+                            current_note = st.session_state.get(note_key, "") # Default to empty string for new, load for existing
+                            st.text_area(
                                 strings["label_write_notes"].format(element_number), # Use localized string
                                 value=current_note,
                                 key=note_key, # Use the key from session state
@@ -1009,9 +1103,7 @@ if wb: # Proceed only if workbook was loaded successfully
                             )
                              # Value is automatically updated in st.session_state[note_key]
 
-
                         st.markdown("</div>", unsafe_allow_html=True) # Close the div for the element background
-
 
             except KeyError:
                  st.error(strings["error_template_not_found"]) # "LO 1" sheet not found
@@ -1026,6 +1118,7 @@ if wb: # Proceed only if workbook was loaded successfully
             overall_notes = st.text_area(strings.get("label_overall_notes", "General Notes for this Lesson Observation"), value=st.session_state.get('overall_notes', ''), key='overall_notes') # Added string lookup, session state
 
             # --- Save Button and Feedback Checkbox (Reordered) ---
+            # The save button starts the process of writing data, calculating scores, and generating PDF/Log
             if st.button(strings["button_save_observation"]):
 
                 # --- Validation ---
@@ -1064,27 +1157,27 @@ if wb: # Proceed only if workbook was loaded successfully
                     st.warning(strings["warning_numeric_fields"]) # Use localized string
                     st.stop()
 
-
-                # --- Prepare Target Sheet ---
+                # --- Get Target Sheet for Saving ---
                 target_sheet_name = st.session_state.get('target_sheet_name')
-                if target_sheet_name == strings["option_create_new"] or target_sheet_name not in wb.sheetnames:
-                    # If 'Create new' was selected or the sheet was removed during cleanup, create it now
+                ws_to_save = None # Initialize worksheet for saving
+
+                # Determine if we need to create a new sheet now
+                if target_sheet_name == strings["option_create_new"] or (target_sheet_name and target_sheet_name not in wb.sheetnames):
+                    # Logic to create the new sheet
                     if "LO 1" in wb.sheetnames:
                         try:
-                            # Determine the actual new sheet name (LO X)
-                            next_index = 1
-                            existing_lo_numbers = [int(sheet[3:]) for sheet in wb.sheetnames if sheet.startswith("LO ") and sheet[3:].isdigit()]
-                            if existing_lo_numbers:
-                                next_index = max(existing_lo_numbers) + 1
-                            sheet_name_to_save = f"LO {next_index}"
+                            # Determine the actual new sheet name (LO X) - Find highest existing number + 1
+                            existing_lo_numbers = [int(sheet[3:]) for sheet in wb.sheetnames if sheet.startswith("LO ") and len(sheet) > 3 and sheet[3:].isdigit()]
+                            next_index = max(existing_lo_numbers) + 1 if existing_lo_numbers else 1
+                            sheet_name_to_save_actual = f"LO {next_index}"
 
-                            # Copy and set title
-                            wb.copy_worksheet(wb["LO 1"]).title = sheet_name_to_save
-                            ws_to_save = wb[sheet_name_to_save]
-                            st.success(strings["success_sheet_created"].format(sheet_name_to_save))
-                             # Update session state with the real sheet name
-                            st.session_state['target_sheet_name'] = sheet_name_to_save
-                            st.session_state['current_sheet_name'] = sheet_name_to_save # Also update current selector
+                            # Copy template and set title
+                            wb.copy_worksheet(wb["LO 1"]).title = sheet_name_to_save_actual
+                            ws_to_save = wb[sheet_name_to_save_actual]
+                            st.success(strings["success_sheet_created"].format(sheet_name_to_save_actual))
+                             # Update session state with the real sheet name for subsequent saves/reruns
+                            st.session_state['target_sheet_name'] = sheet_name_to_save_actual
+                            st.session_state['current_sheet_name'] = sheet_name_to_save_actual # Update selector state
 
                         except Exception as e:
                             st.error(f"Error creating new sheet for saving: {e}")
@@ -1092,369 +1185,381 @@ if wb: # Proceed only if workbook was loaded successfully
                     else:
                         st.error(strings["error_template_not_found"]) # Template missing, cannot create
                         st.stop()
+                elif target_sheet_name:
+                    # Use the existing selected sheet for saving
+                    sheet_name_to_save_actual = target_sheet_name
+                    try:
+                        ws_to_save = wb[sheet_name_to_save_actual]
+                    except KeyError:
+                        st.error(f"Error: Selected sheet '{sheet_name_to_save_actual}' not found in workbook.")
+                        st.stop()
                 else:
-                    # Use the existing selected sheet
-                    sheet_name_to_save = target_sheet_name
-                    ws_to_save = wb[sheet_name_to_save]
+                    st.error("No target sheet determined for saving.")
+                    st.stop() # Should not happen if target_sheet_name is set on sheet selection
 
-
-                # --- Write Data to Excel Sheet (ws_to_save) ---
-                try:
-                    # Basic Info from session state
-                    ws_to_save["B5"].value = st.session_state.get('gender')
-                    ws_to_save["B6"].value = num_students # Use validated numbers
-                    ws_to_save["B7"].value = num_males
-                    ws_to_save["B8"].value = num_females
-                    ws_to_save["D2"].value = st.session_state.get('subject')
-                    # Recalculate duration display string for saving
-                    minutes_save = 0
-                    duration_label_save = "N/A"
-                    time_in_ss = st.session_state.get('time_in')
-                    time_out_ss = st.session_state.get('time_out')
-                    if time_in_ss is not None and time_out_ss is not None:
-                         dummy_date = date.today()
-                         start_dt = datetime.combine(dummy_date, time_in_ss)
-                         end_dt = datetime.combine(dummy_date, time_out_ss)
-                         if end_dt < start_dt: end_dt += timedelta(days=1)
-                         lesson_duration_save = end_dt - start_dt
-                         minutes_save = round(lesson_duration_save.total_seconds() / 60)
-                         duration_label_save = strings["duration_full_lesson"] if minutes_save >= 40 else strings["duration_walkthrough"]
-
-                    ws_to_save["D3"].value = duration_label_save # Save calculated duration label
-                    ws_to_save["D4"].value = st.session_state.get('period')
-                    ws_to_save["D7"].value = st.session_state.get('time_in').strftime("%H:%M") if st.session_state.get('time_in') else None
-                    ws_to_save["D8"].value = st.session_state.get('time_out').strftime("%H:%M") if st.session_state.get('time_out') else None
-
-                    # Observation Date - Assuming D10, adjust cell if needed
-                    ws_to_save["D10"].value = st.session_state.get('observation_date') # Save date object
-
-                    # Metadata from session state
-                    ws_to_save["Z1"].value = "Observer Name" # Keep header, redundant but matches template
-                    ws_to_save["AA1"].value = st.session_state.get('observer_name')
-                    ws_to_save["Z2"].value = "Teacher Observed"
-                    ws_to_save["AA2"].value = st.session_state.get('teacher_name')
-                    ws_to_save["Z3"].value = "Observation Type"
-                    ws_to_save["AA3"].value = st.session_state.get('observation_type')
-                    ws_to_save["Z4"].value = "Timestamp"
-                    ws_to_save["AA4"].value = datetime.now().strftime("%Y-%m-%d %H:%M:%S") # Save current timestamp
-                    ws_to_save["Z5"].value = "Operator"
-                    ws_to_save["AA5"].value = st.session_state.get('operator')
-                    ws_to_save["Z6"].value = "School Name"
-                    ws_to_save["AA6"].value = st.session_state.get('school_name')
-                    ws_to_save["Z7"].value = "General Notes"
-                    ws_to_save["AA7"].value = st.session_state.get('overall_notes')
-                    ws_to_save["Z8"].value = "Teacher Email" # Added header for email
-                    ws_to_save["AA8"].value = st.session_state.get('teacher_email') # Save teacher email
-
-
-                    # Rubric Scores and Notes - Write values from session state to sheet
-                    rubric_domains_structure = { # Re-define or access if defined globally
-                         "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
-                         "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
-                    }
-
-                    # Dictionaries to store scores, notes, and descriptors for feedback generation and PDF
-                    # This data is collected during the input loop and stored in rubric_data_for_pdf (from template)
-                    # Now we add the actual ratings and notes from session state to this structure
-                    # And calculate Python averages/judgments.
-
-                    domain_calculated_averages = {}
-                    overall_score = None
-
-                    # Prepare data structure for PDF, combining template info with user inputs
-                    pdf_rubric_data = {"domain_data": {}}
-
-                    for idx, (domain_name, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
-                         col_rating_save = start_cell[0] # Column where ratings are saved (e.g., 'I')
-                         col_note_save = 'J' # Column for notes (based on snippet 2)
-                         row_start_save = int(start_cell[1:])
-
-                         domain_elements_for_pdf = []
-                         numeric_element_scores_in_domain = [] # For Python average calculation
-
-                         # Find the template info for this domain
-                         domain_template_info = rubric_data_for_pdf.get(domain_name, {"title": domain_name, "elements": []})
-                         pdf_rubric_data["domain_data"][domain_name] = {
-                             "title": domain_template_info["title"],
-                             "elements": [] # Will populate with elements + ratings/notes
-                         }
-
-
-                         for i in range(count):
-                             row_save = row_start_save + i
-                             rating_key = f"{domain_name}_{i}_rating"
-                             note_key = f"{domain_name}_{i}_note"
-
-                             # Get values from session state (user inputs)
-                             rating_value = st.session_state.get(rating_key, "NA")
-                             note_value = st.session_state.get(note_key, "")
-
-                             # Write values to the sheet
-                             ws_to_save[f"{col_rating_save}{row_save}"].value = rating_value
-                             ws_to_save[f"{col_note_save}{row_save}"].value = note_value
-
-                             # Collect numeric scores for Python calculation
-                             if isinstance(rating_value, (int, float)):
-                                  numeric_element_scores_in_domain.append(float(rating_value))
-
-
-                             # Find the element details from the template structure for the PDF
-                             element_details_template = next((item for item in domain_template_info.get("elements", []) if item["number"] == f"{idx+1}.{i+1}"), None)
-
-                             if element_details_template:
-                                  # Get the specific descriptor text for the chosen rating
-                                  descriptor_for_rating = element_details_template["descriptors"].get(rating_value, "") if isinstance(rating_value, int) else ""
-
-                                  # Add element info (from template + user inputs) to PDF data structure
-                                  pdf_rubric_data["domain_data"][domain_name]["elements"].append({
-                                      'label': element_details_template["label"],
-                                      'rating': rating_value,
-                                      'note': note_value,
-                                      'descriptor': descriptor_for_rating, # Pass the specific descriptor text
-                                      'number': element_details_template["number"]
-                                  })
-
-
-                         # --- Write Excel formulas for domain averages and judgments (Integrated from snippet 2) ---
-                         # These formulas work directly in Excel. We also calculate in Python for feedback/PDF.
-                         score_range = f"{col_rating_save}{row_start_save}:{col_rating_save}{row_start_save + count - 1}"
-                         avg_cell = f"{col_rating_save}{row_start_save + count}"
-                         judgment_cell = f"K{row_start_save + count}" # Adjusted judgment column to K based on a common pattern next to J notes, adjust if needed in your template
-
-                         # Write formulas to the sheet
-                         ws_to_save[avg_cell].value = f'=IF(COUNT({score_range})=0, "", AVERAGE({score_range}))' # Use COUNT and AVERAGE for numbers only
-                         ws_to_save[judgment_cell].value = f'=IF({avg_cell}="","",IF({avg_cell}>=5.5,"{strings["perf_level_excellent"]}",IF({avg_cell}>=4.5,"{strings["perf_level_good"]}",IF({avg_cell}>=3.5,"{strings["perf_level_acceptable"]}",IF({avg_cell}>=2.5,"{strings["perf_level_weak"]}","{strings["perf_level_very_weak"]}") ))))'
-
-
-                         # --- Calculate Python Averages and Judgments for Feedback/PDF ---
-                         if numeric_element_scores_in_domain:
-                             domain_avg = statistics.mean(numeric_element_scores_in_domain)
-                             domain_calculated_averages[domain_name] = domain_avg
-                             # Add calculated average and judgment to PDF data structure
-                             pdf_rubric_data["domain_data"][domain_name]["average"] = domain_avg
-                             pdf_rubric_data["domain_data"][domain_name]["judgment"] = get_performance_level(domain_avg, strings)
-                         else:
-                             domain_calculated_averages[domain_name] = None
-                             pdf_rubric_data["domain_data"][domain_name]["average"] = None
-                             pdf_rubric_data["domain_data"][domain_name]["judgment"] = strings["overall_score_na"]
-
-
-                    # --- Calculate Overall Python Average and Judgment ---
-                    all_numeric_scores = []
-                    for d_name, d_avg in domain_calculated_averages.items():
-                        if d_avg is not None:
-                            all_numeric_scores.append(d_avg) # Use domain averages for overall average
-
-                    if all_numeric_scores:
-                         overall_score = statistics.mean(all_numeric_scores)
-                         overall_judgment = get_performance_level(overall_score, strings)
-                    else:
-                         overall_score = None
-                         overall_judgment = strings["overall_score_na"]
-
-                    # Add overall score, judgment, and notes to the PDF data structure
-                    pdf_rubric_data["overall_score"] = overall_score
-                    pdf_rubric_data["overall_judgment"] = overall_judgment
-                    pdf_rubric_data["overall_notes"] = st.session_state.get('overall_notes', '') # Get overall notes from session state
-
-
-                    # --- Update Observation Log (Integrated from snippet 2 and localized) ---
-                    log_sheet_name = strings["feedback_log_sheet_name"]
-                    if log_sheet_name not in wb.sheetnames:
-                        log_ws = wb.create_sheet(log_sheet_name)
-                        # Use headers from strings dictionary
-                        log_ws.append(strings["feedback_log_header"])
-                    else:
-                        log_ws: Worksheet = wb[log_sheet_name]
-
-                    # Prepare data for the log row based on the new headers
-                    log_row_data = {
-                         "Sheet": sheet_name_to_save, # Use the actual sheet name saved
-                         "Observer": st.session_state.get('observer_name', ''),
-                         "Teacher": st.session_state.get('teacher_name', ''),
-                         "Email": st.session_state.get('teacher_email', ''),
-                         "School": st.session_state.get('school_name', ''),
-                         "Subject": st.session_state.get('subject', ''),
-                         "Date": st.session_state.get('observation_date').strftime("%Y-%m-%d") if st.session_state.get('observation_date') else "",
-                         "Overall Judgment": overall_judgment, # Include overall judgment
-                         "Overall Score": overall_score if overall_score is not None else strings["overall_score_na"], # Include overall score
-                         "Summary Notes": st.session_state.get('overall_notes', '') # Include overall notes
-                    }
-                    # Ensure the order matches feedback_log_header
-                    ordered_log_row = [log_row_data.get(header, "") for header in strings["feedback_log_header"]]
-
-                    # Append the row
+                # Proceed with writing and saving only if we have a worksheet to save to
+                if ws_to_save:
+                    # --- Write Data to Excel Sheet (ws_to_save) ---
                     try:
-                         log_ws.append(ordered_log_row)
-                         st.success(strings["success_feedback_log_updated"]) # Use localized string
-                    except Exception as e:
-                         st.error(strings["error_updating_log"].format(e))
+                        # Basic Info from session state
+                        ws_to_save["B5"].value = st.session_state.get('gender')
+                        ws_to_save["B6"].value = num_students # Use validated numbers
+                        ws_to_save["B7"].value = num_males
+                        ws_to_save["B8"].value = num_females
+                        ws_to_save["D2"].value = st.session_state.get('subject')
+                        # Recalculate duration display string for saving
+                        minutes_save = 0
+                        duration_label_save = "N/A"
+                        time_in_ss = st.session_state.get('time_in')
+                        time_out_ss = st.session_state.get('time_out')
+                        if time_in_ss is not None and time_out_ss is not None:
+                             dummy_date = date.today()
+                             start_dt = datetime.combine(dummy_date, time_in_ss)
+                             end_dt = datetime.combine(dummy_date, time_out_ss)
+                             if end_dt < start_dt: end_dt += timedelta(days=1)
+                             lesson_duration_save = end_dt - start_dt
+                             minutes_save = round(lesson_duration_save.total_seconds() / 60)
+                             duration_label_save = strings["duration_full_lesson"] if minutes_save >= 40 else strings["duration_walkthrough"]
+
+                        ws_to_save["D3"].value = duration_label_save # Save calculated duration label
+                        ws_to_save["D4"].value = st.session_state.get('period')
+                        ws_to_save["D7"].value = st.session_state.get('time_in').strftime("%H:%M") if st.session_state.get('time_in') else None
+                        ws_to_save["D8"].value = st.session_state.get('time_out').strftime("%H:%M") if st.session_state.get('time_out') else None
+
+                        # Observation Date - Assuming D10, adjust cell if needed
+                        ws_to_save["D10"].value = st.session_state.get('observation_date') # Save date object
+
+                        # Metadata from session state
+                        ws_to_save["Z1"].value = "Observer Name" # Keep header, redundant but matches template
+                        ws_to_save["AA1"].value = st.session_state.get('observer_name')
+                        ws_to_save["Z2"].value = "Teacher Observed"
+                        ws_to_save["AA2"].value = st.session_state.get('teacher_name')
+                        ws_to_save["Z3"].value = "Observation Type"
+                        ws_to_save["AA3"].value = st.session_state.get('observation_type')
+                        ws_to_save["Z4"].value = "Timestamp"
+                        ws_to_save["AA4"].value = datetime.now().strftime("%Y-%m-%d %H:%M:%S") # Save current timestamp
+                        ws_to_save["Z5"].value = "Operator"
+                        ws_to_save["AA5"].value = st.session_state.get('operator')
+                        ws_to_save["Z6"].value = "School Name"
+                        ws_to_save["AA6"].value = st.session_state.get('school_name')
+                        ws_to_save["Z7"].value = "General Notes"
+                        ws_to_save["AA7"].value = st.session_state.get('overall_notes')
+                        ws_to_save["Z8"].value = "Teacher Email" # Added header for email
+                        ws_to_save["AA8"].value = st.session_state.get('teacher_email') # Save teacher email
 
 
-                    # --- Generate Feedback Content (Needs Completion) ---
-                    # This is where you assemble the detailed text feedback string
-                    # based on the scores, performance levels, and strings dictionary.
-                    # This string will be passed to the PDF function.
+                        # Rubric Scores and Notes - Write values from session state to sheet
+                        rubric_domains_structure = { # Re-define or access if defined globally
+                             "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
+                             "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
+                        }
 
-                    feedback_content = ""
-                    send_feedback = st.session_state.get('checkbox_send_feedback', False) # Get checkbox state from session state
+                        # Prepare data structure for PDF, combining template info with user inputs
+                        pdf_rubric_data = {"domain_data": {}}
 
-                    if send_feedback:
-                         # Build the detailed feedback string using pdf_rubric_data and strings
-                         feedback_content += strings["feedback_greeting"].format(
-                             st.session_state.get('teacher_name', 'Teacher'),
-                             st.session_state.get('observation_date').strftime("%Y-%m-%d") if st.session_state.get('observation_date') else "the recent observation"
-                         )
-                         feedback_content += strings["feedback_observer"].format(st.session_state.get('observer_name', 'Observer'))
-                         feedback_content += strings["feedback_duration"].format(f"{minutes_save} minutes ({duration_label_save})")
-                         feedback_content += strings["feedback_subject_fb"].format(st.session_state.get('subject', 'Subject'))
-                         feedback_content += strings["feedback_school"].format(st.session_state.get('school_name', 'School'))
+                        # Dictionaries to store scores, notes, and descriptors for feedback generation and PDF
+                        domain_calculated_averages = {}
+                        overall_score = None
 
-                         # Add Summary Header and Overall Score
-                         feedback_content += strings["feedback_summary_header"]
-                         if pdf_rubric_data.get("overall_score") is not None:
-                              feedback_content += strings["feedback_overall_score"].format(pdf_rubric_data["overall_score"])
+                        for idx, (domain_name, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
+                             col_rating_save = start_cell[0] # Column where ratings are saved (e.g., 'I')
+                             col_note_save = 'J' # Column for notes (based on snippet 2)
+                             row_start_save = int(start_cell[1:])
 
-                         # Add Domain Summaries and Element Details
-                         for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
-                              feedback_content += strings["feedback_domain_header"].format(domain_name, domain_info.get("title", domain_name))
-                              if domain_info.get("average") is not None:
-                                   feedback_content += strings["feedback_domain_average"].format(domain_info["average"]) + "\n"
+                             domain_elements_for_pdf = []
+                             numeric_element_scores_in_domain = [] # For Python average calculation
 
-                              for element in domain_info.get("elements", []):
-                                   rating = element.get('rating', 'N/A')
-                                   label = element.get('label', 'Unknown Element')
-                                   note = element.get('note', '')
-                                   descriptor = element.get('descriptor', '') # Specific descriptor for the rating
+                             # Find the template info for this domain
+                             # Use .get() with a default to handle cases where domain_name might not be in template_data (shouldn't happen with correct structure)
+                             domain_template_info = rubric_template_data.get(domain_name, {"title": domain_name, "elements": []})
+                             pdf_rubric_data["domain_data"][domain_name] = {
+                                 "title": domain_template_info.get("title", domain_name), # Use .get() for safety
+                                 "elements": [] # Will populate with elements + ratings/notes
+                             }
 
-                                   feedback_content += strings["feedback_element_rating"].format(label, rating)
-                                   if descriptor:
-                                         # Clean markdown/HTML from descriptor for the text feedback string too
-                                         cleaned_desc = re.sub(r'<.*?>', '', descriptor).replace('**', '')
-                                         feedback_content += strings["feedback_descriptor_for_rating"].format(rating, cleaned_desc)
+                             for i in range(count):
+                                 row_save = row_start_save + i
+                                 rating_key = f"{domain_name}_{i}_rating"
+                                 note_key = f"{domain_name}_{i}_note"
 
-                                   if note:
-                                        feedback_content += f"  *Notes:* {note}\n" # Add notes to text feedback
-                                   feedback_content += "\n" # Space after each element in text feedback
+                                 # Get values from session state (user inputs)
+                                 rating_value = st.session_state.get(rating_key, "NA")
+                                 note_value = st.session_state.get(note_key, "")
 
+                                 # Write values to the sheet
+                                 ws_to_save[f"{col_rating_save}{row_save}"].value = rating_value
+                                 ws_to_save[f"{col_note_save}{row_save}"].value = note_value
 
-                         # Add Performance Summary (Overall and Domain)
-                         feedback_content += strings["feedback_performance_summary"]
-                         if pdf_rubric_data.get("overall_judgment"):
-                              feedback_content += strings["overall_performance_level_text"].format(pdf_rubric_data["overall_judgment"]) + "\n" # Use overall_judgment directly
-
-                         # Add Domain Performance Summary
-                         feedback_content += "\nDomain Performance:\n"
-                         for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
-                              if domain_info.get("judgment"): # Only add if judgment is available
-                                   feedback_content += strings["feedback_domain_performance"].format(domain_info.get("title", domain_name), domain_info["judgment"]) + "\n"
+                                 # Collect numeric scores for Python calculation
+                                 if isinstance(rating_value, (int, float)):
+                                      numeric_element_scores_in_domain.append(float(rating_value))
 
 
-                         # Add Support Plan / Next Steps (Conditional Logic)
-                         feedback_content += "\n"
-                         overall_judgment_pdf = pdf_rubric_data.get("overall_judgment")
+                                 # Find the element details from the template structure for the PDF
+                                 element_details_template = next((item for item in domain_template_info.get("elements", []) if item["number"] == f"{idx+1}.{i+1}"), None)
 
-                         if overall_judgment_pdf == strings["perf_level_very_weak"]:
-                              feedback_content += strings["plan_very_weak_overall"] + "\n\n"
-                         elif overall_judgment_pdf == strings["perf_level_weak"]:
-                              feedback_content += strings["plan_weak_overall"] + "\n\n"
+                                 if element_details_template:
+                                      # Get the specific descriptor text for the chosen rating
+                                      descriptor_for_rating = element_details_template["descriptors"].get(rating_value, "") if isinstance(rating_value, int) else ""
 
-                              # Add specific domain weakness recommendations
-                              for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
-                                   if domain_info.get("judgment") == strings["perf_level_weak"]:
-                                        # Need to identify key elements/skills within this weak domain
-                                        weak_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
-                                        feedback_content += strings["plan_weak_domain"].format(domain_info.get("title", domain_name), ", ".join(weak_elements_labels)) + "\n\n"
-
-
-                         # Add Next Steps for Acceptable/Good/Excellent
-                         elif overall_judgment_pdf == strings["perf_level_acceptable"]:
-                              feedback_content += strings["steps_acceptable_overall"] + "\n\n"
-                         elif overall_judgment_pdf == strings["perf_level_good"]:
-                              feedback_content += strings["steps_good_overall"] + "\n\n"
-                              # Can add specific domain strengths suggestions here too
-                              for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
-                                   if domain_info.get("judgment") == strings["perf_level_good"]:
-                                        strong_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
-                                        feedback_content += strings["steps_good_domain"].format(domain_info.get("title", domain_name), ", ".join(strong_elements_labels)) + "\n\n"
-
-                         elif overall_judgment_pdf == strings["perf_level_excellent"]:
-                                feedback_content += strings["steps_excellent_overall"] + "\n\n"
-                                # Can add specific domain excellent suggestions here too
-                                for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
-                                     if domain_info.get("judgment") == strings["perf_level_excellent"]:
-                                          excellent_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
-                                          feedback_content += strings["steps_excellent_domain"].format(domain_info.get("title", domain_name), ", ".join(excellent_elements_labels)) + "\n\n"
-
-                         else: # Case where overall judgment is N/A or could not be determined
-                              feedback_content += strings["no_specific_plan_needed"] + "\n\n"
+                                      # Add element info (from template + user inputs) to PDF data structure
+                                      pdf_rubric_data["domain_data"][domain_name]["elements"].append({
+                                          'label': element_details_template.get("label", "Unknown Element"), # Use .get() for safety
+                                          'rating': rating_value,
+                                          'note': note_value,
+                                          'descriptor': descriptor_for_rating, # Pass the specific descriptor text
+                                          'number': element_details_template.get("number", f"{idx+1}.{i+1}") # Use .get() for safety
+                                      })
 
 
-                         # Add closing
-                         feedback_content += strings["feedback_closing"]
-                         feedback_content += strings["feedback_regards"]
+                             # --- Write Excel formulas for domain averages and judgments ---
+                             # These formulas work directly in Excel. We also calculate in Python for feedback/PDF.
+                             score_range = f"{col_rating_save}{row_start_save}:{col_rating_save}{row_start_save + count - 1}"
+                             avg_cell = f"{col_rating_save}{row_start_save + count}"
+                             judgment_cell = f"K{row_start_save + count}" # Adjusted judgment column to K, adjust if needed
 
-                         # --- Simulate Sending Feedback / Just generate for PDF ---
-                         # The checkbox simply means we generate the feedback text content for the PDF.
-                         # Actual email sending is NOT implemented here.
-                         st.info(strings["success_feedback_generated"]) # Display message that feedback was prepared (for PDF)
+                             # Write formulas to the sheet
+                             ws_to_save[avg_cell].value = f'=IF(COUNT({score_range})=0, "", AVERAGE({score_range}))' # Use COUNT and AVERAGE for numbers only
+                             ws_to_save[judgment_cell].value = f'=IF({avg_cell}="","",IF({avg_cell}>=5.5,"{strings["perf_level_excellent"]}",IF({avg_cell}>=4.5,"{strings["perf_level_good"]}",IF({avg_cell}>=3.5,"{strings["perf_level_acceptable"]}",IF({avg_cell}>=2.5,"{strings["perf_level_weak"]}","{strings["perf_level_very_weak"]}") ))))'
 
 
-                    # --- Save Workbook ---
-                    save_filename = f"{sheet_name_to_save}_{st.session_state.get('teacher_name', 'Teacher').replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx" # More descriptive filename
-                    try:
-                        # Save to a BytesIO buffer instead of a file, safer in web apps
-                        output_buffer = io.BytesIO()
-                        wb.save(output_buffer)
-                        output_buffer.seek(0) # Rewind the buffer
-
-                        st.success(strings["success_data_saved"]) # Use localized string
-
-                        # Offer workbook download
-                        st.download_button(
-                            strings["download_workbook"],
-                            output_buffer, # Use the BytesIO buffer
-                            file_name=save_filename,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-
-                        # --- Generate PDF and Offer Download (Only if feedback was generated) ---
-                        # Check if feedback_content was actually generated
-                        if feedback_content:
-                             pdf_buffer = generate_observation_pdf(pdf_rubric_data, feedback_content, strings, rubric_domains_structure, st.session_state.get('teacher_email', ''))
-
-                             if pdf_buffer:
-                                  pdf_filename = f"{sheet_name_to_save}_{st.session_state.get('teacher_name', 'Teacher').replace(' ', '_')}_Observation_Feedback.pdf"
-                                  st.success(strings["success_pdf_generated"]) # Use localized string
-                                  st.download_button(
-                                      label=strings["download_feedback_pdf"], # Use localized string
-                                      data=pdf_buffer,
-                                      file_name=pdf_filename,
-                                      mime="application/pdf"
-                                  )
+                             # --- Calculate Python Averages and Judgments for Feedback/PDF ---
+                             if numeric_element_scores_in_domain:
+                                 domain_avg = statistics.mean(numeric_element_scores_in_domain)
+                                 domain_calculated_averages[domain_name] = domain_avg
+                                 # Add calculated average and judgment to PDF data structure
+                                 pdf_rubric_data["domain_data"][domain_name]["average"] = domain_avg
+                                 pdf_rubric_data["domain_data"][domain_name]["judgment"] = get_performance_level(domain_avg, strings)
                              else:
-                                  st.error("Failed to generate Feedback PDF.") # Report PDF generation failure
+                                 domain_calculated_averages[domain_name] = None
+                                 pdf_rubric_data["domain_data"][domain_name]["average"] = None
+                                 pdf_rubric_data["domain_data"][domain_name]["judgment"] = strings["overall_score_na"]
 
-                        # Trigger a rerun to update the UI after saving and potentially creating a new sheet
-                        st.experimental_rerun()
+
+                        # --- Calculate Overall Python Average and Judgment ---
+                        all_numeric_scores = []
+                        for d_name, d_avg in domain_calculated_averages.items():
+                            if d_avg is not None:
+                                all_numeric_scores.append(d_avg) # Use domain averages for overall average
+
+                        if all_numeric_scores:
+                             overall_score = statistics.mean(all_numeric_scores)
+                             overall_judgment = get_performance_level(overall_score, strings)
+                        else:
+                             overall_score = None
+                             overall_judgment = strings["overall_score_na"]
+
+                        # Add overall score, judgment, and notes to the PDF data structure
+                        pdf_rubric_data["overall_score"] = overall_score
+                        pdf_rubric_data["overall_judgment"] = overall_judgment
+                        pdf_rubric_data["overall_notes"] = st.session_state.get('overall_notes', '') # Get overall notes from session state
 
 
-                    except Exception as e:
-                        st.error(strings["error_saving_workbook"].format(e))
+                        # --- Update Observation Log ---
+                        log_sheet_name = strings["feedback_log_sheet_name"]
+                        if log_sheet_name not in wb.sheetnames:
+                            log_ws = wb.create_sheet(log_sheet_name)
+                            log_ws.append(strings["feedback_log_header"]) # Use headers from strings dictionary
+                        else:
+                            try:
+                                log_ws: Worksheet = wb[log_sheet_name]
+                                # Ensure headers exist if sheet was empty or different
+                                if not log_ws['A1'].value: # Simple check for empty sheet
+                                    log_ws.append(strings["feedback_log_header"])
+                            except Exception as e:
+                                 st.warning(f"Could not access or validate log sheet '{log_sheet_name}', attempting to create new. Error: {e}")
+                                 log_ws = wb.create_sheet(log_sheet_name + "_new") # Create with a different name to avoid conflict
+                                 log_ws.append(strings["feedback_log_header"])
+                                 log_sheet_name = log_sheet_name + "_new" # Update name for messages
+
+                        # Prepare data for the log row based on the headers
+                        log_row_data = {
+                             "Sheet": sheet_name_to_save_actual, # Use the actual sheet name saved
+                             "Observer": st.session_state.get('observer_name', ''),
+                             "Teacher": st.session_state.get('teacher_name', ''),
+                             "Email": st.session_state.get('teacher_email', ''),
+                             "School": st.session_state.get('school_name', ''),
+                             "Subject": st.session_state.get('subject', ''),
+                             "Date": st.session_state.get('observation_date').strftime("%Y-%m-%d") if st.session_state.get('observation_date') else "",
+                             "Overall Judgment": overall_judgment, # Include overall judgment
+                             "Overall Score": overall_score if overall_score is not None else strings["overall_score_na"], # Include overall score
+                             "Summary Notes": st.session_state.get('overall_notes', '') # Include overall notes
+                        }
+                        # Ensure the order matches feedback_log_header
+                        ordered_log_row = [log_row_data.get(header, "") for header in strings["feedback_log_header"]]
+
+                        # Append the row
+                        try:
+                             log_ws.append(ordered_log_row)
+                             st.success(strings["success_feedback_log_updated"]) # Use localized string
+                        except Exception as e:
+                             st.error(strings["error_updating_log"].format(e))
+
+
+                        # --- Generate Feedback Content (Uses calculated scores/judgments) ---
+                        feedback_content = ""
+                        send_feedback = st.session_state.get('checkbox_send_feedback', False) # Get checkbox state from session state
+
+                        if send_feedback:
+                             # Build the detailed feedback string using pdf_rubric_data and strings
+                             feedback_content += strings["feedback_greeting"].format(
+                                 st.session_state.get('teacher_name', 'Teacher'),
+                                 st.session_state.get('observation_date').strftime("%Y-%m-%d") if st.session_state.get('observation_date') else "the recent observation"
+                             )
+                             feedback_content += strings["feedback_observer"].format(st.session_state.get('observer_name', 'Observer'))
+                             feedback_content += strings["feedback_duration"].format(f"{minutes_save} minutes ({duration_label_save})")
+                             feedback_content += strings["feedback_subject_fb"].format(st.session_state.get('subject', 'Subject'))
+                             feedback_content += strings["feedback_school"].format(st.session_state.get('school_name', 'School'))
+
+                             # Add Summary Header and Overall Score
+                             feedback_content += strings["feedback_summary_header"]
+                             if pdf_rubric_data.get("overall_score") is not None:
+                                  feedback_content += strings["feedback_overall_score"].format(pdf_rubric_data["overall_score"])
+
+                             # Add Domain Summaries and Element Details
+                             for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                  feedback_content += strings["feedback_domain_header"].format(domain_name, domain_info.get("title", domain_name))
+                                  if domain_info.get("average") is not None:
+                                       feedback_content += strings["feedback_domain_average"].format(domain_info["average"]) + "\n"
+
+                                  for element in domain_info.get("elements", []):
+                                       rating = element.get('rating', 'N/A')
+                                       label = element.get('label', 'Unknown Element')
+                                       note = element.get('note', '')
+                                       descriptor = element.get('descriptor', '') # Specific descriptor for the rating
+
+                                       feedback_content += strings["feedback_element_rating"].format(label, rating)
+                                       if descriptor:
+                                             # Clean markdown/HTML from descriptor for the text feedback string too
+                                             cleaned_desc = re.sub(r'<.*?>', '', descriptor).replace('**', '')
+                                             feedback_content += strings["feedback_descriptor_for_rating"].format(rating, cleaned_desc)
+
+                                       if note:
+                                            feedback_content += f"  *Notes:* {note}\n" # Add notes to text feedback
+                                       feedback_content += "\n" # Space after each element in text feedback
+
+
+                             # Add Performance Summary (Overall and Domain)
+                             feedback_content += strings["feedback_performance_summary"]
+                             if pdf_rubric_data.get("overall_judgment"):
+                                  feedback_content += strings["overall_performance_level_text"].format(pdf_rubric_data["overall_judgment"]) + "\n" # Use overall_judgment directly
+
+                             # Add Domain Performance Summary
+                             feedback_content += "\nDomain Performance:\n"
+                             for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                  if domain_info.get("judgment"): # Only add if judgment is available
+                                       feedback_content += strings["feedback_domain_performance"].format(domain_info.get("title", domain_name), domain_info["judgment"]) + "\n"
+
+
+                             # Add Support Plan / Next Steps (Conditional Logic)
+                             feedback_content += "\n"
+                             overall_judgment_pdf = pdf_rubric_data.get("overall_judgment")
+
+                             if overall_judgment_pdf == strings["perf_level_very_weak"]:
+                                  feedback_content += strings["plan_very_weak_overall"] + "\n\n"
+                             elif overall_judgment_pdf == strings["perf_level_weak"]:
+                                  feedback_content += strings["plan_weak_overall"] + "\n\n"
+
+                                  # Add specific domain weakness recommendations
+                                  for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                       if domain_info.get("judgment") == strings["perf_level_weak"]:
+                                            # Need to identify key elements/skills within this weak domain
+                                            weak_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
+                                            feedback_content += strings["plan_weak_domain"].format(domain_info.get("title", domain_name), ", ".join(weak_elements_labels)) + "\n\n"
+
+
+                             # Add Next Steps for Acceptable/Good/Excellent
+                             elif overall_judgment_pdf == strings["perf_level_acceptable"]:
+                                  feedback_content += strings["steps_acceptable_overall"] + "\n\n"
+                             elif overall_judgment_pdf == strings["perf_level_good"]:
+                                  feedback_content += strings["steps_good_overall"] + "\n\n"
+                                  # Can add specific domain strengths suggestions here too
+                                  for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                       if domain_info.get("judgment") == strings["perf_level_good"]:
+                                            strong_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
+                                            feedback_content += strings["steps_good_domain"].format(domain_info.get("title", domain_name), ", ".join(strong_elements_labels)) + "\n\n"
+
+                             elif overall_judgment_pdf == strings["perf_level_excellent"]:
+                                    feedback_content += strings["steps_excellent_overall"] + "\n\n"
+                                    # Can add specific domain excellent suggestions here too
+                                    for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                         if domain_info.get("judgment") == strings["perf_level_excellent"]:
+                                              excellent_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
+                                              feedback_content += strings["steps_excellent_domain"].format(domain_info.get("title", domain_name), ", ".join(excellent_elements_labels)) + "\n\n"
+
+                             else: # Case where overall judgment is N/A or could not be determined
+                                  feedback_content += strings["no_specific_plan_needed"] + "\n\n"
+
+
+                             # Add closing
+                             feedback_content += strings["feedback_closing"]
+                             feedback_content += strings["feedback_regards"]
+
+                             # --- Simulate Sending Feedback / Just generate for PDF ---
+                             # The checkbox simply means we generate the feedback text content for the PDF.
+                             # Actual email sending is NOT implemented here.
+                             st.info(strings["success_feedback_generated"]) # Display message that feedback was prepared (for PDF)
+
+
+                        # --- Save Workbook ---
+                        save_filename = f"{sheet_name_to_save_actual}_{st.session_state.get('teacher_name', 'Teacher').replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx" # More descriptive filename
+                        try:
+                            # Save to a BytesIO buffer instead of a file, safer in web apps
+                            output_buffer = io.BytesIO()
+                            wb.save(output_buffer)
+                            output_buffer.seek(0) # Rewind the buffer
+
+                            st.success(strings["success_data_saved"]) # Use localized string
+
+                            # Offer workbook download
+                            st.download_button(
+                                strings["download_workbook"],
+                                output_buffer, # Use the BytesIO buffer
+                                file_name=save_filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+
+                            # --- Generate PDF and Offer Download (Only if feedback was generated) ---
+                            # Check if feedback_content was actually generated
+                            if feedback_content:
+                                 pdf_buffer = generate_observation_pdf(pdf_rubric_data, feedback_content, strings, rubric_domains_structure, st.session_state.get('teacher_email', ''))
+
+                                 if pdf_buffer:
+                                      pdf_filename = f"{sheet_name_to_save_actual}_{st.session_state.get('teacher_name', 'Teacher').replace(' ', '_')}_Observation_Feedback.pdf"
+                                      st.success(strings["success_pdf_generated"]) # Use localized string
+                                      st.download_button(
+                                          label=strings["download_feedback_pdf"], # Use localized string
+                                          data=pdf_buffer,
+                                          file_name=pdf_filename,
+                                          mime="application/pdf"
+                                      )
+                                 else:
+                                      st.error("Failed to generate Feedback PDF.") # Report PDF generation failure
+
+                            # Trigger a rerun to update the UI after saving and potentially creating a new sheet
+                            st.experimental_rerun()
+
+
+                        except Exception as e:
+                            st.error(strings["error_saving_workbook"].format(e))
 
 
             # Feedback Checkbox (Reordered to appear after the Save button)
             # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']
-        send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_feedback')
+            # This checkbox needs to be at the SAME INDENTATION level as the 'if st.button(...):' line
+            send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_feedback')
+
 
         # <--- This 'if st.session_state.get('target_sheet_name'):' block ends here.
         #      The 'else' below should align with it.
-        else: # If workbook or target sheet name couldn't be determined
-            st.warning(strings.get("warning_select_create_sheet", "Please select or create a valid sheet to proceed.")) # Localized warning
+        #      This 'if/else' block contains all the inputs and the save button logic.
+        else: # If workbook or target sheet name couldn't be determined (e.g., error during selection/loading)
+             st.warning(strings.get("warning_select_create_sheet", "Please select or create a valid sheet to proceed.")) # Localized warning
 
 
     # <--- This 'if page == strings["page_lesson_input"]:' block ends here.
     #      The 'elif' block below should align with it.
+    #      This 'if/elif' structure handles page navigation.
     elif page == strings["page_analytics"]:
         st.title(strings["title_analytics"])
 
@@ -1464,5 +1569,6 @@ if wb: # Proceed only if workbook was loaded successfully
 
 # <--- This 'if wb:' block ends here.
 #      The final 'else' block should align with it.
+#      This top-level 'if/else' structure handles initial workbook loading errors.
 else: # If workbook could not be loaded at the very start
      st.error("Could not load the workbook. Please ensure 'Teaching Rubric Tool_WeekTemplate.xlsx' exists and is accessible.")
