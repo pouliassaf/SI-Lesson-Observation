@@ -624,4 +624,5 @@ if page == strings["page_lesson_input"]:
             st.markdown("---")
             st.subheader(strings["subheader_rubric_scores"])
 
-            domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff", # Guessed translation
+            domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff"]
+                            
