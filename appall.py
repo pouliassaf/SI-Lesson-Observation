@@ -1445,7 +1445,7 @@ if wb: # Proceed only if workbook was loaded successfully
 
             # Feedback Checkbox (Reordered to appear after the Save button)
             # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']
-            send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_feedback')
+        send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_feedback')
 
         # <--- This 'if st.session_state.get('target_sheet_name'):' block ends here.
         #      The 'else' below should align with it.
