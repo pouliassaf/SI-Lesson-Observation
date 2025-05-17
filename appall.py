@@ -1444,14 +1444,17 @@ if wb: # Proceed only if workbook was loaded successfully
 
 
             # Feedback Checkbox (Reordered to appear after the Save button)
-            # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_feedback')
+            # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']
+            send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_feedback')
 
-
+        # <--- This 'if st.session_state.get('target_sheet_name'):' block ends here.
+        #      The 'else' below should align with it.
         else: # If workbook or target sheet name couldn't be determined
-             st.warning("Please select or create a valid sheet to proceed.") # Localized warning
+            st.warning(strings.get("warning_select_create_sheet", "Please select or create a valid sheet to proceed.")) # Localized warning
 
 
-    # --- Analytics Page (Needs Full Implementation) ---
+    # <--- This 'if page == strings["page_lesson_input"]:' block ends here.
+    #      The 'elif' block below should align with it.
     elif page == strings["page_analytics"]:
         st.title(strings["title_analytics"])
 
@@ -1459,6 +1462,7 @@ if wb: # Proceed only if workbook was loaded successfully
         st.info("Analytics dashboard goes here. Load data from all 'LO ' sheets, filter, calculate averages, and display charts/tables.")
         st.warning("This section is not yet implemented in the current code.")
 
-
+# <--- This 'if wb:' block ends here.
+#      The final 'else' block should align with it.
 else: # If workbook could not be loaded at the very start
      st.error("Could not load the workbook. Please ensure 'Teaching Rubric Tool_WeekTemplate.xlsx' exists and is accessible.")
