@@ -784,7 +784,7 @@ if page == strings["page_lesson_input"]:
                         # Add rubric scores and descriptions to feedback
                         for domain, (start_cell, count) in rubric_domains.items():
                              # Get domain title from Excel (assuming English)
-                             domain_title_en = ws[f'A{int(start_cell[1:])}'].value or domain
+                             domain_title_en = ws[f'A{int(rubric_domains[domain][0][1:])}'].value or domain
                              feedback_content += strings["feedback_domain_header"].format(domain, domain_title_en) # Use English title in feedback
 
                              # Add domain average to feedback
