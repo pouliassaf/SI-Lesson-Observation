@@ -144,7 +144,7 @@ en_strings = {
     "overall_score_value": "**{:.2f}**", # From snippet 1
     "overall_score_na": "**N/A**", # From snippet 1
     "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # From snippet 1
-    "feedback_log_sheet_name": "Feedback Log", # From snippet 1
+    "feedback_log_sheet_name": "سجل الملاحظات", # Needs verification
     "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers
     "download_feedback_log_csv": "📥 Download Feedback Log (CSV)", # From snippet 1
     "error_generating_log_csv": "Error generating log CSV:", # From snippet 1
@@ -752,6 +752,143 @@ if wb: # Proceed only if workbook was loaded successfully
 
         sheet_name = None
         ws_to_load_from = None # Initialize worksheet to load data from
+
+        # --- Function to read existing data from a sheet (to pre-fill inputs) ---
+        # Restored the definition of this function
+        def load_existing_data(worksheet: Worksheet):
+            data = {}
+            # Basic Info from snippet 2 save locations
+            # Use try-except for each cell read in case the sheet structure is unexpected
+            try: data["gender"] = worksheet["B5"].value
+            except Exception: pass
+            try: data["students"] = worksheet["B6"].value
+            except Exception: pass
+            try: data["males"] = worksheet["B7"].value
+            except Exception: pass
+            try: data["females"] = worksheet["B8"].value
+            except Exception: pass
+            try: data["subject"] = worksheet["D2"].value
+            except Exception: pass
+
+            # Duration was calculated, need time in/out
+            try:
+                time_in_str = worksheet["D7"].value
+                # Handle both time objects from previous saves and strings
+                if isinstance(time_in_str, datetime.time):
+                     data["time_in"] = time_in_str
+                elif isinstance(time_in_str, datetime): # openpyxl sometimes reads time as datetime
+                     data["time_in"] = time_in_str.time()
+                elif isinstance(time_in_str, str) and time_in_str:
+                     # Attempt parsing common time formats
+                     try:
+                         data["time_in"] = datetime.strptime(time_in_str, "%H:%M:%S").time() # Try with seconds
+                     except ValueError:
+                         data["time_in"] = datetime.strptime(time_in_str, "%H:%M").time() # Try without seconds
+            except Exception:
+                 data["time_in"] = None # Ensure it's set to None on error
+
+
+            try:
+                time_out_str = worksheet["D8"].value
+                if isinstance(time_out_str, datetime.time):
+                     data["time_out"] = time_out_str
+                elif isinstance(time_out_str, datetime):
+                     data["time_out"] = time_out_str.time()
+                elif isinstance(time_out_str, str) and time_out_str:
+                     try:
+                         data["time_out"] = datetime.strptime(time_out_str, "%H:%M:%S").time()
+                     except ValueError:
+                         data["time_out"] = datetime.strptime(time_out_str, "%H:%M").time()
+            except Exception:
+                 data["time_out"] = None # Ensure it's set to None on error
+
+
+            try: data["period"] = worksheet["D4"].value
+            except Exception: pass
+
+
+            # Metadata from snippet 2 save locations
+            try: data["observer_name"] = worksheet["AA1"].value
+            except Exception: pass
+            try: data["teacher_name"] = worksheet["AA2"].value
+            except Exception: pass
+            try: data["observation_type"] = worksheet["AA3"].value
+            except Exception: pass
+            # Timestamp AA4 - don't load into input
+            try: data["operator"] = worksheet["AA5"].value
+            except Exception: pass
+            try: data["school_name"] = worksheet["AA6"].value
+            except Exception: pass
+            try: data["overall_notes"] = worksheet["AA7"].value
+            except Exception: pass
+
+            # Date from assumed location D10
+            try:
+                 date_val = worksheet["D10"].value # Adjust cell as needed
+                 if isinstance(date_val, datetime): # openpyxl reads dates as datetime
+                     data["observation_date"] = date_val.date() # Store as date object
+                 elif isinstance(date_val, date):
+                      data["observation_date"] = date_val # Already a date object
+                 # Add other potential date formats if necessary
+            except Exception:
+                 data["observation_date"] = datetime.now().date() # Default to today if error
+
+
+            # Email - Assuming AA8 for email
+            try: data["teacher_email"] = worksheet["AA8"].value # Assuming AA8 for email
+            except Exception: pass
+
+
+            # Rubric Scores and Notes - Read values saved in the sheet
+            rubric_domains_structure = { # Need this structure to know where to read
+                "Domain 1": ("I11", 5), "Domain 2": ("I20", 3), "Domain 3": ("I27", 4), "Domain 4": ("I35", 3),
+                "Domain 5": ("I42", 2), "Domain 6": ("I48", 2), "Domain 7": ("I54", 2), "Domain 8": ("I60", 3), "Domain 9": ("I67", 2)
+            }
+            data["element_inputs"] = {} # Store inputs keyed by unique key like f"{domain}_{i}_rating/note"
+            for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
+                 col_rating = start_cell[0] # Column for rating (e.g., 'I')
+                 col_note = 'J' # Column for notes (based on snippet 2 save logic)
+                 try:
+                     row_start = int(start_cell[1:])
+                     for i in range(count):
+                          row = row_start + i
+                          rating_key = f"{domain}_{i}_rating"
+                          note_key = f"{domain}_{i}_note"
+                          # Read value from sheet, use try-except for individual cells
+                          try:
+                              rating_value_from_sheet = worksheet[f"{col_rating}{row}"].value
+                              # Convert numeric ratings to int if they are floats (openpyxl might read ints as floats)
+                              if isinstance(rating_value_from_sheet, float) and rating_value_from_sheet.is_integer():
+                                   rating_value_from_sheet = int(rating_value_from_sheet)
+                              # Ensure "NA" is read correctly
+                              elif isinstance(rating_value_from_sheet, str) and rating_value_from_sheet.upper() == "NA":
+                                   rating_value_from_sheet = "NA"
+                              # Convert numbers read as text back to numbers/NA
+                              elif isinstance(rating_value_from_sheet, str) and rating_value_from_sheet.isdigit():
+                                   rating_value_from_sheet = int(rating_value_from_sheet)
+                              elif isinstance(rating_value_from_sheet, str) and rating_value_from_sheet.upper() == "NA":
+                                   rating_value_from_sheet = "NA"
+                              # Handle empty cells read as None
+                              elif rating_value_from_sheet is None:
+                                   rating_value_from_sheet = "NA"
+
+
+                              data["element_inputs"][rating_key] = rating_value_from_sheet
+                          except Exception:
+                              data["element_inputs"][rating_key] = "NA" # Default to NA on error
+
+                          try:
+                              note_value_from_sheet = worksheet[f"{col_note}{row}"].value
+                              data["element_inputs"][note_key] = note_value_from_sheet if note_value_from_sheet is not None else ""
+                          except Exception:
+                              data["element_inputs"][note_key] = "" # Default to empty string on error
+
+                 except Exception as e:
+                     st.warning(f"Error loading rubric data for domain {domain}: {e}")
+                     # Continue to next domain even if one fails
+
+
+            return data
 
         # --- Logic based on selected sheet/create new ---
         # This section determines the target sheet name and loads data into session state
