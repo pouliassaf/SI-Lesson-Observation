@@ -314,7 +314,7 @@ ar_strings = {
     "plan_weak_domain": "الأداء في **{}** ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}. الإجراءات المقترحة تشمل: [إجراء محدد 1]، [إجراء محدد 2].",
     "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط قوتك. حدد مجالًا واحدًا للنمو لتحسين ممارستك وتعزيز تعلم الطلاب.",
     "steps_good_overall": "الأداء الإجمالي جيد. أنت تظهر ممارسات تعليمية فعالة. استكشف فرص مشاركة خبرتك مع الزملاء، ربما من خلال التوجيه غير الرسمي أو تقديم استراتيجيات ناجحة.",
-    "steps_good_domain": "الأداء في **{}** جيد. أنت تظهر مهارات قوية في هذا المجال. فكر في استكشاف استراتيجيات متقدمة تتعلق بـ: {}. الإجراءات المقترحة تشمل: [إجراء متقدم محدد 1]، [إجراء متقدم محدد 2].",
+    "steps_good_domain": "الأداء في **{}** جيد. أنت تظهر مهارات قوية في هذا المجال. فكر في استكشاف استراتيجيات متقدمة تتعلق بـ: {}. الإجراءات المقترحة تشمل: [إجراء متقدم محدد 1]، [إجراء متقدم مححدد 2].",
     "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة جلسات التطوير المهني أو توجيه المعلمين الأقل خبرة.",
     "steps_excellent_domain": "الأداء في **{}** ممتاز. ممارستك في هذا المجال نموذجية. استمر في الابتكار وتحسين ممارستك، ربما من خلال البحث وتطبيق استراتيجيات حديثة تتعلق بـ: {}.",
     "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة. ركز على التحسين المستمر بناءً على أهدافك المهنية.",
@@ -640,14 +640,24 @@ if wb:
             try:
                 ws = wb[sheet_name]
                 # Attempt to read values from known metadata cells
+                operator_val = ws["AA5"].value if "AA5" in ws else None
+                school_val = ws["AA6"].value if "AA6" in ws else None
+                grade_val = ws["B1"].value if "B1" in ws else None # Assuming B1 for Grade
+                subject_val = ws["D2"].value if "D2" in ws else None
+                teacher_val = ws["AA2"].value if "AA2" in ws else None
+                observer_val = ws["AA1"].value if "AA1" in ws else None
+
                 temp_data_list.append({
-                    "Operator": ws["AA5"].value if "AA5" in ws else None,
-                    "School": ws["AA6"].value if "AA6" in ws else None,
-                    "Grade": ws["B1"].value if "B1" in ws else None, # Assuming B1 for Grade
-                    "Subject": ws["D2"].value if "D2" in ws else None,
-                    "Teacher": ws["AA2"].value if "AA2" in ws else None,
-                    "Observer": ws["AA1"].value if "AA1" in ws else None,
+                    "Operator": operator_val,
+                    "School": school_val,
+                    "Grade": grade_val,
+                    "Subject": subject_val,
+                    "Teacher": teacher_val,
+                    "Observer": observer_val,
                 })
+                # Print values being read for debugging
+                print(f"Read from sheet '{sheet_name}': Operator='{operator_val}', School='{school_val}', Grade='{grade_val}', Subject='{subject_val}', Teacher='{teacher_val}', Observer='{observer_val}'")
+
             except Exception as e:
                 print(f"Error reading sheet '{sheet_name}' for dropdown options: {e}")
                 # Continue processing other sheets even if one fails
@@ -655,12 +665,19 @@ if wb:
         if temp_data_list:
             temp_df = pd.DataFrame(temp_data_list)
             # Get unique, non-None, non-empty string values and sort them
+            # Use .astype(str) to handle potential numeric grades, then strip whitespace
             unique_operators = sorted(temp_df['Operator'].dropna().astype(str).str.strip().unique().tolist()) if 'Operator' in temp_df.columns else []
             unique_schools = sorted(temp_df['School'].dropna().astype(str).str.strip().unique().tolist()) if 'School' in temp_df.columns else []
             unique_grades = sorted(temp_df['Grade'].dropna().astype(str).str.strip().unique().tolist()) if 'Grade' in temp_df.columns else []
             unique_subjects = sorted(temp_df['Subject'].dropna().astype(str).str.strip().unique().tolist()) if 'Subject' in temp_df.columns else []
             unique_teachers = sorted(temp_df['Teacher'].dropna().astype(str).str.strip().unique().tolist()) if 'Teacher' in temp_df.columns else []
             unique_observers = sorted(temp_df['Observer'].dropna().astype(str).str.strip().unique().tolist()) if 'Observer' in temp_df.columns else []
+            print(f"Collected unique Operators: {unique_operators}")
+            print(f"Collected unique Schools: {unique_schools}")
+            print(f"Collected unique Grades: {unique_grades}")
+            print(f"Collected unique Subjects: {unique_subjects}")
+            print(f"Collected unique Teachers: {unique_teachers}")
+            print(f"Collected unique Observers: {unique_observers}")
 
 
 # Sidebar page selection
@@ -1049,24 +1066,17 @@ if wb:
             cols = st.columns(2)
             with cols[0]:
                 # Dropdown for Observer Name (populated from unique_observers)
-                # Add current loaded value to options if not already there
                 current_observer = st.session_state.get('observer_name', '') or ''
                 observer_options = sorted(list(set(unique_observers + [current_observer])))
-                # Ensure empty string is an option if it's the current value or in options
-                if '' not in observer_options and current_observer == '':
-                    observer_options.insert(0, '') # Add empty string at the beginning if current is empty
-                elif '' in observer_options and current_observer != '':
-                     observer_options.remove('') # Remove empty string if current is not empty
-
-                observer_index = observer_options.index(current_observer) if current_observer in observer_options else 0 # Default to first option
+                if '' not in observer_options: observer_options.insert(0, '') # Ensure empty string is always an option
+                observer_index = observer_options.index(current_observer) if current_observer in observer_options else 0
                 st.selectbox(strings["label_observer_name"], observer_options, index=observer_index, key='observer_name_input_form')
 
 
                 # Dropdown for Teacher Name (populated from unique_teachers)
                 current_teacher = st.session_state.get('teacher_name', '') or ''
                 teacher_options = sorted(list(set(unique_teachers + [current_teacher])))
-                if '' not in teacher_options and current_teacher == '': teacher_options.insert(0, '')
-                elif '' in teacher_options and current_teacher != '': teacher_options.remove('')
+                if '' not in teacher_options: teacher_options.insert(0, '')
                 teacher_index = teacher_options.index(current_teacher) if current_teacher in teacher_options else 0
                 st.selectbox(strings["label_teacher_name"], teacher_options, index=teacher_index, key='teacher_name_input_form')
 
@@ -1076,16 +1086,14 @@ if wb:
                 # Dropdown for Operator (populated from unique_operators)
                 current_operator = st.session_state.get('operator', '') or ''
                 operator_options = sorted(list(set(unique_operators + [current_operator])))
-                if '' not in operator_options and current_operator == '': operator_options.insert(0, '')
-                elif '' in operator_options and current_operator != '': operator_options.remove('')
+                if '' not in operator_options: operator_options.insert(0, '')
                 operator_index = operator_options.index(current_operator) if current_operator in operator_options else 0
                 st.selectbox(strings["label_operator"], operator_options, index=operator_index, key='operator_input_form')
 
                 # Dropdown for School Name (populated from unique_schools)
                 current_school = st.session_state.get('school_name', '') or ''
                 school_options = sorted(list(set(unique_schools + [current_school])))
-                if '' not in school_options and current_school == '': school_options.insert(0, '')
-                elif '' in school_options and current_school != '': school_options.remove('')
+                if '' not in school_options: school_options.insert(0, '')
                 school_index = school_options.index(current_school) if current_school in school_options else 0
                 st.selectbox(strings["label_school_name"], school_options, index=school_index, key='school_name_input_form')
 
@@ -1094,16 +1102,14 @@ if wb:
                 # Dropdown for Grade (populated from unique_grades)
                 current_grade = st.session_state.get('grade', '') or ''
                 grade_options = sorted(list(set(unique_grades + [current_grade])))
-                if '' not in grade_options and current_grade == '': grade_options.insert(0, '')
-                elif '' in grade_options and current_grade != '': grade_options.remove('')
+                if '' not in grade_options: grade_options.insert(0, '')
                 grade_index = grade_options.index(current_grade) if current_grade in grade_options else 0
                 st.selectbox(strings["label_grade"], grade_options, index=grade_index, key='grade_input_form')
 
                 # Dropdown for Subject (populated from unique_subjects)
                 current_subject = st.session_state.get('subject', '') or ''
                 subject_options = sorted(list(set(unique_subjects + [current_subject])))
-                if '' not in subject_options and current_subject == '': subject_options.insert(0, '')
-                elif '' in subject_options and current_subject != '': subject_options.remove('')
+                if '' not in subject_options: subject_options.insert(0, '')
                 subject_index = subject_options.index(current_subject) if current_subject in subject_options else 0
                 st.selectbox(strings["label_subject"], subject_options, index=subject_index, key='subject_input_form')
 
@@ -1184,6 +1190,7 @@ if wb:
                 for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
                      domain_title = domain
                      try:
+                         # Assuming domain title is in column B, one row above the first element of the domain
                          title_row = int(start_cell[1:]) - 1
                          if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
                              domain_title = template_ws[f'B{title_row}'].value
@@ -1195,6 +1202,7 @@ if wb:
                           row = int(start_cell[1:]) + i
                           element_label = f"Element {i+1}"
                           try:
+                               # Assuming element label is in column B, on the same row as the rating
                                if f"B{row}" in template_ws and template_ws[f"B{row}"].value is not None:
                                     element_label = template_ws[f"B{row}"].value
                           except Exception: pass
@@ -1833,12 +1841,12 @@ if wb:
              st.markdown("---")
              st.subheader(strings["subheader_filter_analyze"])
 
-             all_operators = sorted(all_obs_data['Operator'].dropna().unique().tolist()) if 'Operator' in all_obs_data.columns else []
-             all_schools = sorted(all_obs_data['School'].dropna().unique().tolist()) if 'School' in all_obs_data.columns else []
-             all_grades = sorted(all_obs_data['Grade'].dropna().unique().tolist()) if 'Grade' in all_obs_data.columns else []
-             all_subjects = sorted(all_obs_data['Subject'].dropna().unique().tolist()) if 'Subject' in all_obs_data.columns else []
-             all_teachers = sorted(all_obs_data['Teacher'].dropna().unique().tolist()) if 'Teacher' in all_obs_data.columns else []
-             all_observers = sorted(all_obs_data['Observer'].dropna().unique().tolist()) if 'Observer' in all_obs_data.columns else []
+             all_operators = sorted(all_obs_data['Operator'].dropna().astype(str).str.strip().unique().tolist()) if 'Operator' in all_obs_data.columns else []
+             all_schools = sorted(all_obs_data['School'].dropna().astype(str).str.strip().unique().tolist()) if 'School' in all_obs_data.columns else []
+             all_grades = sorted(all_obs_data['Grade'].dropna().astype(str).str.strip().unique().tolist()) if 'Grade' in all_obs_data.columns else []
+             all_subjects = sorted(all_obs_data['Subject'].dropna().astype(str).str.strip().unique().tolist()) if 'Subject' in all_obs_data.columns else []
+             all_teachers = sorted(all_obs_data['Teacher'].dropna().astype(str).str.strip().unique().tolist()) if 'Teacher' in all_obs_data.columns else []
+             all_observers = sorted(all_obs_data['Observer'].dropna().astype(str).str.strip().unique().tolist()) if 'Observer' in all_obs_data.columns else []
 
 
              filter_operator = st.selectbox(strings["filter_by_operator"], [strings["option_all"]] + all_operators)
