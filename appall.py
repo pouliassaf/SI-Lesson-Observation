@@ -27,7 +27,7 @@ from reportlab.lib import colors
 import re # Import regex for cleaning HTML tags
 import numpy as np # Import numpy for isnan
 
-# --- Set Streamlit Page Config (MUST BE THE FIRST STREAMLIT COMMAND) ---
+# --- Set Streamlit Page Config (MUST BE THE FIRST STREAMIT COMMAND) ---
 st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
 
 # --- Logo File Paths ---
@@ -314,7 +314,7 @@ ar_strings = {
     "plan_weak_domain": "الأداء في **{}** ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}. الإجراءات المقترحة تشمل: [إجراء محدد 1]، [إجراء محدد 2].",
     "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط قوتك. حدد مجالًا واحدًا للنمو لتحسين ممارستك وتعزيز تعلم الطلاب.",
     "steps_good_overall": "الأداء الإجمالي جيد. أنت تظهر ممارسات تعليمية فعالة. استكشف فرص مشاركة خبرتك مع الزملاء، ربما من خلال التوجيه غير الرسمي أو تقديم استراتيجيات ناجحة.",
-    "steps_good_domain": "الأداء في **{}** جيد. أنت تظهر مهارات قوية في هذا المجال. فكر في استكشاف استراتيجيات متقدمة تتعلق بـ: {}. الإجراءات المقترحة تشمل: [إجراء متقدم محدد 1]، [إجراء متقدم مححدد 2].",
+    "steps_good_domain": "الأداء في **{}** جيد. أنت تظهر مهارات قوية في هذا المجال. فكر في استكشاف استراتيجيات متقدمة تتعلق بـ: {}. الإجراءات المقترحة تشمل: [إجراء متقدم محدد 1]، [إجراء متقدم محدد 2].",
     "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة جلسات التطوير المهني أو توجيه المعلمين الأقل خبرة.",
     "steps_excellent_domain": "الأداء في **{}** ممتاز. ممارستك في هذا المجال نموذجية. استمر في الابتكار وتحسين ممارستك، ربما من خلال البحث وتطبيق استراتيجيات حديثة تتعلق بـ: {}.",
     "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة. ركز على التحسين المستمر بناءً على أهدافك المهنية.",
@@ -1547,7 +1547,8 @@ if wb:
                                    for element in domain_info.get("elements", []):
                                          feedback_content_text += strings["feedback_element_rating"].format(element["label"], element["rating"])
                                          rating_for_descriptor = element["rating"]
-                                         descriptor_text = element.get("descriptors_by_rating", {}).get(str(rating_for_descriptor))
+                                         descriptors_by_rating = element.get("descriptors_by_rating", {})
+                                         descriptor_text = descriptors_by_rating.get(str(rating_for_descriptor))
                                          if descriptor_text and descriptor_text.strip() and descriptor_text != strings["info_no_descriptors"]:
                                                feedback_content_text += f"  *Guidance for rating {rating_for_descriptor}:* {descriptor_text.strip()}\n"
 
