@@ -186,7 +186,6 @@ en_strings = {
     "info_no_guidelines": "Guidelines sheet is empty or could not be read.",
     "warning_select_create_sheet": "Please select or create a valid sheet to proceed.",
     "label_overall_notes": "General Notes for this Lesson Observation",
-
 }
 
 # Placeholder Arabic strings - REPLACE THESE WITH ACTUAL TRANSLATIONS
@@ -614,6 +613,11 @@ def generate_observation_pdf(data, feedback_content, strings): # Removed teacher
 arabic_mode = st.sidebar.toggle(en_strings["arabic_toggle_label"], False)
 strings = get_strings(arabic_mode)
 
+# --- Default File Definition ---
+# Define the path to your template workbook
+DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
+
+
 # Initialize workbook in session state if not already loaded
 # This avoids reloading the workbook from disk on every single rerun
 # BUT requires careful handling of saving modifications back to disk.
@@ -677,12 +681,8 @@ if wb: # Proceed only if workbook was loaded successfully
                          if aa1_value is None or (isinstance(aa1_value, str) and aa1_value.strip() == ""):
                              to_remove.append(sheet)
                      except Exception as e:
-                         # Handle cases where sheet might be corrupted or missing expected cells
                          print(f"Could not check sheet '{sheet}' for cleanup due to error: {e}")
-                         # Decide if you want to remove sheets that cause errors during check
-                         # For safety, maybe only remove if AA1 is *confidently* empty/None
-                         # For now, we won't add it to to_remove on generic error, only if AA1 is explicitly empty/None or KeyError
-                         pass # Do not add to to_remove on generic error
+                         pass
 
                  if to_remove:
                      st.info(strings.get("warning_sheets_removed", "Removed {} unused LO sheets.").format(len(to_remove)))
@@ -735,7 +735,6 @@ if wb: # Proceed only if workbook was loaded successfully
         sheet_selection_options = [strings["option_create_new"]] + existing_sheets_for_selection
 
         # --- Sheet Selection Dropdown ---
-        # Use a key and track the previously loaded sheet in session state
         selected_option = st.selectbox(
             strings["select_sheet_or_create"],
             sheet_selection_options,
@@ -759,7 +758,6 @@ if wb: # Proceed only if workbook was loaded successfully
         rubric_descriptors = {}
         try:
              template_ws = wb["LO 1"]
-             # Read descriptors from columns E, F, G, H for each element row
              for domain, (start_cell, count) in rubric_domains_structure.items():
                   row_start = int(start_cell[1:])
                   for i in range(count):
@@ -768,32 +766,27 @@ if wb: # Proceed only if workbook was loaded successfully
                        descriptor_text_parts = []
                        try:
                             # Assuming descriptors are in columns E (index 4) to H (index 7)
-                            for col_idx in range(4, 8): # Columns E (index 4) to H (index 7)
+                            for col_idx in range(4, 8):
                                  col_letter = get_column_letter(col_idx + 1)
                                  cell_value = template_ws[f"{col_letter}{row}"].value
                                  if cell_value is not None and isinstance(cell_value, str) and cell_value.strip():
                                       descriptor_text_parts.append(cell_value.strip())
                        except Exception as e:
                             print(f"Error reading descriptor cells for {domain} element {i}: {e}")
-                            # Continue to next cell/element even if reading one fails
-
+                            pass
 
                        rubric_descriptors[element_key] = {'general': " ".join(descriptor_text_parts) if descriptor_text_parts else strings["info_no_descriptors"]}
 
         except KeyError:
             st.warning("Template sheet 'LO 1' not found. Cannot read rubric descriptors.")
-            # Keep rubric_descriptors as empty dict if template is missing
         except Exception as e:
             st.error(f"Error reading rubric descriptors from template: {e}")
-            # Keep rubric_descriptors as empty dict on error
 
 
         # --- Function to read existing data from a sheet (to pre-fill inputs) ---
-        # Moved definition up to be used before the form display logic
         def load_existing_data(worksheet: Worksheet, rubric_structure):
             data = {}
-            # Basic Info from snippet 2 save locations
-            try: data["grade"] = worksheet["B1"].value # Assuming Grade is in B1
+            try: data["grade"] = worksheet["B1"].value
             except Exception: pass
             try: data["gender"] = worksheet["B5"].value
             except Exception: pass
@@ -806,13 +799,12 @@ if wb: # Proceed only if workbook was loaded successfully
             try: data["subject"] = worksheet["D2"].value
             except Exception: pass
 
-            # Date from assumed location D10
             try:
                 date_val = worksheet["D10"].value
                 if isinstance(date_val, datetime):
-                    data["observation_date"] = date_val.date() # Store as date object
+                    data["observation_date"] = date_val.date()
                 elif isinstance(date_val, date):
-                    data["observation_date"] = date_val # Already a date object
+                    data["observation_date"] = date_val
                 elif isinstance(date_val, str) and date_val:
                      try:
                           data["observation_date"] = datetime.strptime(date_val, "%Y-%m-%d").date()
@@ -821,12 +813,11 @@ if wb: # Proceed only if workbook was loaded successfully
             except Exception:
                 pass
 
-            # Duration was calculated, need time in/out
             try:
                 time_in_val = worksheet["D7"].value
                 if isinstance(time_in_val, datetime.time):
                     data["time_in"] = time_in_val
-                elif isinstance(time_in_val, datetime): # openpyxl sometimes reads time as datetime
+                elif isinstance(time_in_val, datetime):
                     data["time_in"] = time_in_val.time()
                 elif isinstance(time_in_val, str) and time_in_val:
                     try:
@@ -861,7 +852,6 @@ if wb: # Proceed only if workbook was loaded successfully
             except Exception: pass
 
 
-            # Metadata from snippet 2 save locations
             try: data["observer_name"] = worksheet["AA1"].value
             except Exception: pass
             try: data["teacher_name"] = worksheet["AA2"].value
@@ -874,13 +864,12 @@ if wb: # Proceed only if workbook was loaded successfully
             except Exception: pass
             try: data["overall_notes"] = worksheet["AA7"].value
             except Exception: pass
-            try: data["teacher_email"] = worksheet["AA8"].value # Assuming AA8 for email
+            try: data["teacher_email"] = worksheet["AA8"].value
             except Exception: pass
-            try: data["feedback_generated_timestamp"] = worksheet["AA9"].value # Assuming AA9 for feedback timestamp
+            try: data["feedback_generated_timestamp"] = worksheet["AA9"].value
             except Exception: pass
 
 
-            # Rubric Scores and Notes - Read values saved in the sheet
             data["element_inputs"] = {}
             for idx, (domain, (start_cell, count)) in enumerate(rubric_structure.items()):
                 col_rating = start_cell[0]
@@ -914,24 +903,24 @@ if wb: # Proceed only if workbook was loaded successfully
                             data["element_inputs"][note_key] = ""
 
                 except Exception as e:
-                    print(f"Error loading rubric data for domain {domain} during load: {e}") # Print error but continue
-                    pass # Continue to next domain
-
+                    print(f"Error loading rubric data for domain {domain} during load: {e}")
+                    pass
 
             return data
 
-        # --- State Management for Sheet Selection ---
-        # Check if the selected sheet in the dropdown has changed
-        # Use a key to track the sheet name whose data is currently loaded into session state
+        # --- State Management for Sheet Selection (Loading/Resetting) ---
+        # Initialize tracker for the sheet whose data is currently loaded into session state
         if 'current_loaded_sheet_option' not in st.session_state:
-             st.session_state['current_loaded_sheet_option'] = None # Initialize
+             st.session_state['current_loaded_sheet_option'] = None # Initialize to no sheet loaded
 
-        # If the selectbox value is different from the currently loaded sheet's option, trigger load/reset
+        # Check if the selected sheet in the dropdown has changed from the one whose data is loaded
         if st.session_state['sheet_selector'] != st.session_state['current_loaded_sheet_option']:
-             st.session_state['current_loaded_sheet_option'] = st.session_state['sheet_selector'] # Update the tracker
+             # The selected option has changed, update the tracker and load/reset state
+             st.session_state['current_loaded_sheet_option'] = st.session_state['sheet_selector']
 
              if selected_option == strings["option_create_new"]:
-                 # Calculate the name for the *new* sheet
+                 # --- Logic for "Create New" ---
+                 # Calculate the name for the *new* sheet (target name)
                  next_index = 1
                  existing_lo_numbers = []
                  for sheet in wb.sheetnames:
@@ -949,22 +938,22 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  # Reset session state keys to defaults for a new sheet
                  st.session_state.update({
-                      'observer_name': '', # Use empty string for text inputs
+                      'observer_name': '',
                       'teacher_name': '',
                       'teacher_email': '',
                       'operator': '',
                       'school_name': '',
                       'grade': '',
                       'subject': '',
-                      'gender': '', # Use empty string or default for selectbox
-                      'students': 0, # Use 0 for number inputs
+                      'gender': '',
+                      'students': 0,
                       'males': 0,
                       'females': 0,
-                      'observation_date': datetime.now().date(), # Default to today's date object
-                      'time_in': None, # Use None for time inputs initially
+                      'observation_date': datetime.now().date(),
+                      'time_in': None,
                       'time_out': None,
                       'period': '',
-                      'observation_type': strings["option_individual"], # Default observation type
+                      'observation_type': strings["option_individual"],
                       'overall_notes': '',
                       'checkbox_send_feedback': False,
                       'element_inputs': {} # Initialize empty dict for element scores/notes
@@ -978,16 +967,16 @@ if wb: # Proceed only if workbook was loaded successfully
                            st.session_state['element_inputs'][rating_key] = "NA"
                            st.session_state['element_inputs'][note_key] = ""
 
-                 # Trigger a rerun to update the form with the new sheet's empty data
+                 # Trigger a rerun to redraw the app with the newly reset state
                  st.rerun()
 
-             else: # Selected an existing sheet name
+             else: # --- Logic for Selecting an Existing Sheet ---
                  target_sheet_name_from_selector = selected_option
                  st.session_state['active_sheet_name_for_display'] = target_sheet_name_from_selector
                  st.subheader(strings["subheader_filling_data"].format(st.session_state['active_sheet_name_for_display']))
 
                  try:
-                     ws_to_load_from = wb[target_sheet_name_from_selector] # Get the selected sheet object
+                     ws_to_load_from = wb[target_sheet_name_from_selector]
 
                      # Load existing data into session state
                      existing_data = load_existing_data(ws_to_load_from, rubric_domains_structure)
@@ -995,54 +984,73 @@ if wb: # Proceed only if workbook was loaded successfully
                      # Update session state with loaded data (excluding auth email)
                      for key, value in existing_data.items():
                           if key != 'auth_email_input':
-                               # Use empty string for None/empty loaded text values to pre-fill text inputs better
-                               if isinstance(st.session_state.get(key), str) or key in ['observer_name', 'teacher_name', 'teacher_email', 'operator', 'school_name', 'grade', 'subject', 'period', 'overall_notes']:
-                                    st.session_state[key] = value if value is not None else ''
+                               # Handle specific types for widget defaults
+                               if key in ['observer_name', 'teacher_name', 'teacher_email', 'operator', 'school_name', 'grade', 'subject', 'period', 'overall_notes']:
+                                    st.session_state[key] = value if value is not None else '' # Use empty string for text inputs
                                elif key in ['students', 'males', 'females']:
-                                    st.session_state[key] = value if value is not None else 0
-                               elif key in ['gender', 'observation_type']: # Selectbox types
-                                    st.session_state[key] = value if value is not None else '' # Use empty string for default
+                                    st.session_state[key] = value if value is not None else 0 # Use 0 for numbers
+                               elif key in ['gender', 'observation_type']:
+                                    # Ensure loaded value is one of the selectbox options or default
+                                    options = ["Male", "Female", "Mixed", ""] if key == 'gender' else [strings["option_individual"], strings["option_joint"]]
+                                    st.session_state[key] = value if value in options else (options[0] if options else '') # Default to first option or empty
+                               elif key == 'observation_date':
+                                    # Ensure it's a date object
+                                    if isinstance(value, datetime):
+                                         st.session_state[key] = value.date()
+                                    elif isinstance(value, date):
+                                         st.session_state[key] = value
+                                    else:
+                                         st.session_state[key] = datetime.now().date() # Default if invalid
+                               elif key in ['time_in', 'time_out']:
+                                     # Ensure it's a time object
+                                     if isinstance(value, datetime.time):
+                                          st.session_state[key] = value
+                                     elif isinstance(value, datetime): # Sometimes loaded as datetime
+                                          st.session_state[key] = value.time()
+                                     else:
+                                          st.session_state[key] = None # Default None
+                               elif key == 'element_inputs':
+                                     # element_inputs is a dictionary, merge it
+                                     st.session_state[key] = value if isinstance(value, dict) else {}
                                else:
-                                    st.session_state[key] = value
+                                    st.session_state[key] = value # For other types
+
 
                      # Ensure element_inputs is initialized even if loading failed for it
-                     if 'element_inputs' not in st.session_state:
-                          st.session_state['element_inputs'] = {} # Should be populated by load_existing_data, but safety
-
+                     if 'element_inputs' not in st.session_state or not isinstance(st.session_state['element_inputs'], dict):
+                          st.session_state['element_inputs'] = {} # Safety initialization
 
                  except KeyError:
                      st.error(f"Error: Selected sheet '{target_sheet_name_from_selector}' not found or could not be accessed.")
-                     # Reset sheet selector and state if sheet is missing
-                     st.session_state['sheet_selector'] = strings["option_create_new"]
+                     st.session_state['sheet_selector'] = strings["option_create_new"] # Reset selector
                      st.session_state['current_loaded_sheet_option'] = strings["option_create_new"] # Reset tracker
                      st.session_state['active_sheet_name_for_display'] = None # Clear display name
-                     st.rerun() # Rerun to handle the reset
-                     st.stop()
+                     st.rerun()
+                     st.stop() # Stop current run
                  except Exception as e:
                      st.error(f"Error loading data from sheet '{target_sheet_name_from_selector}': {e}")
-                     # Reset sheet selector and state if loading fails
-                     st.session_state['sheet_selector'] = strings["option_create_new"]
+                     st.session_state['sheet_selector'] = strings["option_create_new"] # Reset selector
                      st.session_state['current_loaded_sheet_option'] = strings["option_create_new"] # Reset tracker
                      st.session_state['active_sheet_name_for_display'] = None # Clear display name
-                     st.rerun() # Rerun to handle the reset
-                     st.stop()
+                     st.rerun()
+                     st.stop() # Stop current run
 
-                 # Trigger a rerun to update the form with the loaded data
+                 # Trigger a rerun to redraw the app with the newly loaded state
                  st.rerun()
 
         # --- Input Form (Draw only if an active sheet name is set in state) ---
-        # The rest of the form drawing code now relies *only* on session state
-        # and whether 'active_sheet_name_for_display' is set.
+        # The form now reads its initial values from st.session_state,
+        # which was populated by the state change logic above.
         if st.session_state.get('active_sheet_name_for_display'):
             st.info(f"**Currently Editing:** `{st.session_state['active_sheet_name_for_display']}`")
 
-            # Basic Information Inputs (using st.session_state for initial value and persistence)
-            # The values in session state were set by the state management logic above
+            # Basic Information Inputs
             st.markdown("---")
             st.subheader("Basic Information")
             cols = st.columns(2)
             with cols[0]:
-                st.text_input(strings["label_observer_name"], value=st.session_state.get('observer_name', ''), key='observer_name_input_form') # Use a different key name from state key
+                # Use keys ending in _form to isolate widget state from main session state keys
+                st.text_input(strings["label_observer_name"], value=st.session_state.get('observer_name', ''), key='observer_name_input_form')
                 st.text_input(strings["label_teacher_name"], value=st.session_state.get('teacher_name', ''), key='teacher_name_input_form')
                 st.text_input(strings["label_teacher_email"], value=st.session_state.get('teacher_email', ''), key='teacher_email_input_form')
                 st.text_input(strings["label_operator"], value=st.session_state.get('operator', ''), key='operator_input_form')
@@ -1052,70 +1060,56 @@ if wb: # Proceed only if workbook was loaded successfully
             with cols[1]:
                 st.text_input(strings["label_grade"], value=st.session_state.get('grade', ''), key='grade_input_form')
                 st.text_input(strings["label_subject"], value=st.session_state.get('subject', ''), key='subject_input_form')
-                # Provide index for selectbox, handling potential None or unseen values from loaded data
                 gender_options = ["Male", "Female", "Mixed", ""]
-                current_gender = st.session_state.get('gender', '') or '' # Ensure it's a string
-                gender_index = gender_options.index(current_gender) if current_gender in gender_options else len(gender_options) - 1 # Default to empty string if not in options
+                current_gender = st.session_state.get('gender', '') or ''
+                gender_index = gender_options.index(current_gender) if current_gender in gender_options else len(gender_options) - 1
                 st.selectbox(strings["label_gender"], gender_options, index=gender_index, key='gender_input_form')
 
-                # Numeric inputs with validation hint
                 st.number_input(strings["label_students"], min_value=0, value=st.session_state.get('students', 0) or 0, step=1, key='students_input_form', format="%d")
                 st.number_input(strings["label_males"], min_value=0, value=st.session_state.get('males', 0) or 0, step=1, key='males_input_form', format="%d")
                 st.number_input(strings["label_females"], min_value=0, value=st.session_state.get('females', 0) or 0, step=1, key='females_input_form', format="%d")
 
             cols_date_time = st.columns(3)
             with cols_date_time[0]:
-                 # Ensure observation_date is a date object for the date_input widget
                  default_date = st.session_state.get('observation_date', datetime.now().date())
-                 if isinstance(default_date, datetime):
-                     default_date = default_date.date()
-                 elif not isinstance(default_date, date):
-                      default_date = datetime.now().date()
+                 if isinstance(default_date, datetime): default_date = default_date.date()
+                 elif not isinstance(default_date, date): default_date = datetime.now().date()
                  st.date_input(strings["label_observation_date"], value=default_date, key='observation_date_input_form')
 
             with cols_date_time[1]:
-                # Ensure time_in is a time object for the time_input widget
                 default_time_in = st.session_state.get('time_in', None)
-                if isinstance(default_time_in, datetime):
-                     default_time_in = default_time_in.time()
+                if isinstance(default_time_in, datetime): default_time_in = default_time_in.time()
                 st.time_input(strings["label_time_in"], value=default_time_in, key='time_in_input_form')
 
             with cols_date_time[2]:
-                # Ensure time_out is a time object for the time_input widget
                 default_time_out = st.session_state.get('time_out', None)
-                if isinstance(default_time_out, datetime):
-                     default_time_out = default_time_out.time()
+                if isinstance(default_time_out, datetime): default_time_out = default_time_out.time()
                 st.time_input(strings["label_time_out"], value=default_time_out, key='time_out_input_form')
 
-            # Calculate and display Lesson Duration
+            # Calculate and display Lesson Duration (reads from _form widget keys)
             lesson_duration_minutes = None
             duration_type = ""
             duration_display = strings["warning_calculate_duration"]
 
-            time_in_val = st.session_state.get('time_in_input_form') # Read from form widget state
-            time_out_val = st.session_state.get('time_out_input_form') # Read from form widget state
+            time_in_val = st.session_state.get('time_in_input_form')
+            time_out_val = st.session_state.get('time_out_input_form')
 
             if time_in_val is not None and time_out_val is not None:
                  try:
                       arbitrary_date = st.session_state.get('observation_date_input_form', date.today())
-                      if isinstance(arbitrary_date, datetime): # handle if date input returns datetime
-                          arbitrary_date = arbitrary_date.date()
-                      elif not isinstance(arbitrary_date, date): # Ensure it's a date object
-                           arbitrary_date = date.today() # Fallback
+                      if isinstance(arbitrary_date, datetime): arbitrary_date = arbitrary_date.date()
+                      elif not isinstance(arbitrary_date, date): arbitrary_date = date.today()
 
                       dt_in = datetime.combine(arbitrary_date, time_in_val)
                       dt_out = datetime.combine(arbitrary_date, time_out_val)
 
-                      if dt_out < dt_in:
-                          dt_out += timedelta(days=1)
+                      if dt_out < dt_in: dt_out += timedelta(days=1)
 
                       duration_seconds = (dt_out - dt_in).total_seconds()
                       lesson_duration_minutes = round(duration_seconds / 60)
 
-                      if lesson_duration_minutes >= 40:
-                          duration_type = strings["duration_full_lesson"]
-                      else:
-                          duration_type = strings["duration_walkthrough"]
+                      if lesson_duration_minutes >= 40: duration_type = strings["duration_full_lesson"]
+                      else: duration_type = strings["duration_walkthrough"]
 
                       duration_display = strings["label_lesson_duration"].format(lesson_duration_minutes, duration_type)
 
@@ -1123,91 +1117,69 @@ if wb: # Proceed only if workbook was loaded successfully
                       duration_display = strings["warning_could_not_calculate_duration"]
                       st.warning(f"Duration calculation error: {e}")
 
+            st.info(duration_display)
 
-            st.info(duration_display) # Display duration info
-
-            st.text_input(strings["label_period"], value=st.session_state.get('period', ''), key='period_input_form')
-            # Provide index for selectbox
+            st.text_input(strings["label_period"], value=st.session_state.get('period', '') or '', key='period_input_form')
             obs_type_options = [strings["option_individual"], strings["option_joint"]]
-            current_obs_type = st.session_state.get('observation_type', strings["option_individual"]) or strings["option_individual"] # Default if None/empty
+            current_obs_type = st.session_state.get('observation_type', strings["option_individual"]) or strings["option_individual"]
             obs_type_index = obs_type_options.index(current_obs_type) if current_obs_type in obs_type_options else 0
             st.selectbox(strings["label_obs_type"], obs_type_options, index=obs_type_index, key='observation_type_input_form')
 
             st.markdown("---")
             st.subheader(strings["subheader_rubric_scores"])
 
-            # Rubric Inputs (using st.session_state for values)
-            # Ratings options including "NA"
             rating_options = ["NA", 1, 2, 3, 4, 5, 6]
 
-            # Load the template worksheet once to get element labels
             template_ws = None
-            try:
-                template_ws = wb["LO 1"]
-            except KeyError:
-                st.warning("Template sheet 'LO 1' not found. Cannot display rubric details.")
-                template_ws = None
+            try: template_ws = wb["LO 1"]
+            except KeyError: st.warning("Template sheet 'LO 1' not found. Cannot display rubric details."); template_ws = None
 
             if template_ws and rubric_domains_structure:
                 for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
-                     # Attempt to read domain title from template
-                     domain_title = domain # Default if reading fails
+                     domain_title = domain
                      try:
-                         title_row = int(start_cell[1:]) - 1 # Assuming title is one row above the first element
+                         title_row = int(start_cell[1:]) - 1
                          if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
                              domain_title = template_ws[f'B{title_row}'].value
-                     except Exception:
-                         pass # Use default domain name
+                     except Exception: pass
 
                      st.markdown(f"#### {domain}: {domain_title}")
 
                      for i in range(count):
                           row = int(start_cell[1:]) + i
-                          # Attempt to read element label from template
-                          element_label = f"Element {i+1}" # Default if reading fails
+                          element_label = f"Element {i+1}"
                           try:
                                if f"B{row}" in template_ws and template_ws[f"B{row}"].value is not None:
                                     element_label = template_ws[f"B{row}"].value
-                          except Exception:
-                               pass # Use default label
+                          except Exception: pass
 
                           element_key = f"{domain}_{i}"
 
                           st.markdown(f"##### {element_label}")
 
-                          # Get descriptor text for this element (using the simplified 'general' lookup)
                           descriptor_text = rubric_descriptors.get(element_key, {}).get('general', strings["info_no_descriptors"])
                           st.expander(strings["expander_rubric_descriptors"]).markdown(descriptor_text)
 
                           cols_rating_note = st.columns(2)
                           with cols_rating_note[0]:
                              rating_key = f"{domain}_{i}_rating"
-                             # Ensure the default value is one of the options, fallback to "NA"
-                             # Read from session state which was populated by load_existing_data or reset for new
                              current_rating = st.session_state['element_inputs'].get(rating_key, "NA")
-                             # Handle numeric ratings that might have been loaded as floats
-                             if isinstance(current_rating, float) and current_rating.is_integer():
-                                 current_rating = int(current_rating)
-                             # Ensure the value is in the options list for the selectbox
-                             if current_rating not in rating_options:
-                                current_rating = "NA" # Fallback if loaded value isn't a valid option
+                             if isinstance(current_rating, float) and current_rating.is_integer(): current_rating = int(current_rating)
+                             if current_rating not in rating_options: current_rating = "NA"
 
-                             # The widget updates session_state directly when its value changes
                              st.selectbox(
                                  strings["label_rating_for"].format(element_label),
                                  rating_options,
                                  index=rating_options.index(current_rating),
-                                 key=f'{rating_key}_form' # Unique key for the widget
+                                 key=f'{rating_key}_form' # Widget key
                              )
                           with cols_rating_note[1]:
                              note_key = f"{domain}_{i}_note"
-                             # Read from session state
-                             current_note = st.session_state['element_inputs'].get(note_key, "") or "" # Ensure it's a string
-                             # The widget updates session_state directly
+                             current_note = st.session_state['element_inputs'].get(note_key, "") or ""
                              st.text_area(
                                  strings["label_write_notes"].format(element_label),
                                  value=current_note,
-                                 key=f'{note_key}_form' # Unique key for the widget
+                                 key=f'{note_key}_form' # Widget key
                              )
 
             else:
@@ -1218,17 +1190,13 @@ if wb: # Proceed only if workbook was loaded successfully
             st.text_area(strings["label_overall_notes"], value=st.session_state.get('overall_notes', '') or '', key='overall_notes_input_form')
 
             st.markdown("---")
-            # Checkbox to generate feedback report/PDF
             st.checkbox(strings["checkbox_send_feedback"], value=st.session_state.get('checkbox_send_feedback', False), key='send_feedback_checkbox_form')
 
 
             # --- Save Button ---
             if st.button(strings["button_save_observation"], key='save_observation_button'):
 
-                 # --- Read Final Values from Form Widgets into Session State ---
-                 # Copy the values from the form widget keys back to the main session state keys
-                 # This is necessary because the widgets update their *own* keys in session state.
-                 # We want the save logic to read from the consistent main keys.
+                 # --- Read Final Values from Form Widgets into Main Session State ---
                  try:
                      st.session_state['observer_name'] = st.session_state.get('observer_name_input_form', '')
                      st.session_state['teacher_name'] = st.session_state.get('teacher_name_input_form', '')
@@ -1246,24 +1214,22 @@ if wb: # Proceed only if workbook was loaded successfully
                      st.session_state['time_out'] = st.session_state.get('time_out_input_form')
                      st.session_state['period'] = st.session_state.get('period_input_form', '')
                      st.session_state['observation_type'] = st.session_state.get('observation_type_input_form', strings["option_individual"])
-                     st.session_state['overall_notes'] = st.session_state.get('overall_notes_input_form', '')
                      st.session_state['checkbox_send_feedback'] = st.session_state.get('send_feedback_checkbox_form', False)
+                     st.session_state['overall_notes'] = st.session_state.get('overall_notes_input_form', '')
 
-                     # Update element_inputs dictionary from form widget keys
+
                      updated_element_inputs = {}
                      for domain, (start_cell, count) in rubric_domains_structure.items():
                           for i in range(count):
                                rating_key = f"{domain}_{i}_rating"
                                note_key = f"{domain}_{i}_note"
-                               updated_element_inputs[rating_key] = st.session_state.get(f'{rating_key}_form', "NA") # Read from widget key
-                               updated_element_inputs[note_key] = st.session_state.get(f'{note_key}_form', "") # Read from widget key
-                     st.session_state['element_inputs'] = updated_element_inputs # Update the main key
+                               updated_element_inputs[rating_key] = st.session_state.get(f'{rating_key}_form', "NA")
+                               updated_element_inputs[note_key] = st.session_state.get(f'{note_key}_form', "")
+                     st.session_state['element_inputs'] = updated_element_inputs
 
 
                  except Exception as e:
                       st.error(f"Error reading form values before saving: {e}")
-                      # Decide if you should stop here or try to save partially
-                      # For now, let's stop if reading form values fails unexpectedly
                       st.stop()
 
 
@@ -1288,7 +1254,6 @@ if wb: # Proceed only if workbook was loaded successfully
                       strings["label_males"]: st.session_state.get('males'),
                       strings["label_females"]: st.session_state.get('females'),
                  }
-                 # Check if values are not None AND not numeric
                  invalid_numeric = [label for label, value in numeric_fields.items() if value is not None and not isinstance(value, (int, float))]
 
                  if invalid_numeric:
@@ -1301,7 +1266,6 @@ if wb: # Proceed only if workbook was loaded successfully
                      st.stop()
 
                  # --- Get/Create Target Sheet ---
-                 # Use the active sheet name determined during selection
                  target_sheet_name = st.session_state['active_sheet_name_for_display']
                  ws = None
                  is_new_sheet = (st.session_state['sheet_selector'] == strings["option_create_new"])
@@ -1312,6 +1276,13 @@ if wb: # Proceed only if workbook was loaded successfully
                          template_ws = wb["LO 1"]
                          ws = wb.copy_worksheet(template_ws)
                          ws.title = target_sheet_name
+                         # After creating, change the selectbox state to the new sheet's name
+                         # This will trigger a rerun and reload the newly created sheet's (empty) data
+                         st.session_state['sheet_selector'] = target_sheet_name
+                         # We don't need to rerun explicitly here, saving the workbook and reloading below will trigger it.
+                         # However, we need to update the loaded sheet tracker to match the new selector value immediately
+                         st.session_state['current_loaded_sheet_option'] = target_sheet_name
+
                          st.success(strings["success_sheet_created"].format(target_sheet_name))
                      except KeyError:
                          st.error(strings["error_template_not_found"])
@@ -1337,8 +1308,7 @@ if wb: # Proceed only if workbook was loaded successfully
                      ws["AA6"].value = st.session_state.get('school_name')
                      ws["AA7"].value = st.session_state.get('overall_notes')
                      ws["AA8"].value = st.session_state.get('teacher_email')
-                     # Assuming AA9 is for feedback timestamp - update it here if feedback is generated
-                     # ws["AA9"].value is updated later if PDF is generated
+                     # AA9 for feedback timestamp is updated later if PDF is generated
 
                      ws["B1"].value = st.session_state.get('grade')
                      ws["B5"].value = st.session_state.get('gender')
@@ -1350,7 +1320,7 @@ if wb: # Proceed only if workbook was loaded successfully
                      ws["D7"].value = st.session_state.get('time_in')
                      ws["D8"].value = st.session_state.get('time_out')
                      obs_date = st.session_state.get('observation_date')
-                     if obs_date and isinstance(obs_date, (date, datetime)): # Accept both date and datetime objects
+                     if obs_date and isinstance(obs_date, (date, datetime)):
                           ws["D10"].value = obs_date
                      else:
                           ws["D10"].value = None
@@ -1385,18 +1355,22 @@ if wb: # Proceed only if workbook was loaded successfully
                  domain_data_for_feedback = {}
                  overall_scores_list = []
 
+                 template_ws = None # Ensure template_ws is available if needed for titles/labels
+                 try: template_ws = wb["LO 1"]
+                 except KeyError: pass # Ignore if template is missing during this step
+
+
                  for domain_name, (start_cell, count) in rubric_domains_structure.items():
                       domain_ratings = []
                       elements_data = []
 
-                      domain_title = domain_name # Default domain title
+                      domain_title = domain_name
                       if template_ws:
                            try:
                                 title_row = int(start_cell[1:]) - 1
                                 if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
                                      domain_title = template_ws[f'B{title_row}'].value
-                           except Exception:
-                                pass
+                           except Exception: pass
 
 
                       for i in range(count):
@@ -1409,8 +1383,7 @@ if wb: # Proceed only if workbook was loaded successfully
                                   label_row = int(start_cell[1:]) + i
                                   if f"B{label_row}" in template_ws and template_ws[f"B{label_row}"].value is not None:
                                        element_label = template_ws[f"B{label_row}"].value
-                              except Exception:
-                                   pass
+                              except Exception: pass
 
 
                           rating = st.session_state['element_inputs'].get(rating_key)
@@ -1452,12 +1425,11 @@ if wb: # Proceed only if workbook was loaded successfully
                          log_ws.append(strings["feedback_log_header"])
                      else:
                          log_ws = wb[feedback_log_sheet_name]
-                         # To avoid duplicates when editing an existing sheet, try to find and update the existing row first
-                         # Find existing row based on Sheet name
+
                          existing_row_index = None
                          for row_idx, row in enumerate(log_ws.iter_rows(min_row=2, values_only=True)):
-                              if row and row[0] == target_sheet_name: # Check the Sheet name column
-                                   existing_row_index = row_idx + 2 # openpyxl is 1-based, plus header row
+                              if row and row[0] == target_sheet_name:
+                                   existing_row_index = row_idx + 2
                                    break
 
                          log_data_row = [
@@ -1474,17 +1446,13 @@ if wb: # Proceed only if workbook was loaded successfully
                          ]
 
                          if existing_row_index:
-                              # Update the existing row
                               for col_idx, value in enumerate(log_data_row):
                                    log_ws.cell(row=existing_row_index, column=col_idx + 1, value=value)
                               st.success(f"Feedback log updated for sheet: {target_sheet_name}")
                          else:
-                              # Append a new row
                               log_ws.append(log_data_row)
                               st.success(strings["success_feedback_log_updated"])
 
-                     # Update feedback timestamp in session state (if PDF is generated, AA9 is set later)
-                     # This timestamp indicates when the log was last updated for this observation
                      st.session_state['feedback_generated_timestamp'] = datetime.now()
 
 
@@ -1494,14 +1462,12 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  # --- Generate Feedback Report Text ---
                  feedback_content_text = ""
-                 if st.session_state.get('checkbox_send_feedback_form', False): # Read from widget key
+                 if st.session_state.get('send_feedback_checkbox_form', False):
                      try:
                          teacher_name = st.session_state.get('teacher_name', 'Teacher')
                          obs_date_display = st.session_state.get('observation_date')
-                         if isinstance(obs_date_display, (date, datetime)):
-                              obs_date_display = obs_date_display.strftime("%Y-%m-%d")
-                         else:
-                              obs_date_display = "N/A"
+                         if isinstance(obs_date_display, (date, datetime)): obs_date_display = obs_date_display.strftime("%Y-%m-%d")
+                         else: obs_date_display = "N/A"
 
                          feedback_content_text += strings["feedback_greeting"].format(teacher_name, obs_date_display)
                          feedback_content_text += strings["feedback_observer"].format(st.session_state.get('observer_name', 'N/A'))
@@ -1573,7 +1539,7 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  # --- Generate PDF (if checkbox is checked) ---
                  pdf_buffer = None
-                 if st.session_state.get('checkbox_send_feedback_form', False) and feedback_content_text: # Read from widget key
+                 if st.session_state.get('send_feedback_checkbox_form', False) and feedback_content_text:
                       st.info("Generating PDF feedback report...")
                       pdf_data = {
                           "observer_name": st.session_state.get('observer_name', ''),
@@ -1601,7 +1567,6 @@ if wb: # Proceed only if workbook was loaded successfully
 
                       if pdf_buffer:
                            st.success(strings["success_pdf_generated"])
-                           # Update AA9 cell in the worksheet with the feedback generation timestamp
                            try:
                                 ws["AA9"].value = datetime.now()
                            except Exception as e:
@@ -1615,11 +1580,11 @@ if wb: # Proceed only if workbook was loaded successfully
                  try:
                       wb.save(DEFAULT_FILE)
                       st.success(strings["success_data_saved"])
-                      # Reload workbook into session state after saving
                       st.session_state.workbook = load_workbook(DEFAULT_FILE)
+                      # No explicit rerun needed here, as changing sheet_selector above already triggers one.
+                      # However, explicitly updating wb seems safer immediately.
                       wb = st.session_state.workbook
-                      # Re-run to update the sheet selector dropdown if a new sheet was created
-                      st.rerun()
+
 
                  except Exception as e:
                       st.error(strings["error_saving_workbook"].format(e))
@@ -1632,7 +1597,8 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  with col1:
                      workbook_buffer = io.BytesIO()
-                     wb.save(workbook_buffer)
+                     # Use the potentially newly reloaded wb
+                     st.session_state.workbook.save(workbook_buffer)
                      workbook_buffer.seek(0)
                      st.download_button(
                          label=strings["download_workbook"],
@@ -1643,7 +1609,7 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  with col2:
                      if pdf_buffer:
-                         teacher_name_for_pdf = st.session_state.get('teacher_name', 'feedback').replace(' ', '_').lower() or 'feedback' # Ensure a valid filename part
+                         teacher_name_for_pdf = st.session_state.get('teacher_name', 'feedback').replace(' ', '_').lower() or 'feedback'
                          obs_date_for_pdf = st.session_state.get('observation_date')
                          date_str_for_pdf = obs_date_for_pdf.strftime("%Y%m%d") if isinstance(obs_date_for_pdf, (date, datetime)) else "undated"
                          pdf_file_name = f"observation_feedback_{teacher_name_for_pdf}_{date_str_for_pdf}.pdf"
@@ -1659,9 +1625,9 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  with col3:
                      feedback_log_sheet_name = strings["feedback_log_sheet_name"]
-                     if feedback_log_sheet_name in wb.sheetnames:
+                     if feedback_log_sheet_name in st.session_state.workbook.sheetnames: # Use reloaded wb
                          try:
-                             log_ws = wb[feedback_log_sheet_name]
+                             log_ws = st.session_state.workbook[feedback_log_sheet_name]
                              log_data = []
                              for row in log_ws.iter_rows(values_only=True):
                                   log_data.append(row)
@@ -1687,13 +1653,13 @@ if wb: # Proceed only if workbook was loaded successfully
                          st.button(strings["download_feedback_log_csv"], disabled=True, help="Feedback Log sheet not found.")
 
 
-                 if st.session_state.get('checkbox_send_feedback_form', False) and st.session_state.get('generated_feedback_text'):
+                 if st.session_state.get('send_feedback_checkbox_form', False) and st.session_state.get('generated_feedback_text'):
                       st.markdown("---")
                       st.subheader("Generated Feedback Text (for verification)")
-                      st.text(st.session_state['generated_feedback_text']) # Use st.text for preformatted text
+                      st.text(st.session_state['generated_feedback_text'])
 
 
-        else: # Fallback if active_sheet_name_for_display is None
+        else:
              st.info(strings["warning_select_create_sheet"])
 
 
@@ -1834,7 +1800,7 @@ if wb: # Proceed only if workbook was loaded successfully
              today = datetime.now().date()
              valid_dates = all_obs_data['Observation Date'].dropna() if 'Observation Date' in all_obs_data.columns else pd.Series(dtype='datetime64[ns]')
 
-             min_date_data = valid_dates.min().date() if not valid_dates.empty and isinstance(valid_dates.min(), datetime) else today - timedelta(days=365) # Ensure conversion
+             min_date_data = valid_dates.min().date() if not valid_dates.empty and isinstance(valid_dates.min(), datetime) else today - timedelta(days=365)
              max_date_data = valid_dates.max().date() if not valid_dates.empty and isinstance(valid_dates.max(), datetime) else today + timedelta(days=7)
 
              min_date_input = min_date_data if isinstance(min_date_data, date) else today - timedelta(days=365)
