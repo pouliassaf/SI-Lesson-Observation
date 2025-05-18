@@ -396,7 +396,6 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
             img.hAlign = 'CENTER'
             story.append(img)
             story.append(Spacer(1, 0.2*inch))
-        except Exception as e:
              # Log error without st.error if not running in Streamlit context for PDF build
              print(f"Could not add logo for {school_name}: {e}")
              story.append(Paragraph(f"[{school_name} Logo Placeholder]", styles['Normal'])) # Add placeholder text
@@ -566,7 +565,6 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
         doc.build(story)
         buffer.seek(0)
         return buffer
-    except Exception as e:
         # Handle errors during PDF build
         print(f"Error generating PDF: {e}") # Log to console/logs
         # st.error(f"Error generating PDF: {e}") # Avoid st.error inside this function if it runs outside Streamlit thread
@@ -592,7 +590,6 @@ if os.path.exists(DEFAULT_FILE):
      try:
          wb = load_workbook(DEFAULT_FILE) # Load directly from path
          st.info(strings["info_default_workbook"].format(DEFAULT_FILE))
-     except Exception as e:
          st.error(strings["error_opening_default"].format(e))
          wb = None
 else:
@@ -647,7 +644,6 @@ if wb: # Proceed only if workbook was loaded successfully
                 except KeyError:
                     # Handle case where sheet might not have AA1 or is invalid
                     to_remove.append(sheet) # Consider sheets without AA1 as potentially unused/corrupt
-                except Exception as e:
                      st.warning(f"Could not check sheet '{sheet}' for cleanup: {e}")
 
 
@@ -657,7 +653,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     if sheet != "LO 1" and sheet in wb.sheetnames:
                          try:
                             wb.remove(wb[sheet])
-                         except Exception as e:
                              st.error(f"Error removing sheet {sheet}: {e}") # Report removal errors
 
                 # Reload sheet names after removal attempt
@@ -674,7 +669,6 @@ if wb: # Proceed only if workbook was loaded successfully
                      # Re-run Streamlit explicitly to update the UI fully
                     st.experimental_rerun()
 
-                except Exception as e:
                      st.error(f"Error reloading workbook after cleanup: {e}")
 
 
@@ -693,7 +687,6 @@ if wb: # Proceed only if workbook was loaded successfully
                          if cell is not None:
                              # Convert potential numbers to string and strip whitespace
                              guideline_content.append(str(cell).strip())
-            except Exception as e:
                  st.error(f"Error reading Guidelines sheet: {e}")
                  guideline_content = [f"Error loading guidelines: {e}"] # Provide an error message
 
@@ -873,7 +866,6 @@ if wb: # Proceed only if workbook was loaded successfully
                  st.session_state['current_sheet_name'] = sheet_selection_options[0] # Reset to 'Create new'
                  st.experimental_rerun() # Rerun to show the corrected state
                  st.stop() # Stop execution if sheet loading fails
-            except Exception as e:
                  st.error(f"Error loading data from sheet '{sheet_name_to_process}': {e}")
                  # Reset sheet selector if loading fails
                  st.session_state['current_sheet_name'] = sheet_selection_options[0] # Reset to 'Create new'
@@ -971,7 +963,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     st.markdown(strings["label_lesson_duration"].format(minutes, duration_label))
                 else:
                     st.warning(strings["warning_calculate_duration"])
-            except Exception as e:
                 st.warning(strings["warning_could_not_calculate_duration"].format(e))
 
 
@@ -1109,7 +1100,6 @@ if wb: # Proceed only if workbook was loaded successfully
                  st.error(strings["error_template_not_found"]) # "LO 1" sheet not found
                  # Prevent further execution if template is missing
                  st.stop()
-            except Exception as e:
                  st.error(f"Error reading rubric details from template: {e}")
                  # Prevent further execution if template reading fails
                  st.stop()
@@ -1179,7 +1169,6 @@ if wb: # Proceed only if workbook was loaded successfully
                             st.session_state['target_sheet_name'] = sheet_name_to_save_actual
                             st.session_state['current_sheet_name'] = sheet_name_to_save_actual # Update selector state
 
-                        except Exception as e:
                             st.error(f"Error creating new sheet for saving: {e}")
                             st.stop() # Cannot save if sheet creation failed
                     else:
@@ -1366,7 +1355,6 @@ if wb: # Proceed only if workbook was loaded successfully
                                 # Ensure headers exist if sheet was empty or different
                                 if not log_ws['A1'].value: # Simple check for empty sheet
                                     log_ws.append(strings["feedback_log_header"])
-                            except Exception as e:
                                  st.warning(f"Could not access or validate log sheet '{log_sheet_name}', attempting to create new. Error: {e}")
                                  log_ws = wb.create_sheet(log_sheet_name + "_new") # Create with a different name to avoid conflict
                                  log_ws.append(strings["feedback_log_header"])
@@ -1392,7 +1380,6 @@ if wb: # Proceed only if workbook was loaded successfully
                         try:
                              log_ws.append(ordered_log_row)
                              st.success(strings["success_feedback_log_updated"]) # Use localized string
-                        except Exception as e:
                              st.error(strings["error_updating_log"].format(e))
 
 
@@ -1540,11 +1527,8 @@ if wb: # Proceed only if workbook was loaded successfully
                             st.experimental_rerun()
 
 
-                        except Exception as e:
                             st.error(strings["error_saving_workbook"].format(e))
 
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
 
             # Feedback Checkbox (Reordered to appear after the Save button)
             # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']
