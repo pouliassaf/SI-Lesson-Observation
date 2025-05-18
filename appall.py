@@ -623,6 +623,47 @@ if 'workbook' not in st.session_state:
 
 wb = st.session_state.workbook
 
+# --- Collect unique values for dropdowns from existing data ---
+# This needs to happen early, after the workbook is loaded but before the input page logic
+unique_operators = []
+unique_schools = []
+unique_grades = []
+unique_subjects = []
+unique_teachers = []
+unique_observers = []
+
+if wb:
+    lo_sheets_for_analytics = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ") and sheet != "LO 1"]
+    if lo_sheets_for_analytics:
+        temp_data_list = []
+        for sheet_name in lo_sheets_for_analytics:
+            try:
+                ws = wb[sheet_name]
+                # Attempt to read values from known metadata cells
+                temp_data_list.append({
+                    "Operator": ws["AA5"].value if "AA5" in ws else None,
+                    "School": ws["AA6"].value if "AA6" in ws else None,
+                    "Grade": ws["B1"].value if "B1" in ws else None, # Assuming B1 for Grade
+                    "Subject": ws["D2"].value if "D2" in ws else None,
+                    "Teacher": ws["AA2"].value if "AA2" in ws else None,
+                    "Observer": ws["AA1"].value if "AA1" in ws else None,
+                })
+            except Exception as e:
+                print(f"Error reading sheet '{sheet_name}' for dropdown options: {e}")
+                # Continue processing other sheets even if one fails
+
+        if temp_data_list:
+            temp_df = pd.DataFrame(temp_data_list)
+            # Get unique, non-None, non-empty string values and sort them
+            unique_operators = sorted(temp_df['Operator'].dropna().astype(str).str.strip().unique().tolist()) if 'Operator' in temp_df.columns else []
+            unique_schools = sorted(temp_df['School'].dropna().astype(str).str.strip().unique().tolist()) if 'School' in temp_df.columns else []
+            unique_grades = sorted(temp_df['Grade'].dropna().astype(str).str.strip().unique().tolist()) if 'Grade' in temp_df.columns else []
+            unique_subjects = sorted(temp_df['Subject'].dropna().astype(str).str.strip().unique().tolist()) if 'Subject' in temp_df.columns else []
+            unique_teachers = sorted(temp_df['Teacher'].dropna().astype(str).str.strip().unique().tolist()) if 'Teacher' in temp_df.columns else []
+            unique_observers = sorted(temp_df['Observer'].dropna().astype(str).str.strip().unique().tolist()) if 'Observer' in temp_df.columns else []
+
+
+# Sidebar page selection
 page = st.sidebar.selectbox(strings["sidebar_select_page"], [strings["page_lesson_input"], strings["page_analytics"], strings["page_help"]])
 
 if wb:
@@ -737,7 +778,6 @@ if wb:
         try:
              template_ws = wb["LO 1"]
              # Assume rating 1-6 descriptors are in columns E, F, G, H, K, L respectively for each element row.
-             # This is an assumption based on common layouts; adjust column letters if needed.
              descriptor_cols = {
                  1: 'E', 2: 'F', 3: 'G', 4: 'H', 5: 'K', 6: 'L'
              }
@@ -757,12 +797,12 @@ if wb:
                                       if cell_value is not None and isinstance(cell_value, str) and cell_value.strip():
                                            rubric_descriptors[element_key][str(rating_value)] = cell_value.strip()
                                       else:
-                                           rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"] # Use specific string
+                                           rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"]
                                  except Exception as e:
                                       print(f"Error reading descriptor cell {col_letter}{row} for {domain} element {i}: {e}")
-                                      rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"] # Use specific string on error
+                                      rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"]
                             else:
-                                 rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"] # Use specific string if column not mapped
+                                 rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"]
 
         except KeyError:
             st.warning("Template sheet 'LO 1' not found. Cannot read rubric descriptors.")
@@ -1008,16 +1048,65 @@ if wb:
             st.subheader("Basic Information")
             cols = st.columns(2)
             with cols[0]:
-                st.text_input(strings["label_observer_name"], value=st.session_state.get('observer_name', '') or '', key='observer_name_input_form')
-                st.text_input(strings["label_teacher_name"], value=st.session_state.get('teacher_name', '') or '', key='teacher_name_input_form')
+                # Dropdown for Observer Name (populated from unique_observers)
+                # Add current loaded value to options if not already there
+                current_observer = st.session_state.get('observer_name', '') or ''
+                observer_options = sorted(list(set(unique_observers + [current_observer])))
+                # Ensure empty string is an option if it's the current value or in options
+                if '' not in observer_options and current_observer == '':
+                    observer_options.insert(0, '') # Add empty string at the beginning if current is empty
+                elif '' in observer_options and current_observer != '':
+                     observer_options.remove('') # Remove empty string if current is not empty
+
+                observer_index = observer_options.index(current_observer) if current_observer in observer_options else 0 # Default to first option
+                st.selectbox(strings["label_observer_name"], observer_options, index=observer_index, key='observer_name_input_form')
+
+
+                # Dropdown for Teacher Name (populated from unique_teachers)
+                current_teacher = st.session_state.get('teacher_name', '') or ''
+                teacher_options = sorted(list(set(unique_teachers + [current_teacher])))
+                if '' not in teacher_options and current_teacher == '': teacher_options.insert(0, '')
+                elif '' in teacher_options and current_teacher != '': teacher_options.remove('')
+                teacher_index = teacher_options.index(current_teacher) if current_teacher in teacher_options else 0
+                st.selectbox(strings["label_teacher_name"], teacher_options, index=teacher_index, key='teacher_name_input_form')
+
+
                 st.text_input(strings["label_teacher_email"], value=st.session_state.get('teacher_email', '') or '', key='teacher_email_input_form')
-                st.text_input(strings["label_operator"], value=st.session_state.get('operator', '') or '', key='operator_input_form')
-                st.text_input(strings["label_school_name"], value=st.session_state.get('school_name', '') or '', key='school_name_input_form')
+
+                # Dropdown for Operator (populated from unique_operators)
+                current_operator = st.session_state.get('operator', '') or ''
+                operator_options = sorted(list(set(unique_operators + [current_operator])))
+                if '' not in operator_options and current_operator == '': operator_options.insert(0, '')
+                elif '' in operator_options and current_operator != '': operator_options.remove('')
+                operator_index = operator_options.index(current_operator) if current_operator in operator_options else 0
+                st.selectbox(strings["label_operator"], operator_options, index=operator_index, key='operator_input_form')
+
+                # Dropdown for School Name (populated from unique_schools)
+                current_school = st.session_state.get('school_name', '') or ''
+                school_options = sorted(list(set(unique_schools + [current_school])))
+                if '' not in school_options and current_school == '': school_options.insert(0, '')
+                elif '' in school_options and current_school != '': school_options.remove('')
+                school_index = school_options.index(current_school) if current_school in school_options else 0
+                st.selectbox(strings["label_school_name"], school_options, index=school_index, key='school_name_input_form')
 
 
             with cols[1]:
-                st.text_input(strings["label_grade"], value=st.session_state.get('grade', '') or '', key='grade_input_form')
-                st.text_input(strings["label_subject"], value=st.session_state.get('subject', '') or '', key='subject_input_form')
+                # Dropdown for Grade (populated from unique_grades)
+                current_grade = st.session_state.get('grade', '') or ''
+                grade_options = sorted(list(set(unique_grades + [current_grade])))
+                if '' not in grade_options and current_grade == '': grade_options.insert(0, '')
+                elif '' in grade_options and current_grade != '': grade_options.remove('')
+                grade_index = grade_options.index(current_grade) if current_grade in grade_options else 0
+                st.selectbox(strings["label_grade"], grade_options, index=grade_index, key='grade_input_form')
+
+                # Dropdown for Subject (populated from unique_subjects)
+                current_subject = st.session_state.get('subject', '') or ''
+                subject_options = sorted(list(set(unique_subjects + [current_subject])))
+                if '' not in subject_options and current_subject == '': subject_options.insert(0, '')
+                elif '' in subject_options and current_subject != '': subject_options.remove('')
+                subject_index = subject_options.index(current_subject) if current_subject in subject_options else 0
+                st.selectbox(strings["label_subject"], subject_options, index=subject_index, key='subject_input_form')
+
                 gender_options = ["Male", "Female", "Mixed", ""]
                 current_gender = st.session_state.get('gender', '') or ''
                 gender_index = gender_options.index(current_gender) if current_gender in gender_options else len(gender_options) - 1
@@ -1095,7 +1184,6 @@ if wb:
                 for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
                      domain_title = domain
                      try:
-                         # Assuming domain title is in column B, one row above the first element of the domain
                          title_row = int(start_cell[1:]) - 1
                          if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
                              domain_title = template_ws[f'B{title_row}'].value
@@ -1107,7 +1195,6 @@ if wb:
                           row = int(start_cell[1:]) + i
                           element_label = f"Element {i+1}"
                           try:
-                               # Assuming element label is in column B, on the same row as the rating
                                if f"B{row}" in template_ws and template_ws[f"B{row}"].value is not None:
                                     element_label = template_ws[f"B{row}"].value
                           except Exception: pass
@@ -1116,22 +1203,22 @@ if wb:
 
                           st.markdown(f"##### {element_label}")
 
-                          # Display rubric guidance for this element
-                          st.markdown(f"**{strings['expander_rubric_descriptors']}**") # Use markdown for bolding
-                          # Get all descriptors for this element
-                          element_descriptors = rubric_descriptors.get(element_key, {})
-                          if element_descriptors:
-                               # Iterate through ratings 1-6 to display descriptors
-                               for rating_value in range(1, 7):
-                                    descriptor_text = element_descriptors.get(str(rating_value), strings["info_no_descriptors"])
-                                    # Format: **Rating:** Description
-                                    st.markdown(f"**{rating_value}:** {descriptor_text}")
-                               # Add NA descriptor if available (optional, based on template)
-                               if 'NA' in element_descriptors:
-                                    st.markdown(f"**NA:** {element_descriptors['NA']}")
+                          # Display rubric guidance for this element inside an expander
+                          with st.expander(strings["expander_rubric_descriptors"]):
+                               # Get all descriptors for this element
+                               element_descriptors = rubric_descriptors.get(element_key, {})
+                               if element_descriptors:
+                                   # Iterate through ratings 1-6 to display descriptors
+                                   for rating_value in range(1, 7):
+                                        descriptor_text = element_descriptors.get(str(rating_value), strings["info_no_descriptors"])
+                                        # Format: **Rating:** Description
+                                        st.markdown(f"**{rating_value}:** {descriptor_text}")
+                                   # Add NA descriptor if available (optional, based on template)
+                                   if 'NA' in element_descriptors:
+                                        st.markdown(f"**NA:** {element_descriptors['NA']}")
 
-                          else:
-                               st.info(strings["info_no_descriptors"])
+                               else:
+                                   st.info(strings["info_no_descriptors"])
 
 
                           cols_rating_note = st.columns(2)
@@ -1363,14 +1450,13 @@ if wb:
                                overall_scores_list.append(float(rating))
 
                           element_key_for_descriptor = f"{domain_name}_{i}"
-                          # Pass the entire descriptors dictionary for this element
                           descriptors_by_rating = rubric_descriptors.get(element_key_for_descriptor, {})
 
                           elements_data.append({
                              "label": element_label,
                              "rating": rating if rating is not None else "NA",
                              "note": note,
-                             "descriptors_by_rating": descriptors_by_rating # Pass the dictionary
+                             "descriptors_by_rating": descriptors_by_rating
                           })
 
 
@@ -1452,9 +1538,8 @@ if wb:
                                    feedback_content_text += strings["feedback_domain_header"].format(domain_name, domain_info.get("title", domain_name))
                                    for element in domain_info.get("elements", []):
                                          feedback_content_text += strings["feedback_element_rating"].format(element["label"], element["rating"])
-                                         # Add descriptor text for the specific rating if available
-                                         rating_for_descriptor = element["rating"] # Use the selected rating
-                                         descriptor_text = element.get("descriptors_by_rating", {}).get(str(rating_for_descriptor)) # Get descriptor for this rating
+                                         rating_for_descriptor = element["rating"]
+                                         descriptor_text = element.get("descriptors_by_rating", {}).get(str(rating_for_descriptor))
                                          if descriptor_text and descriptor_text.strip() and descriptor_text != strings["info_no_descriptors"]:
                                                feedback_content_text += f"  *Guidance for rating {rating_for_descriptor}:* {descriptor_text.strip()}\n"
 
