@@ -2119,7 +2119,7 @@ if wb: # Proceed only if workbook was loaded successfully
             # Feedback Checkbox (Reordered to appear after the Save button)
         # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']
         # This checkbox needs to be at the SAME INDENTATION level as the 'if st.session_state.get(...):' block (8 spaces)
-        send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_checkbox') # <--- THIS LINE MUST HAVE EXACTLY 8 SPACES
+    send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_checkbox') # <--- THIS LINE MUST HAVE EXACTLY 8 SPACES
 
     # <--- This 'if st.session_state.get('target_sheet_name'):' block ends here.
     #      The 'else' below should align with it (8 spaces).
