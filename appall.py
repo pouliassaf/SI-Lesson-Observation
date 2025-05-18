@@ -611,6 +611,7 @@ DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 # Initialize workbook in session state if not already loaded
 if 'workbook' not in st.session_state:
     st.session_state.workbook = None
+    # Attempt to load the default workbook on first run
     if os.path.exists(DEFAULT_FILE):
         try:
             st.session_state.workbook = load_workbook(DEFAULT_FILE)
@@ -623,7 +624,7 @@ if 'workbook' not in st.session_state:
 
 wb = st.session_state.workbook
 
-# --- Collect unique values for dropdowns from existing data ---
+# --- Collect unique values for dropdowns from Lookup sheet ---
 # This needs to happen early, after the workbook is loaded but before the input page logic
 unique_operators = []
 unique_schools = []
@@ -632,53 +633,41 @@ unique_subjects = []
 unique_teachers = []
 unique_observers = []
 
-if wb:
-    lo_sheets_for_analytics = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ") and sheet != "LO 1"]
-    if lo_sheets_for_analytics:
-        temp_data_list = []
-        for sheet_name in lo_sheets_for_analytics:
-            try:
-                ws = wb[sheet_name]
-                # Attempt to read values from known metadata cells
-                operator_val = ws["AA5"].value if "AA5" in ws else None
-                school_val = ws["AA6"].value if "AA6" in ws else None
-                grade_val = ws["B1"].value if "B1" in ws else None # Assuming B1 for Grade
-                subject_val = ws["D2"].value if "D2" in ws else None
-                teacher_val = ws["AA2"].value if "AA2" in ws else None
-                observer_val = ws["AA1"].value if "AA1" in ws else None
+LOOKUP_SHEET_NAME = "Lookups" # Define the name of your lookup sheet
 
-                temp_data_list.append({
-                    "Operator": operator_val,
-                    "School": school_val,
-                    "Grade": grade_val,
-                    "Subject": subject_val,
-                    "Teacher": teacher_val,
-                    "Observer": observer_val,
-                })
-                # Print values being read for debugging
-                print(f"Read from sheet '{sheet_name}': Operator='{operator_val}', School='{school_val}', Grade='{grade_val}', Subject='{subject_val}', Teacher='{teacher_val}', Observer='{observer_val}'")
+if wb and LOOKUP_SHEET_NAME in wb.sheetnames:
+    try:
+        lookup_ws = wb[LOOKUP_SHEET_NAME]
+        # Read values from assumed columns A to F for lists
+        # Assuming lists are in Column A (Operators), B (Schools), C (Grades), D (Subjects), E (Teachers), F (Observers)
+        # Read column by column, skipping header (assuming first row is header) and empty cells
+        operators_col = [cell.value for cell in lookup_ws['A'][1:] if cell.value is not None and str(cell.value).strip() != '']
+        schools_col = [cell.value for cell in lookup_ws['B'][1:] if cell.value is not None and str(cell.value).strip() != '']
+        grades_col = [cell.value for cell in lookup_ws['C'][1:] if cell.value is not None and str(cell.value).strip() != '']
+        subjects_col = [cell.value for cell in lookup_ws['D'][1:] if cell.value is not None and str(cell.value).strip() != '']
+        teachers_col = [cell.value for cell in lookup_ws['E'][1:] if cell.value is not None and str(cell.value).strip() != '']
+        observers_col = [cell.value for cell in lookup_ws['F'][1:] if cell.value is not None and str(cell.value).strip() != '']
 
-            except Exception as e:
-                print(f"Error reading sheet '{sheet_name}' for dropdown options: {e}")
-                # Continue processing other sheets even if one fails
+        # Convert to strings, strip whitespace, get unique, and sort
+        unique_operators = sorted(list(set([str(val).strip() for val in operators_col])))
+        unique_schools = sorted(list(set([str(val).strip() for val in schools_col])))
+        unique_grades = sorted(list(set([str(val).strip() for val in grades_col])))
+        unique_subjects = sorted(list(set([str(val).strip() for val in subjects_col])))
+        unique_teachers = sorted(list(set([str(val).strip() for val in teachers_col])))
+        unique_observers = sorted(list(set([str(val).strip() for val in observers_col])))
 
-        if temp_data_list:
-            temp_df = pd.DataFrame(temp_data_list)
-            # Get unique, non-None, non-empty string values and sort them
-            # Use .astype(str) to handle potential numeric grades, then strip whitespace
-            unique_operators = sorted(temp_df['Operator'].dropna().astype(str).str.strip().unique().tolist()) if 'Operator' in temp_df.columns else []
-            unique_schools = sorted(temp_df['School'].dropna().astype(str).str.strip().unique().tolist()) if 'School' in temp_df.columns else []
-            unique_grades = sorted(temp_df['Grade'].dropna().astype(str).str.strip().unique().tolist()) if 'Grade' in temp_df.columns else []
-            unique_subjects = sorted(temp_df['Subject'].dropna().astype(str).str.strip().unique().tolist()) if 'Subject' in temp_df.columns else []
-            unique_teachers = sorted(temp_df['Teacher'].dropna().astype(str).str.strip().unique().tolist()) if 'Teacher' in temp_df.columns else []
-            unique_observers = sorted(temp_df['Observer'].dropna().astype(str).str.strip().unique().tolist()) if 'Observer' in temp_df.columns else []
-            print(f"Collected unique Operators: {unique_operators}")
-            print(f"Collected unique Schools: {unique_schools}")
-            print(f"Collected unique Grades: {unique_grades}")
-            print(f"Collected unique Subjects: {unique_subjects}")
-            print(f"Collected unique Teachers: {unique_teachers}")
-            print(f"Collected unique Observers: {unique_observers}")
+        print(f"Read from '{LOOKUP_SHEET_NAME}':")
+        print(f"  Operators: {unique_operators}")
+        print(f"  Schools: {unique_schools}")
+        print(f"  Grades: {unique_grades}")
+        print(f"  Subjects: {unique_subjects}")
+        print(f"  Teachers: {unique_teachers}")
+        print(f"  Observers: {unique_observers}")
 
+
+    except Exception as e:
+        st.warning(f"Error reading '{LOOKUP_SHEET_NAME}' sheet for dropdown options: {e}")
+        # Keep lists empty if reading fails
 
 # Sidebar page selection
 page = st.sidebar.selectbox(strings["sidebar_select_page"], [strings["page_lesson_input"], strings["page_analytics"], strings["page_help"]])
@@ -811,7 +800,7 @@ if wb:
                             if col_letter:
                                  try:
                                       cell_value = template_ws[f"{col_letter}{row}"].value
-                                      if cell_value is not None and isinstance(cell_value, str) and cell_value.strip():
+                                      if cell_value is not None and isinstance(cell_value, str) and cell_value.strip() != '': # Also check for empty string
                                            rubric_descriptors[element_key][str(rating_value)] = cell_value.strip()
                                       else:
                                            rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"]
@@ -1194,7 +1183,13 @@ if wb:
                          title_row = int(start_cell[1:]) - 1
                          if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
                              domain_title = template_ws[f'B{title_row}'].value
-                     except Exception: pass
+                             print(f"Read Domain {domain} Title: {domain_title} from B{title_row}")
+                         else:
+                              print(f"No value found for Domain {domain} title in B{title_row}")
+
+                     except Exception as e:
+                         print(f"Error reading Domain {domain} title from B{title_row}: {e}")
+                         pass # Use default domain name
 
                      st.markdown(f"#### {domain}: {domain_title}")
 
@@ -1205,7 +1200,12 @@ if wb:
                                # Assuming element label is in column B, on the same row as the rating
                                if f"B{row}" in template_ws and template_ws[f"B{row}"].value is not None:
                                     element_label = template_ws[f"B{row}"].value
-                          except Exception: pass
+                                    print(f"Read Element {domain}.{i+1} Label: {element_label} from B{row}")
+                               else:
+                                     print(f"No value found for Element {domain}.{i+1} label in B{row}")
+                          except Exception as e:
+                               print(f"Error reading Element {domain}.{i+1} label from B{row}: {e}")
+                               pass # Use default label
 
                           element_key = f"{domain}_{i}"
 
