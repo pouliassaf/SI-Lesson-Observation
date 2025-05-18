@@ -148,12 +148,12 @@ en_strings = {
     "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers
     "download_feedback_log_csv": "📥 Download Feedback Log (CSV)", # Needs verification
     "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Needs verification
-    "download_overall_avg_csv": "📥 Download Overall Domain Averages (CSV)", # From snippet 1
-    "download_overall_avg_excel": "📥 Download Overall Domain Averages (Excel)", # From snippet 1
-    "download_filtered_avg_csv": "📥 Download Filtered Domain Averages (CSV)", # From snippet 1
-    "download_filtered_avg_excel": "📥 Download Filtered Domain Averages (Excel)", # From snippet 1
-    "download_filtered_data_csv": "📥 Download Filtered Observation Data (CSV)", # From snippet 1
-    "download_filtered_data_excel": "📥 Download Filtered Observation Data (Excel)", # From snippet 1
+    "download_overall_avg_csv": "📥 تنزيل متوسطات المجال الإجمالية (CSV)", # Needs verification
+    "download_overall_avg_excel": "📥 تنزيل متوسطات المجال الإجمالية (Excel)", # Needs verification
+    "download_filtered_avg_csv": "📥 تنزيل متوسطات المجال المصفاة (CSV)", # Needs verification
+    "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Needs verification
+    "download_filtered_data_csv": "📥 تنزيل بيانات الزيارة المصفاة (CSV)", # Needs verification
+    "download_filtered_data_excel": "📥 تنزيل بيانات الزيارة المصفاة (Excel)", # Needs verification
     "label_observation_date": "Observation Date", # From snippet 1
     "filter_start_date": "Start Date", # From snippet 1
     "filter_end_date": "End Date", # From snippet 1
@@ -193,6 +193,294 @@ en_strings = {
 
 
 }
+
+# Placeholder Arabic strings - REPLACE THESE WITH ACTUAL TRANSLATIONS
+ar_strings = {
+    "page_title": "أداة التقييم للزيارات الصفية",
+    "sidebar_select_page": "اختر صفحة:",
+    "page_lesson_input": "ادخال تقييم الزيارة",
+    "page_analytics": "تحليلات الزيارة",
+    "page_help": "معلومات وإرشادات التطبيق", # New string for Help page - Needs verification
+    "title_lesson_input": "أداة إدخال زيارة صفية أسبوعية",
+    "title_help": "معلومات وإرشادات التطبيق", # New string for Help page title - Needs verification
+    "info_default_workbook": "استخدام مصنف القالب الافتراضي:",
+    "warning_default_not_found": "تحذير: لم يتم العثور على مصنف القالب الافتراضي '{}'. يرجى تحميل مصنف.",
+    "error_opening_default": "خطأ في فتح ملف القالب الافتراضي:",
+    "success_lo_sheets_found": "تم العثور على {} أوراق LO في المصنف.",
+    "select_sheet_or_create": "حدد ورقة LO موجودة أو أنشئ واحدة جديدة:",
+    "option_create_new": "إنشاء جديد",
+    "success_sheet_created": "تم إنشاء ورقة جديدة: {}",
+    "error_template_not_found": "خطأ: لم يتم العثور على ورقة القالب 'LO 1' في المصنف! لا يمكن إنشاء ورقة جديدة.",
+    "subheader_filling_data": "ملء البيانات لـ: {}",
+    "label_observer_name": "اسم المراقب",
+    "label_teacher_name": "اسم المعلم",
+    "label_teacher_email": "البريد الإلكتروني للمعلم",
+    "label_operator": "المشغل",
+    "label_school_name": "اسم المدرسة",
+    "label_grade": "الصف",
+    "label_subject": "المادة",
+    "label_gender": "الجنس",
+    "label_students": "عدد الطلاب",
+    "label_males": "عدد الذكور",
+    "label_females": "عدد الإناث",
+    "label_time_in": "وقت الدخول",
+    "label_time_out": "وقت الخروج",
+    "label_lesson_duration": "🕒 **مدة الدرس:** {} دقيقة — _{}_",
+    "duration_full_lesson": "درس كامل",
+    "duration_walkthrough": "جولة سريعة",
+    "warning_calculate_duration": "يرجى إدخال وقت الدخول ووقت الخروج لحساب المدة.",
+    "warning_could_not_calculate_duration": "تعذر حساب مدة الدرس.",
+    "label_period": "الفترة",
+    "label_obs_type": "نوع الزيارة",
+    "option_individual": "فردي",
+    "option_joint": "مشترك",
+    "subheader_rubric_scores": "درجات الدليل",
+    "expander_rubric_descriptors": "إرشادات الدليل", # Needs verification
+    "info_no_descriptors": "لا توجد إرشادات دليل متاحة لهذا العنصر.", # Needs verification
+    "label_rating_for": "التقييم لـ {}",
+    "label_write_notes": "كتابة ملاحظات لـ {}", # Guessed translation for notes label
+    "checkbox_send_feedback": "✉️ إنشاء تقرير الملاحظات (للملف PDF)", # Guessed translation - renamed
+    "button_save_observation": "💾 حفظ الزيارة",
+    "warning_fill_essential": "يرجى ملء جميع حقول المعلومات الأساسية قبل الحفظ.",
+    "success_data_saved": "تم حفظ بيانات الزيارة في المصنف.", # Guessed translation - simplified
+    "error_saving_workbook": "خطأ في حفظ المصنف:",
+    "download_workbook": "📥 تنزيل المصنف المحدث",
+    "feedback_subject": "ملاحظات الزيارة الصفية", # Needs verification
+    "feedback_greeting": "عزيزي {},\n\nتم حفظ زيارتك الصفية من {}.\n\n", # Needs verification
+    "feedback_observer": "المراقب: {}\n", # Needs verification
+    "feedback_duration": "المدة: {}\n", # Needs verification
+    "feedback_subject_fb": "المادة: {}\n", # Needs verification
+    "feedback_school": "المدرسة: {}\n\n", # Needs verification
+    "feedback_summary_header": "إليك ملخص لتقييماتك بناءً على الدليل:\n\n", # Needs verification
+    "feedback_domain_header": "**{}: {}**\n", # Needs verification
+    "feedback_element_rating": "- **{}:** التقييم **{}**\n", # Needs verification
+    "feedback_descriptor_for_rating": "  *إرشادات للتقييم {}:* {}\n", # Guessed translation for guidance text
+    "feedback_overall_score": "\n**متوسط الدرجة الإجمالي:** {:.2f}\n\n", # Needs verification
+    "feedback_domain_average": "  *متوسط المجال:* {:.2f}\n", # Needs verification
+    "feedback_performance_summary": "**ملخص الأداء:**\n", # Needs verification
+    "overall_performance_level_text": "مستوى الأداء الإجمالي: {}", # Guessed translation for overall level
+    "feedback_domain_performance": "{}: {}\n", # Needs verification
+    "feedback_support_plan_intro": "\n**خطة الدعم الموصى بها:**\n", # Needs verification
+    "feedback_next_steps_intro": "\n**الخطوات التالية المقترحة:**\n", # Needs verification
+    "feedback_closing": "\nبناءً على هذه التقييمات، يرجى مراجعة المصنف المحدث للحصول على ملاحظات تفصيلية ومجالات التطوير.\n\n", # Needs verification
+    "feedback_regards": "مع التحيات,\nفريق قيادة المدرسة", # Needs verification
+    "success_feedback_generated": "تم إنشاء الملاحظات (محاكاة):\n\n", # Needs verification
+    "success_feedback_log_updated": "تم تحديث سجل الملاحظات.", # Guessed translation - simplified
+    "error_updating_log": "خطأ في تحديث سجل الملاحظات في المصنف:", # Needs verification
+    "title_analytics": "لوحة تحليلات الزيارة الصفية", # Needs verification
+    "warning_no_lo_sheets_analytics": "لم يتم العثور على أوراق 'LO ' في المصنف للتحليلات.", # Needs verification
+    "subheader_avg_score_overall": "متوسط الدرجة لكل مجال (عبر جميع الزيارات)", # Needs verification
+    "info_no_numeric_scores_overall": "لم يتم العثور على درجات رقمية عبر جميع الزيارات لحساب متوسطات المجال الإجمالية.", # Needs verification
+    "subheader_data_summary": "ملخص بيانات الزيارة", # Needs verification
+    "subheader_filter_analyze": "تصفية وتحليل", # Needs verification
+    "filter_by_school": "تصفية حسب المدرسة", # Needs verification
+    "filter_by_grade": "تصفية حسب الصف", # Needs verification
+    "filter_by_subject": "تصفية حسب المادة", # Needs verification
+    "filter_by_operator": "تصفية حسب المشغل", # New string for Operator filter - Needs verification
+    "filter_by_observer_an": "تصفية حسب المراقب", # String for observer filter in analytics - Needs verification
+    "option_all": "الكل", # Needs verification
+    "subheader_avg_score_filtered": "متوسط الدرجة لكل مجال (مصفى)", # Needs verification
+    "info_no_numeric_scores_filtered": "لا توجد زيارات مطابقة للمرشحات المحددة تحتوي على درجات رقمية لمتوسطات المجال.", # Needs verification
+    "subheader_observer_distribution": "توزيع المراقبين (مصفى)", # Needs verification
+    "info_no_observer_data_filtered": "لم يتم العثور على بيانات المراقب للمرشحات المحددة.", # Needs verification
+    "info_no_observation_data_filtered": "لم يتم العثور على بيانات الزيارة للمرشحات المحددة.", # Needs verification
+    "error_loading_analytics": "خطأ في تحميل أو معالجة المصنف للتحليلات:", # Needs verification
+    "overall_score_label": "النتيجة الإجمالية:", # Needs verification
+    "overall_score_value": "**{:.2f}**", # Needs verification
+    "overall_score_na": "**غير متوفر**", # Needs verification
+    "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # Needs verification
+    "feedback_log_sheet_name": "سجل الملاحظات", # Needs verification
+    "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers - Guessed translation
+    "download_feedback_log_csv": "📥 تنزيل سجل الملاحظات (CSV)", # Needs verification
+    "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Needs verification
+    "download_overall_avg_csv": "📥 تنزيل متوسطات المجال الإجمالية (CSV)", # Needs verification
+    "download_overall_avg_excel": "📥 تنزيل متوسطات المجال الإجمالية (Excel)", # Needs verification
+    "download_filtered_avg_csv": "📥 تنزيل متوسطات المجال المصفاة (CSV)", # Needs verification
+    "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Needs verification
+    "download_filtered_data_csv": "📥 تنزيل بيانات الزيارة المصفاة (CSV)", # Needs verification
+    "download_filtered_data_excel": "📥 تنزيل بيانات الزيارة المصفاة (Excel)", # Needs verification
+    "label_observation_date": "تاريخ الزيارة", # Needs verification
+    "filter_start_date": "تاريخ البدء", # Needs verification
+    "filter_end_date": "تاريخ الانتهاء", # Needs verification
+    "filter_teacher": "تصفية حسب المعلم", # Needs verification
+    "subheader_teacher_performance": "أداء المعلم بمرور الوقت", # Needs verification
+    "info_select_teacher": "حدد معلمًا لعرض تحليلات الأداء الفردي.", # Needs verification
+    "info_no_obs_for_teacher": "لم يتم العثور على زيارات للمعلم المحدد ضمن المرشحات المطبقة.", # Needs verification
+    "subheader_teacher_domain_trend": "اتجاه أداء مجال {}", # Needs verification
+    "subheader_teacher_overall_avg": "متوسط الدرجة الإجمالي لـ {} (مصفى)", # Needs verification
+    "perf_level_very_weak": "ضعيف جداً", # Needs verification
+    "perf_level_weak": "ضعيف", # Needs verification
+    "perf_level_acceptable": "مقبول", # Needs verification
+    "perf_level_good": "جيد", # Needs verification
+    "perf_level_excellent": "ممتاز", # Needs verification
+    "plan_very_weak_overall": "الأداء الإجمالي ضعيف جداً. تتطلب خطة دعم شاملة. ركز على الممارسات التعليمية الأساسية مثل إدارة الصف، وتخطيط الدرس، والاستراتيجيات التعليمية الأساسية. اطلب التوجيه من معلمك الموجه وقيادة المدرسة.", # Needs verification
+    "plan_weak_overall": "الأداء الإجمالي ضعيف. يوصى بخطة دعم. حدد 1-2 من المجالات الرئيسية للتحسين من الملاحظة واعمل مع معلمك الموجه لتطوير استراتيجيات مستهدفة. فكر في ملاحظة الزملاء ذوي الخبرة في هذه المجالات.", # Needs verification
+    "plan_weak_domain": "الأداء في **{}** ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}. الإجراءات المقترحة تشمل: [إجراء محدد 1]، [إجراء محدد 2].", # Needs verification
+    "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط قوتك. حدد مجالًا واحدًا للنمو لتحسين ممارستك وتعزيز تعلم الطلاب.", # Needs verification
+    "steps_good_overall": "الأداء الإجمالي جيد. أنت تظهر ممارسات تعليمية فعالة. استكشف فرص مشاركة خبرتك مع الزملاء، ربما من خلال التوجيه غير الرسمي أو تقديم استراتيجيات ناجحة.", # Needs verification
+    "steps_good_domain": "الأداء في **{}** جيد. أنت تظهر مهارات قوية في هذا المجال. فكر في استكشاف استراتيجيات متقدمة تتعلق بـ: {}. الإجراءات المقترحة تشمل: [إجراء متقدم محدد 1]، [إجراء متقدم محدد 2].", # Needs verification
+    "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة جلسات التطوير المهني أو توجيه المعلمين الأقل خبرة.", # Needs verification
+    "steps_excellent_domain": "الأداء في **{}** ممتاز. ممارستك في هذا المجال نموذجية. استمر في الابتكار وتحسين ممارستك، ربما من خلال البحث وتطبيق استراتيجيات حديثة تتعلق بـ: {}.", # Needs verification
+    "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة. ركز على التحسين المستمر بناءً على أهدافك المهنية.", # Needs verification
+    "warning_fill_basic_info": "يرجى ملء اسم المراقب، اسم المعلم، اسم المدرسة، الصف، المادة، الجنس، وتاريخ الزيارة.", # Needs verification
+    "warning_fill_all_basic_info": "يرجى ملء جميع حقول المعلومات الأساسية.", # Needs verification
+    "warning_numeric_fields": "يرجى إدخال أرقام صحيحة لحقول الطلاب، الذكور، والإناث.", # Guessed translation
+    "success_pdf_generated": "تم إنشاء ملف الملاحظات PDF بنجاح.", # Guessed translation
+    "download_feedback_pdf": "📥 تنزيل ملف الملاحظات PDF", # Guessed translation
+    "checkbox_cleanup_sheets": "🪟 تنظيف أوراق LO غير المستخدمة (لا يوجد اسم مراقب)", # Added string for checkbox label - Needs verification
+    "warning_sheets_removed": "تمت إزالة {} أوراق LO غير مستخدمة.", # Added string for warning message - Needs verification
+    "info_reloaded_workbook": "تمت إعادة تحميل المصنف بعد التنظيف.", # Added string for info message - Needs verification
+    "info_no_sheets_to_cleanup": "لم يتم العثور على أوراق LO غير مستخدمة لتنظيفها.", # Added string for info message - Needs verification
+    "expander_guidelines": "📘 انقر هنا لعرض إرشادات الملاحظة", # Added string for expander label - Needs verification
+    "info_no_guidelines": "ورقة الإرشادات فارغة أو تعذر قراءتها.", # Added string for info message - Needs verification
+    "warning_select_create_sheet": "يرجى تحديد أو إنشاء ورقة صالحة للمتابعة.", # Added string for warning message - Needs verification
+    "label_overall_notes": "ملاحظات عامة لهذه الملاحظة الصفية", # Added missing string key - Needs verification
+}
+
+
+# Placeholder Arabic strings - REPLACE THESE WITH ACTUAL TRANSLATIONS
+ar_strings = {
+    "page_title": "أداة التقييم للزيارات الصفية",
+    "sidebar_select_page": "اختر صفحة:",
+    "page_lesson_input": "ادخال تقييم الزيارة",
+    "page_analytics": "تحليلات الزيارة",
+    "page_help": "معلومات وإرشادات التطبيق", # New string for Help page - Needs verification
+    "title_lesson_input": "أداة إدخال زيارة صفية أسبوعية",
+    "title_help": "معلومات وإرشادات التطبيق", # New string for Help page title - Needs verification
+    "info_default_workbook": "استخدام مصنف القالب الافتراضي:",
+    "warning_default_not_found": "تحذير: لم يتم العثور على مصنف القالب الافتراضي '{}'. يرجى تحميل مصنف.",
+    "error_opening_default": "خطأ في فتح ملف القالب الافتراضي:",
+    "success_lo_sheets_found": "تم العثور على {} أوراق LO في المصنف.",
+    "select_sheet_or_create": "حدد ورقة LO موجودة أو أنشئ واحدة جديدة:",
+    "option_create_new": "إنشاء جديد",
+    "success_sheet_created": "تم إنشاء ورقة جديدة: {}",
+    "error_template_not_found": "خطأ: لم يتم العثور على ورقة القالب 'LO 1' في المصنف! لا يمكن إنشاء ورقة جديدة.",
+    "subheader_filling_data": "ملء البيانات لـ: {}",
+    "label_observer_name": "اسم المراقب",
+    "label_teacher_name": "اسم المعلم",
+    "label_teacher_email": "البريد الإلكتروني للمعلم",
+    "label_operator": "المشغل",
+    "label_school_name": "اسم المدرسة",
+    "label_grade": "الصف",
+    "label_subject": "المادة",
+    "label_gender": "الجنس",
+    "label_students": "عدد الطلاب",
+    "label_males": "عدد الذكور",
+    "label_females": "عدد الإناث",
+    "label_time_in": "وقت الدخول",
+    "label_time_out": "وقت الخروج",
+    "label_lesson_duration": "🕒 **مدة الدرس:** {} دقيقة — _{}_",
+    "duration_full_lesson": "درس كامل",
+    "duration_walkthrough": "جولة سريعة",
+    "warning_calculate_duration": "يرجى إدخال وقت الدخول ووقت الخروج لحساب المدة.",
+    "warning_could_not_calculate_duration": "تعذر حساب مدة الدرس.",
+    "label_period": "الفترة",
+    "label_obs_type": "نوع الزيارة",
+    "option_individual": "فردي",
+    "option_joint": "مشترك",
+    "subheader_rubric_scores": "درجات الدليل",
+    "expander_rubric_descriptors": "إرشادات الدليل", # Needs verification
+    "info_no_descriptors": "لا توجد إرشادات دليل متاحة لهذا العنصر.", # Needs verification
+    "label_rating_for": "التقييم لـ {}",
+    "label_write_notes": "كتابة ملاحظات لـ {}", # Guessed translation for notes label
+    "checkbox_send_feedback": "✉️ إنشاء تقرير الملاحظات (للملف PDF)", # Guessed translation - renamed
+    "button_save_observation": "💾 حفظ الزيارة",
+    "warning_fill_essential": "يرجى ملء جميع حقول المعلومات الأساسية قبل الحفظ.",
+    "success_data_saved": "تم حفظ بيانات الزيارة في المصنف.", # Guessed translation - simplified
+    "error_saving_workbook": "خطأ في حفظ المصنف:",
+    "download_workbook": "📥 تنزيل المصنف المحدث",
+    "feedback_subject": "ملاحظات الزيارة الصفية", # Needs verification
+    "feedback_greeting": "عزيزي {},\n\nتم حفظ زيارتك الصفية من {}.\n\n", # Needs verification
+    "feedback_observer": "المراقب: {}\n", # Needs verification
+    "feedback_duration": "المدة: {}\n", # Needs verification
+    "feedback_subject_fb": "المادة: {}\n", # Needs verification
+    "feedback_school": "المدرسة: {}\n\n", # Needs verification
+    "feedback_summary_header": "إليك ملخص لتقييماتك بناءً على الدليل:\n\n", # Needs verification
+    "feedback_domain_header": "**{}: {}**\n", # Needs verification
+    "feedback_element_rating": "- **{}:** التقييم **{}**\n", # Needs verification
+    "feedback_descriptor_for_rating": "  *إرشادات للتقييم {}:* {}\n", # Guessed translation for guidance text
+    "feedback_overall_score": "\n**متوسط الدرجة الإجمالي:** {:.2f}\n\n", # Needs verification
+    "feedback_domain_average": "  *متوسط المجال:* {:.2f}\n", # Needs verification
+    "feedback_performance_summary": "**ملخص الأداء:**\n", # Needs verification
+    "overall_performance_level_text": "مستوى الأداء الإجمالي: {}", # Guessed translation for overall level
+    "feedback_domain_performance": "{}: {}\n", # Needs verification
+    "feedback_support_plan_intro": "\n**خطة الدعم الموصى بها:**\n", # Needs verification
+    "feedback_next_steps_intro": "\n**الخطوات التالية المقترحة:**\n", # Needs verification
+    "feedback_closing": "\nبناءً على هذه التقييمات، يرجى مراجعة المصنف المحدث للحصول على ملاحظات تفصيلية ومجالات التطوير.\n\n", # Needs verification
+    "feedback_regards": "مع التحيات,\nفريق قيادة المدرسة", # Needs verification
+    "success_feedback_generated": "تم إنشاء الملاحظات (محاكاة):\n\n", # Needs verification
+    "success_feedback_log_updated": "تم تحديث سجل الملاحظات.", # Guessed translation - simplified
+    "error_updating_log": "خطأ في تحديث سجل الملاحظات في المصنف:", # Needs verification
+    "title_analytics": "لوحة تحليلات الزيارة الصفية", # Needs verification
+    "warning_no_lo_sheets_analytics": "لم يتم العثور على أوراق 'LO ' في المصنف للتحليلات.", # Needs verification
+    "subheader_avg_score_overall": "متوسط الدرجة لكل مجال (عبر جميع الزيارات)", # Needs verification
+    "info_no_numeric_scores_overall": "لم يتم العثور على درجات رقمية عبر جميع الزيارات لحساب متوسطات المجال الإجمالية.", # Needs verification
+    "subheader_data_summary": "ملخص بيانات الزيارة", # Needs verification
+    "subheader_filter_analyze": "تصفية وتحليل", # Needs verification
+    "filter_by_school": "تصفية حسب المدرسة", # Needs verification
+    "filter_by_grade": "تصفية حسب الصف", # Needs verification
+    "filter_by_subject": "تصفية حسب المادة", # Needs verification
+    "filter_by_operator": "تصفية حسب المشغل", # New string for Operator filter - Needs verification
+    "filter_by_observer_an": "تصفية حسب المراقب", # String for observer filter in analytics - Needs verification
+    "option_all": "الكل", # Needs verification
+    "subheader_avg_score_filtered": "متوسط الدرجة لكل مجال (مصفى)", # Needs verification
+    "info_no_numeric_scores_filtered": "لا توجد زيارات مطابقة للمرشحات المحددة تحتوي على درجات رقمية لمتوسطات المجال.", # Needs verification
+    "subheader_observer_distribution": "توزيع المراقبين (مصفى)", # Needs verification
+    "info_no_observer_data_filtered": "لم يتم العثور على بيانات المراقب للمرشحات المحددة.", # Needs verification
+    "info_no_observation_data_filtered": "لم يتم العثور على بيانات الزيارة للمرشحات المحددة.", # Needs verification
+    "error_loading_analytics": "خطأ في تحميل أو معالجة المصنف للتحليلات:", # Needs verification
+    "overall_score_label": "النتيجة الإجمالية:", # Needs verification
+    "overall_score_value": "**{:.2f}**", # Needs verification
+    "overall_score_na": "**غير متوفر**", # Needs verification
+    "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # Needs verification
+    "feedback_log_sheet_name": "سجل الملاحظات", # Needs verification
+    "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers - Guessed translation
+    "download_feedback_log_csv": "📥 تنزيل سجل الملاحظات (CSV)", # Needs verification
+    "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Needs verification
+    "download_overall_avg_csv": "📥 تنزيل متوسطات المجال الإجمالية (CSV)", # Needs verification
+    "download_overall_avg_excel": "📥 تنزيل متوسطات المجال الإجمالية (Excel)", # Needs verification
+    "download_filtered_avg_csv": "📥 تنزيل متوسطات المجال المصفاة (CSV)", # Needs verification
+    "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Needs verification
+    "download_filtered_data_csv": "📥 تنزيل بيانات الزيارة المصفاة (CSV)", # Needs verification
+    "download_filtered_data_excel": "📥 تنزيل بيانات الزيارة المصفاة (Excel)", # Needs verification
+    "label_observation_date": "تاريخ الزيارة", # Needs verification
+    "filter_start_date": "تاريخ البدء", # Needs verification
+    "filter_end_date": "تاريخ الانتهاء", # Needs verification
+    "filter_teacher": "تصفية حسب المعلم", # Needs verification
+    "subheader_teacher_performance": "أداء المعلم بمرور الوقت", # Needs verification
+    "info_select_teacher": "حدد معلمًا لعرض تحليلات الأداء الفردي.", # Needs verification
+    "info_no_obs_for_teacher": "لم يتم العثور على زيارات للمعلم المحدد ضمن المرشحات المطبقة.", # Needs verification
+    "subheader_teacher_domain_trend": "اتجاه أداء مجال {}", # Needs verification
+    "subheader_teacher_overall_avg": "متوسط الدرجة الإجمالي لـ {} (مصفى)", # Needs verification
+    "perf_level_very_weak": "ضعيف جداً", # Needs verification
+    "perf_level_weak": "ضعيف", # Needs verification
+    "perf_level_acceptable": "مقبول", # Needs verification
+    "perf_level_good": "جيد", # Needs verification
+    "perf_level_excellent": "ممتاز", # Needs verification
+    "plan_very_weak_overall": "الأداء الإجمالي ضعيف جداً. تتطلب خطة دعم شاملة. ركز على الممارسات التعليمية الأساسية مثل إدارة الصف، وتخطيط الدرس، والاستراتيجيات التعليمية الأساسية. اطلب التوجيه من معلمك الموجه وقيادة المدرسة.", # Needs verification
+    "plan_weak_overall": "الأداء الإجمالي ضعيف. يوصى بخطة دعم. حدد 1-2 من المجالات الرئيسية للتحسين من الملاحظة واعمل مع معلمك الموجه لتطوير استراتيجيات مستهدفة. فكر في ملاحظة الزملاء ذوي الخبرة في هذه المجالات.", # Needs verification
+    "plan_weak_domain": "الأداء في **{}** ضعيف. ركز على تطوير المهارات المتعلقة بـ: {}. الإجراءات المقترحة تشمل: [إجراء محدد 1]، [إجراء محدد 2].", # Needs verification
+    "steps_acceptable_overall": "الأداء الإجمالي مقبول. استمر في البناء على نقاط قوتك. حدد مجالًا واحدًا للنمو لتحسين ممارستك وتعزيز تعلم الطلاب.", # Needs verification
+    "steps_good_overall": "الأداء الإجمالي جيد. أنت تظهر ممارسات تعليمية فعالة. استكشف فرص مشاركة خبرتك مع الزملاء، ربما من خلال التوجيه غير الرسمي أو تقديم استراتيجيات ناجحة.", # Needs verification
+    "steps_good_domain": "الأداء في **{}** جيد. أنت تظهر مهارات قوية في هذا المجال. فكر في استكشاف استراتيجيات متقدمة تتعلق بـ: {}. الإجراءات المقترحة تشمل: [إجراء متقدم محدد 1]، [إجراء متقدم محدد 2].", # Needs verification
+    "steps_excellent_overall": "الأداء الإجمالي ممتاز. أنت نموذج يحتذى به في التدريس الفعال. فكر في قيادة جلسات التطوير المهني أو توجيه المعلمين الأقل خبرة.", # Needs verification
+    "steps_excellent_domain": "الأداء في **{}** ممتاز. ممارستك في هذا المجال نموذجية. استمر في الابتكار وتحسين ممارستك، ربما من خلال البحث وتطبيق استراتيجيات حديثة تتعلق بـ: {}.", # Needs verification
+    "no_specific_plan_needed": "الأداء عند مستوى مقبول أو أعلى. لا توجد خطة دعم فورية مطلوبة بناءً على هذه الملاحظة. ركز على التحسين المستمر بناءً على أهدافك المهنية.", # Needs verification
+    "warning_fill_basic_info": "يرجى ملء اسم المراقب، اسم المعلم، اسم المدرسة، الصف، المادة، الجنس، وتاريخ الزيارة.", # Needs verification
+    "warning_fill_all_basic_info": "يرجى ملء جميع حقول المعلومات الأساسية.", # Needs verification
+    "warning_numeric_fields": "يرجى إدخال أرقام صحيحة لحقول الطلاب، الذكور، والإناث.", # Guessed translation
+    "success_pdf_generated": "تم إنشاء ملف الملاحظات PDF بنجاح.", # Guessed translation
+    "download_feedback_pdf": "📥 تنزيل ملف الملاحظات PDF", # Guessed translation
+    "checkbox_cleanup_sheets": "🪟 تنظيف أوراق LO غير المستخدمة (لا يوجد اسم مراقب)", # Added string for checkbox label - Needs verification
+    "warning_sheets_removed": "تمت إزالة {} أوراق LO غير مستخدمة.", # Added string for warning message - Needs verification
+    "info_reloaded_workbook": "تمت إعادة تحميل المصنف بعد التنظيف.", # Added string for info message - Needs verification
+    "info_no_sheets_to_cleanup": "لم يتم العثور على أوراق LO غير مستخدمة لتنظيفها.", # Added string for info message - Needs verification
+    "expander_guidelines": "📘 انقر هنا لعرض إرشادات الملاحظة", # Added string for expander label - Needs verification
+    "info_no_guidelines": "ورقة الإرشادات فارغة أو تعذر قراءتها.", # Added string for info message - Needs verification
+    "warning_select_create_sheet": "يرجى تحديد أو إنشاء ورقة صالحة للمتابعة.", # Added string for warning message - Needs verification
+    "label_overall_notes": "ملاحظات عامة لهذه الملاحظة الصفية", # Added missing string key - Needs verification
+}
+
 
 # Placeholder Arabic strings - REPLACE THESE WITH ACTUAL TRANSLATIONS
 ar_strings = {
