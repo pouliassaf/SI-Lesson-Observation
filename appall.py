@@ -721,13 +721,10 @@ if wb: # Proceed only if workbook was loaded successfully
 
         # Add "Create new" option only if "LO 1" exists and workbook is loaded
         sheet_selection_options = [strings["option_create_new"]] + sorted([s for s in lo_sheets if s != "LO 1"]) # Sort existing sheets alphabetically, exclude template
-        if "LO 1" in wb.sheetnames: # Add LO 1 back if it's the only option or if we want it selectable
-             sheet_selection_options = [strings["option_create_new"]] + sorted([s for s in lo_sheets if s != "LO 1"])
-             # Decide if LO 1 should be selectable - typically it's just a template
-             # If it's only a template, don't put it in the selectbox for filling
-             # Let's assume it's just a template and not for filling directly
-             existing_sheets_for_selection = sorted([s for s in lo_sheets if s != "LO 1"])
-             sheet_selection_options = [strings["option_create_new"]] + existing_sheets_for_selection
+        # The LO 1 sheet should generally not be selectable for input, only used as a template.
+        # So we only list existing LO sheets (excluding LO 1) and the "Create new" option.
+        existing_sheets_for_selection = sorted([s for s in lo_sheets if s != "LO 1"])
+        sheet_selection_options = [strings["option_create_new"]] + existing_sheets_for_selection
 
 
         # Determine initial selection index (try to keep current sheet if exists)
@@ -770,22 +767,31 @@ if wb: # Proceed only if workbook was loaded successfully
                 # Handle both time objects from previous saves and strings
                 if isinstance(time_in_str, datetime.time):
                      data["time_in"] = time_in_str
+                elif isinstance(time_in_str, datetime): # openpyxl sometimes reads time as datetime
+                     data["time_in"] = time_in_str.time()
                 elif isinstance(time_in_str, str) and time_in_str:
-                     data["time_in"] = datetime.strptime(time_in_str, "%H:%M").time()
-            except (ValueError, TypeError, AttributeError): # Include AttributeError for .strftime
+                     # Attempt parsing common time formats
+                     try:
+                         data["time_in"] = datetime.strptime(time_in_str, "%H:%M:%S").time() # Try with seconds
+                     except ValueError:
+                         data["time_in"] = datetime.strptime(time_in_str, "%H:%M").time() # Try without seconds
+            except Exception:
                  data["time_in"] = None # Ensure it's set to None on error
-            except Exception: data["time_in"] = None
 
 
             try:
                 time_out_str = worksheet["D8"].value
                 if isinstance(time_out_str, datetime.time):
                      data["time_out"] = time_out_str
+                elif isinstance(time_out_str, datetime):
+                     data["time_out"] = time_out_str.time()
                 elif isinstance(time_out_str, str) and time_out_str:
-                     data["time_out"] = datetime.strptime(time_out_str, "%H:%M").time()
-            except (ValueError, TypeError, AttributeError): # Include AttributeError for .strftime
+                     try:
+                         data["time_out"] = datetime.strptime(time_out_str, "%H:%M:%S").time()
+                     except ValueError:
+                         data["time_out"] = datetime.strptime(time_out_str, "%H:%M").time()
+            except Exception:
                  data["time_out"] = None # Ensure it's set to None on error
-            except Exception: data["time_out"] = None
 
 
             try: data["period"] = worksheet["D4"].value
@@ -848,6 +854,15 @@ if wb: # Proceed only if workbook was loaded successfully
                               # Ensure "NA" is read correctly
                               elif isinstance(rating_value_from_sheet, str) and rating_value_from_sheet.upper() == "NA":
                                    rating_value_from_sheet = "NA"
+                              # Convert numbers read as text back to numbers/NA
+                              elif isinstance(rating_value_from_sheet, str) and rating_value_from_sheet.isdigit():
+                                   rating_value_from_sheet = int(rating_value_from_sheet)
+                              elif isinstance(rating_value_from_sheet, str) and rating_value_from_sheet.upper() == "NA":
+                                   rating_value_from_sheet = "NA"
+                              # Handle empty cells read as None
+                              elif rating_value_from_sheet is None:
+                                   rating_value_from_sheet = "NA"
+
 
                               data["element_inputs"][rating_key] = rating_value_from_sheet
                           except Exception:
@@ -1664,12 +1679,13 @@ if wb: # Proceed only if workbook was loaded successfully
                              st.experimental_rerun()
 
 
-                         except Exception as e: # <-- This except matches the try Block at Level 5
+                         except Exception as e: # <-- This except matches the try Block above it
                              st.error(strings["error_saving_workbook"].format(e))
+                    # <-- The `if ws_to_save:` block ends here.
+                 # <-- The `if st.button(...)` block ends here.
+            # <-- The `if wb and st.session_state.get('target_sheet_name'):` block starts here.
 
-            # <-- End of the if st.button(...) block -->
-
-        else: # <-- This else matches the if st.session_state.get('target_sheet_name'): block at Level 2
+        else: # <-- This else matches the if wb and st.session_state.get('target_sheet_name'): block
              st.warning(strings.get("warning_select_create_sheet", "Please select or create a valid sheet to proceed."))
 
     # <--- This 'if page == strings["page_lesson_input"]:' block ends here.
