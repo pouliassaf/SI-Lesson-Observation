@@ -830,6 +830,7 @@ if wb: # Proceed only if workbook was loaded successfully
                  st.experimental_rerun() # Rerun to show the corrected state
                  st.stop() # Stop execution if sheet loading fails
 
+
         # --- Removed Input and Save Functionality Block ---
         # The complex input/save logic was here and causing persistent SyntaxErrors.
         # It has been temporarily removed to provide a working baseline.
@@ -844,10 +845,10 @@ if wb: # Proceed only if workbook was loaded successfully
             The app currently allows you to:
             - Load the default workbook.
             - See the list of existing LO sheets.
-            - Create a 'new' sheet name (though data cannot be entered/saved to it yet).
+            - Select an existing sheet or create a 'new' one (determining the target name).
             - Clean up unused sheets.
             - View the Guidelines.
-            - Navigate to the (placeholder) Analytics page.
+            - Navigate to the Analytics page.
 
             To restore the input and save features, the removed code block needs to be
             re-integrated and debugged. It's recommended to add back the functionality
@@ -865,9 +866,283 @@ if wb: # Proceed only if workbook was loaded successfully
     elif page == strings["page_analytics"]:
         st.title(strings["title_analytics"])
 
-        # Placeholder for Analytics page logic
-        st.info("Analytics dashboard goes here. Load data from all 'LO ' sheets, filter, calculate averages, and display charts/tables.")
-        st.warning("This section is not yet implemented in the current code.")
+        # Check if workbook is loaded before proceeding with analytics
+        if not wb:
+            st.warning(strings["warning_no_lo_sheets_analytics"]) # Reusing this string as appropriate
+            st.stop()
+
+        # --- Analytics Logic ---
+        # Find all LO sheets (excluding the template) and the Feedback Log
+        lo_sheets_data = {}
+        feedback_log_data = pd.DataFrame()
+        feedback_log_sheet_name = strings["feedback_log_sheet_name"]
+
+        try:
+            # Load data from LO sheets
+            lo_sheets_to_process = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ") and sheet != "LO 1"]
+
+            if not lo_sheets_to_process:
+                st.info(strings["warning_no_lo_sheets_analytics"])
+            else:
+                for sheet_name in lo_sheets_to_process:
+                    try:
+                        ws = wb[sheet_name]
+                        # Attempt to extract data points based on known cell locations
+                        data = {
+                            "Sheet": sheet_name,
+                            "Observer": ws["AA1"].value,
+                            "Teacher": ws["AA2"].value,
+                            "School": ws["AA6"].value,
+                            "Grade": ws["B1"].value, # Assuming Grade is in B1 based on template layout
+                            "Subject": ws["D2"].value,
+                            "Gender": ws["B5"].value,
+                            "Students": ws["B6"].value,
+                            "Males": ws["B7"].value,
+                            "Females": ws["B8"].value,
+                            "Observation Date": ws["D10"].value, # Assuming date is D10
+                            "Observation Type": ws["AA3"].value,
+                            "Overall Score": None, # Placeholder, calculated next
+                            "Overall Judgment": None, # Placeholder, calculated next
+                             # Add placeholders for domain averages if needed for raw data table
+                        }
+
+                        # Calculate Overall Score and Judgment from Excel formulas if possible
+                        # Assuming Overall Score is calculated somewhere, e.g., AM1
+                        try:
+                            overall_score_excel = ws["AM1"].value # Adjust cell as needed based on template
+                            if isinstance(overall_score_excel, (int, float)) and not math.isnan(overall_score_excel):
+                                data["Overall Score"] = float(overall_score_excel)
+                                data["Overall Judgment"] = get_performance_level(overall_score_excel, strings)
+                            else:
+                                data["Overall Score"] = strings["overall_score_na"]
+                                data["Overall Judgment"] = strings["overall_score_na"]
+                        except Exception:
+                             data["Overall Score"] = strings["overall_score_na"]
+                             data["Overall Judgment"] = strings["overall_score_na"]
+
+                         # You could also extract domain averages here if needed for analytics filtering/display
+                         # For example, if Domain 1 average is in I16:
+                         # try: data["Domain 1 Average"] = ws["I16"].value except Exception: pass
+
+
+                        lo_sheets_data[sheet_name] = data
+
+                    except Exception as e:
+                        st.warning(f"Could not load data from sheet '{sheet_name}' for analytics: {e}")
+
+            # Load data from Feedback Log sheet if it exists
+            if feedback_log_sheet_name in wb.sheetnames:
+                 log_ws = wb[feedback_log_sheet_name]
+                 # Read data into a pandas DataFrame
+                 # Assuming the log sheet has headers in the first row
+                 data_rows = list(log_ws.iter_rows(min_row=2, values_only=True))
+                 headers = [cell.value for cell in log_ws[1]] # Get headers from the first row
+
+                 # Ensure headers match expected keys for reliable DataFrame creation
+                 # You might need robust mapping here if headers can vary
+                 if headers and data_rows:
+                      # Filter out empty rows if any
+                      cleaned_data_rows = [row for row in data_rows if any(cell is not None and str(cell).strip() != "" for cell in row)]
+                      if cleaned_data_rows:
+                           feedback_log_data = pd.DataFrame(cleaned_data_rows, columns=headers)
+                           # Attempt to convert 'Overall Score' to numeric, coercing errors
+                           if 'Overall Score' in feedback_log_data.columns:
+                                feedback_log_data['Overall Score'] = pd.to_numeric(feedback_log_data['Overall Score'], errors='coerce')
+                           # Convert 'Date' column to datetime if it exists and is not already
+                           if 'Date' in feedback_log_data.columns:
+                                # Convert excel dates (numbers) or strings to datetime
+                                feedback_log_data['Date'] = pd.to_datetime(feedback_log_data['Date'], errors='coerce')
+
+            else:
+                 st.info(f"Feedback Log sheet ('{feedback_log_sheet_name}') not found.")
+
+
+        except Exception as e:
+            st.error(strings["error_loading_analytics"].format(e))
+            st.stop()
+
+        # Convert extracted LO sheets data to DataFrame for easier analysis
+        all_obs_data = pd.DataFrame(list(lo_sheets_data.values()))
+
+        if not all_obs_data.empty:
+             # Convert date column if it exists
+             if 'Observation Date' in all_obs_data.columns:
+                  all_obs_data['Observation Date'] = pd.to_datetime(all_obs_data['Observation Date'], errors='coerce').dt.date # Keep as date objects
+
+             # Attempt to convert score column to numeric, coercing errors
+             if 'Overall Score' in all_obs_data.columns:
+                 all_obs_data['Overall Score'] = pd.to_numeric(all_obs_data['Overall Score'], errors='coerce')
+
+
+             st.subheader(strings["subheader_data_summary"])
+             st.write(f"Total Observations: {len(all_obs_data)}")
+             if 'Overall Score' in all_obs_data.columns:
+                 avg_overall_score = all_obs_data['Overall Score'].mean()
+                 st.write(f"Overall Average Score: {avg_overall_score:.2f}" if not math.isnan(avg_overall_score) else "Overall Average Score: N/A")
+
+             # --- Filtering Options ---
+             st.markdown("---")
+             st.subheader(strings["subheader_filter_analyze"])
+
+             # Get unique values for filters from ALL loaded LO sheets
+             all_schools = sorted(all_obs_data['School'].dropna().unique()) if 'School' in all_obs_data.columns else []
+             all_grades = sorted(all_obs_data['Grade'].dropna().unique()) if 'Grade' in all_obs_data.columns else []
+             all_subjects = sorted(all_obs_data['Subject'].dropna().unique()) if 'Subject' in all_obs_data.columns else []
+             all_teachers = sorted(all_obs_data['Teacher'].dropna().unique()) if 'Teacher' in all_obs_data.columns else []
+             all_observers = sorted(all_obs_data['Observer'].dropna().unique()) if 'Observer' in all_obs_data.columns else []
+
+
+             filter_school = st.selectbox(strings["filter_by_school"], [strings["option_all"]] + list(all_schools))
+             filter_grade = st.selectbox(strings["filter_by_grade"], [strings["option_all"]] + list(all_grades))
+             filter_subject = st.selectbox(strings["filter_by_subject"], [strings["option_all"]] + list(all_subjects))
+             filter_teacher = st.selectbox(strings["filter_teacher"], [strings["option_all"]] + list(all_teachers))
+             filter_observer = st.selectbox("Filter by Observer", [strings["option_all"]] + list(all_observers)) # Added observer filter
+
+             # Date filtering
+             st.markdown("##### Filter by Date")
+             today = datetime.now().date()
+             min_date = all_obs_data['Observation Date'].min() if 'Observation Date' in all_obs_data.columns and not all_obs_data['Observation Date'].empty else today - timedelta(days=365)
+             max_date = all_obs_data['Observation Date'].max() if 'Observation Date' in all_obs_data.columns and not all_obs_data['Observation Date'].empty else today + timedelta(days=7)
+
+             # Ensure min/max dates are valid date objects before providing to date_input
+             if not isinstance(min_date, date): min_date = today - timedelta(days=365)
+             if not isinstance(max_date, date): max_date = today + timedelta(days=7)
+
+             # Use try-except for date inputs as default values might cause issues if data is weird
+             try:
+                  start_date = st.date_input(strings["filter_start_date"], value=min_date, min_value=min_date, max_value=max_date)
+             except Exception:
+                  start_date = st.date_input(strings["filter_start_date"], value=today - timedelta(days=365)) # Fallback default
+
+             try:
+                  end_date = st.date_input(strings["filter_end_date"], value=max_date, min_value=min_date, max_value=max_date)
+             except Exception:
+                  end_date = st.date_input(strings["filter_end_date"], value=today + timedelta(days=7)) # Fallback default
+
+
+             # Apply Filters
+             filtered_data = all_obs_data.copy()
+             if filter_school != strings["option_all"]:
+                 filtered_data = filtered_data[filtered_data['School'] == filter_school]
+             if filter_grade != strings["option_all"]:
+                 filtered_data = filtered_data[filtered_data['Grade'] == filter_grade]
+             if filter_subject != strings["option_all"]:
+                 filtered_data = filtered_data[filtered_data['Subject'] == filter_subject]
+             if filter_teacher != strings["option_all"]:
+                 filtered_data = filtered_data[filtered_data['Teacher'] == filter_teacher]
+             if filter_observer != strings["option_all"]:
+                 filtered_data = filtered_data[filtered_data['Observer'] == filter_observer]
+
+             # Apply date filter, ensuring the column exists and has valid dates
+             if 'Observation Date' in filtered_data.columns and not filtered_data['Observation Date'].empty:
+                  # Ensure date column is datetime objects for comparison
+                  filtered_data['Observation Date'] = pd.to_datetime(filtered_data['Observation Date'], errors='coerce').dt.date
+                  # Filter out rows where date conversion failed before applying date range
+                  filtered_data = filtered_data.dropna(subset=['Observation Date'])
+
+                  filtered_data = filtered_data[(filtered_data['Observation Date'] >= start_date) & (filtered_data['Observation Date'] <= end_date)]
+
+
+             st.markdown("---")
+             st.subheader(strings["subheader_avg_score_filtered"])
+
+             if not filtered_data.empty and 'Overall Score' in filtered_data.columns:
+                 # Calculate average score for filtered data, ignoring NaNs
+                 avg_filtered_score = filtered_data['Overall Score'].mean()
+                 st.write(f"Average Overall Score for Filtered Data: {avg_filtered_score:.2f}" if not math.isnan(avg_filtered_score) else "Average Overall Score for Filtered Data: N/A")
+
+                 # Display filtered data table
+                 st.markdown("##### Filtered Observation Data")
+                 st.dataframe(filtered_data)
+
+                 # Download filtered data
+                 csv_buffer_filtered = io.StringIO()
+                 filtered_data.to_csv(csv_buffer_filtered, index=False)
+                 csv_buffer_filtered.seek(0)
+                 st.download_button(
+                     label=strings["download_filtered_data_csv"],
+                     data=csv_buffer_filtered.getvalue(),
+                     file_name="filtered_observation_data.csv",
+                     mime="text/csv"
+                 )
+
+                 excel_buffer_filtered = io.BytesIO()
+                 filtered_data.to_excel(excel_buffer_filtered, index=False)
+                 excel_buffer_filtered.seek(0)
+                 st.download_button(
+                      label=strings["download_filtered_data_excel"],
+                      data=excel_buffer_filtered.getvalue(),
+                      file_name="filtered_observation_data.xlsx",
+                      mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                 )
+
+
+             else:
+                 st.info(strings["info_no_observation_data_filtered"]) # Adjusted string to cover no data after filtering
+
+
+             # --- Overall Domain Averages (Across all observations) ---
+             st.markdown("---")
+             st.subheader(strings["subheader_avg_score_overall"])
+
+             # This requires reading domain scores from each sheet, which wasn't fully implemented
+             # in the load_existing_data or the save logic yet.
+             # Need to read I16 (Domain 1 Avg), I23 (Domain 2 Avg), etc., for each LO sheet.
+             # For now, show a placeholder or calculate if possible from log sheet if domain averages were added there.
+
+             # Assuming domain averages might be available in the log sheet or derivable from raw LO sheet data
+             # (This part needs specific implementation based on where domain averages are stored/calculated)
+             st.info("Calculation of overall domain averages is pending implementation based on detailed score extraction.")
+
+
+             # --- Observer Distribution ---
+             st.markdown("---")
+             st.subheader(strings["subheader_observer_distribution"])
+
+             if not filtered_data.empty and 'Observer' in filtered_data.columns:
+                  observer_counts = filtered_data['Observer'].value_counts().reset_index()
+                  observer_counts.columns = ['Observer', 'Count']
+                  st.dataframe(observer_counts)
+
+             else:
+                  st.info(strings["info_no_observer_data_filtered"])
+
+
+             # --- Teacher Performance Over Time ---
+             st.markdown("---")
+             st.subheader(strings["subheader_teacher_performance"])
+             st.info(strings["info_select_teacher"])
+
+             selected_teacher_for_trend = st.selectbox("Select Teacher for Trend Analysis", [None] + list(all_teachers))
+
+             if selected_teacher_for_trend:
+                  teacher_data = filtered_data[filtered_data['Teacher'] == selected_teacher_for_trend].copy()
+
+                  if not teacher_data.empty and 'Overall Score' in teacher_data.columns:
+                       st.subheader(strings["subheader_teacher_overall_avg"].format(selected_teacher_for_trend))
+                       # Display average for the selected teacher within the current filters
+                       avg_teacher_score = teacher_data['Overall Score'].mean()
+                       st.write(f"Average Overall Score: {avg_teacher_score:.2f}" if not math.isnan(avg_teacher_score) else "Average Overall Score: N/A")
+
+                       # Plot trend over time
+                       if 'Observation Date' in teacher_data.columns and not teacher_data.dropna(subset=['Observation Date']).empty:
+                            st.subheader(strings["subheader_teacher_domain_trend"].format(selected_teacher_for_trend))
+                            # Need to extract Domain Averages into columns for plotting
+                            # This requires the implementation of extracting domain scores from sheets.
+                            st.info("Trend analysis requires extraction of domain scores from observation sheets.")
+
+                       else:
+                            st.info("Observation dates are missing or invalid for this teacher.")
+
+                  else:
+                       st.info(strings["info_no_obs_for_teacher"])
+             else:
+                 st.info("Select a teacher above to view their performance trend.")
+
+
+        else:
+            st.info(strings["info_no_observation_data_filtered"]) # Show this if all_obs_data is empty
+
 
 # <--- This 'if wb:' block ends here.
 #       The final 'else' block should align with it.
