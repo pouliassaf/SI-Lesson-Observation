@@ -325,7 +325,7 @@ ar_strings = {
     "checkbox_cleanup_sheets": "🪟 تنظيف أوراق LO غير المستخدمة (لا يوجد اسم مراقب)",
     "warning_sheets_removed": "تمت إزالة {} أوراق LO غير مستخدمة.",
     "info_reloaded_workbook": "تمت إعادة تحميل المصنف بعد التنظيف.",
-    "info_no_sheets_to_cleanup": "لم يتم العثور على أوراق LO غير مستخدمة لتنظيفها.",
+    "info_no_sheets_to_cleanup": "لا يتم العثور على أوراق LO غير مستخدمة لتنظيفها.",
     "expander_guidelines": "📘 انقر هنا لعرض إرشادات الملاحظة",
     "info_no_guidelines": "ورقة الإرشادات فارغة أو تعذر قراءتها.",
     "warning_select_create_sheet": "يرجى تحديد أو إنشاء ورقة صالحة للمتابعة.",
@@ -655,14 +655,18 @@ if wb: # Proceed only if workbook was loaded successfully
         """, unsafe_allow_html=True)
 
         # Email Domain Restriction
+        # This widget manages st.session_state['auth_email_input'] automatically via its key.
         email = st.text_input("Enter your school email to continue", value=st.session_state.get('auth_email_input', ''), key='auth_email_input')
+
         allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
-        if not (email and any(email.strip().lower().endswith(domain) for domain in allowed_domains)):
-             if email.strip():
+        # Check if email is entered AND if it ends with an allowed domain
+        # Read the value directly from session state managed by the widget
+        if not (st.session_state.get('auth_email_input') and any(st.session_state.get('auth_email_input', '').strip().lower().endswith(domain) for domain in allowed_domains)):
+             if st.session_state.get('auth_email_input', '').strip(): # Only show specific warning if email is entered but invalid
                   st.warning("Access restricted. Please use an authorized school email.")
              st.stop() # Stop execution if email is invalid
 
-        st.session_state['auth_email_input'] = email # Store valid email
+        # REMOVED: st.session_state['auth_email_input'] = email # Store valid email - THIS LINE CAUSED THE ERROR
 
 
         lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
@@ -1050,16 +1054,16 @@ if wb: # Proceed only if workbook was loaded successfully
             cols = st.columns(2)
             with cols[0]:
                 # Use keys ending in _form to isolate widget state from main session state keys
-                st.text_input(strings["label_observer_name"], value=st.session_state.get('observer_name', ''), key='observer_name_input_form')
-                st.text_input(strings["label_teacher_name"], value=st.session_state.get('teacher_name', ''), key='teacher_name_input_form')
-                st.text_input(strings["label_teacher_email"], value=st.session_state.get('teacher_email', ''), key='teacher_email_input_form')
-                st.text_input(strings["label_operator"], value=st.session_state.get('operator', ''), key='operator_input_form')
-                st.text_input(strings["label_school_name"], value=st.session_state.get('school_name', ''), key='school_name_input_form')
+                st.text_input(strings["label_observer_name"], value=st.session_state.get('observer_name', '') or '', key='observer_name_input_form')
+                st.text_input(strings["label_teacher_name"], value=st.session_state.get('teacher_name', '') or '', key='teacher_name_input_form')
+                st.text_input(strings["label_teacher_email"], value=st.session_state.get('teacher_email', '') or '', key='teacher_email_input_form')
+                st.text_input(strings["label_operator"], value=st.session_state.get('operator', '') or '', key='operator_input_form')
+                st.text_input(strings["label_school_name"], value=st.session_state.get('school_name', '') or '', key='school_name_input_form')
 
 
             with cols[1]:
-                st.text_input(strings["label_grade"], value=st.session_state.get('grade', ''), key='grade_input_form')
-                st.text_input(strings["label_subject"], value=st.session_state.get('subject', ''), key='subject_input_form')
+                st.text_input(strings["label_grade"], value=st.session_state.get('grade', '') or '', key='grade_input_form')
+                st.text_input(strings["label_subject"], value=st.session_state.get('subject', '') or '', key='subject_input_form')
                 gender_options = ["Male", "Female", "Mixed", ""]
                 current_gender = st.session_state.get('gender', '') or ''
                 gender_index = gender_options.index(current_gender) if current_gender in gender_options else len(gender_options) - 1
@@ -1197,6 +1201,8 @@ if wb: # Proceed only if workbook was loaded successfully
             if st.button(strings["button_save_observation"], key='save_observation_button'):
 
                  # --- Read Final Values from Form Widgets into Main Session State ---
+                 # This step is crucial to get the latest values from the form widgets
+                 # before performing validation and saving.
                  try:
                      st.session_state['observer_name'] = st.session_state.get('observer_name_input_form', '')
                      st.session_state['teacher_name'] = st.session_state.get('teacher_name_input_form', '')
@@ -1355,9 +1361,9 @@ if wb: # Proceed only if workbook was loaded successfully
                  domain_data_for_feedback = {}
                  overall_scores_list = []
 
-                 template_ws = None # Ensure template_ws is available if needed for titles/labels
+                 template_ws = None
                  try: template_ws = wb["LO 1"]
-                 except KeyError: pass # Ignore if template is missing during this step
+                 except KeyError: pass
 
 
                  for domain_name, (start_cell, count) in rubric_domains_structure.items():
