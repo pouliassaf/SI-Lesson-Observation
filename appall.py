@@ -144,7 +144,7 @@ en_strings = {
     "overall_score_value": "**{:.2f}**", # From snippet 1
     "overall_score_na": "**N/A**", # From snippet 1
     "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # From snippet 1
-    "feedback_log_sheet_name": "سجل الملاحظات", # Needs verification
+    "feedback_log_sheet_name": "Feedback Log", # From snippet 1
     "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers
     "download_feedback_log_csv": "📥 Download Feedback Log (CSV)", # From snippet 1
     "error_generating_log_csv": "Error generating log CSV:", # From snippet 1
@@ -685,7 +685,7 @@ if wb: # Proceed only if workbook was loaded successfully
                         wb = load_workbook(temp_buffer)
                         st.info(strings.get("info_reloaded_workbook", "Reloaded workbook after cleanup."))
                          # Re-run Streamlit explicitly to update the UI fully
-                        st.experimental_rerun()
+                        st.rerun() # Changed experimental_rerun to rerun
 
                     except Exception as e:
                          st.error(f"Error reloading workbook after cleanup: {e}")
@@ -754,7 +754,7 @@ if wb: # Proceed only if workbook was loaded successfully
         ws_to_load_from = None # Initialize worksheet to load data from
 
         # --- Function to read existing data from a sheet (to pre-fill inputs) ---
-        # Restored the definition of this function
+        # Restored the definition of this function - PLACED HERE
         def load_existing_data(worksheet: Worksheet):
             data = {}
             # Basic Info from snippet 2 save locations
@@ -890,6 +890,7 @@ if wb: # Proceed only if workbook was loaded successfully
 
             return data
 
+
         # --- Logic based on selected sheet/create new ---
         # This section determines the target sheet name and loads data into session state
         # It does *not* wrap the input display or save button logic.
@@ -967,13 +968,13 @@ if wb: # Proceed only if workbook was loaded successfully
                  st.error(f"Error: Selected sheet '{sheet_name_to_process}' not found or could not be accessed.")
                  # Reset sheet selector if sheet is missing
                  st.session_state['current_sheet_name'] = sheet_selection_options[0] # Reset to 'Create new'
-                 st.experimental_rerun() # Rerun to show the corrected state
+                 st.rerun() # Changed experimental_rerun to rerun
                  st.stop() # Stop execution if sheet loading fails
             except Exception as e:
                  st.error(f"Error loading data from sheet '{sheet_name_to_process}': {e}")
                  # Reset sheet selector if loading fails
                  st.session_state['current_sheet_name'] = sheet_selection_options[0] # Reset to 'Create new'
-                 st.experimental_rerun() # Rerun to show the corrected state
+                 st.rerun() # Changed experimental_rerun to rerun
                  st.stop() # Stop execution if sheet loading fails
 
 
