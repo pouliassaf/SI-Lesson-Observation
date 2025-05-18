@@ -27,7 +27,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 import re # Import regex for cleaning HTML tags
 
-# --- Set Streamlit Page Config (MUST BE THE FIRST STREAMLIT COMMAND) ---
+# --- Set Streamlit Page Config (MUST BE THE FIRST STREAMIT COMMAND) ---
 st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
 
 # --- Logo File Paths ---
@@ -282,6 +282,147 @@ ar_strings = {
     "overall_score_na": "**غير متوفر**", # Needs verification
     "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # Needs verification
     "feedback_log_sheet_name": "سجل الملاحظات", # Needs verification
+    "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers
+    "download_feedback_log_csv": "📥 تنزيل سجل الملاحظات (CSV)", # Needs verification
+    "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Needs verification
+    "download_overall_avg_csv": "📥 تنزيل متوسطات المجال الإجمالية (CSV)", # Needs verification
+    "download_overall_avg_excel": "📥 تنزيل متوسطات المجال الإجمالية (Excel)", # Needs verification
+    "download_filtered_avg_csv": "📥 تنزيل متوسطات المجال المصفاة (CSV)", # Needs verification
+    "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Needs verification
+    "download_filtered_data_csv": "📥 تنزيل بيانات الزيارة المصفاة (CSV)", # Needs verification
+    "download_filtered_data_excel": "📥 تنزيل بيانات الزيارة المصفاة (Excel)", # Needs verification
+    "label_observation_date": "Observation Date", # From snippet 1
+    "filter_start_date": "Start Date", # From snippet 1
+    "filter_end_date": "End Date", # From snippet 1
+    "filter_teacher": "Filter by Teacher", # From snippet 1
+    "subheader_teacher_performance": "Teacher Performance Over Time", # From snippet 1
+    "info_select_teacher": "Select a teacher to view individual performance analytics.", # From snippet 1
+    "info_no_obs_for_teacher": "No observations found for the selected teacher within the applied filters.", # From snippet 1
+    "subheader_teacher_domain_trend": "{} Domain Performance Trend", # From snippet 1
+    "subheader_teacher_overall_avg": "{} Overall Average Score (Filtered)", # From snippet 1
+    "perf_level_very_weak": "Very Weak", # From snippet 1
+    "perf_level_weak": "Weak", # From snippet 1
+    "perf_level_acceptable": "Acceptable", # From snippet 1
+    "perf_level_good": "Good", # From snippet 1
+    "perf_level_excellent": "Excellent", # From snippet 1
+    "plan_very_weak_overall": "Overall performance is Very Weak. A comprehensive support plan is required. Focus on fundamental teaching practices such as classroom management, lesson planning, and basic instructional strategies. Seek guidance from your mentor teacher and school leadership.", # From snippet 1
+    "plan_weak_overall": "Overall performance is Weak. A support plan is recommended. Identify 1-2 key areas for improvement from the observation and work with your mentor teacher to develop targeted strategies. Consider observing experienced colleagues in these areas.", # From snippet 1
+    "plan_weak_domain": "Performance in **{}** is Weak. Focus on developing skills related to: {}. Suggested actions include: [Specific action 1], [Specific action 2].", # From snippet 1
+    "steps_acceptable_overall": "Overall performance is Acceptable. Continue to build on your strengths. Identify one area for growth to refine your practice and enhance student learning.", # From snippet 1
+    "steps_good_overall": "Overall performance is Good. You demonstrate effective teaching practices. Explore opportunities to share your expertise with colleagues, perhaps through informal mentoring or presenting successful strategies.", # From snippet 1
+    "steps_good_domain": "Performance in **{}** is Good. You demonstrate strong skills in this area. Consider exploring advanced strategies related to: {}. Suggested actions include: [Specific advanced action 1], [Specific advanced action 2].", # From snippet 1
+    "steps_excellent_overall": "Overall performance is Excellent. You are a role model for effective teaching. Consider leading professional development sessions or mentoring less experienced teachers.", # From snippet 1
+    "steps_excellent_domain": "Performance in **{}** is Excellent. Your practice in this area is exemplary. Continue to innovate and refine your practice, perhaps by researching and implementing cutting-edge strategies related to: {}.", # From snippet 1
+    "no_specific_plan_needed": "Performance is at an acceptable level or above. No immediate support plan required based on this observation. Focus on continuous improvement based on your professional goals.", # From snippet 1
+    "warning_fill_basic_info": "Please fill in Observer Name, Teacher Name, School Name, Grade, Subject, Gender, and Observation Date.", # More specific validation
+    "warning_fill_all_basic_info": "Please fill in all basic information fields.", # Generic fallback
+    "warning_numeric_fields": "Please enter valid numbers for Students, Males, and Females.", # Added string for numeric validation
+    "success_pdf_generated": "Feedback PDF generated successfully.", # Added success message for PDF
+    "download_feedback_pdf": "📥 Download Feedback PDF", # Added string for PDF download button label
+    "checkbox_cleanup_sheets": "🪟 Clean up unused LO sheets (no observer name)", # Added string for checkbox label
+    "warning_sheets_removed": "Removed {} unused LO sheets.", # Added string for warning message
+    "info_reloaded_workbook": "Reloaded workbook after cleanup.", # Added string for info message
+    "info_no_sheets_to_cleanup": "No unused LO sheets found to clean up.", # Added string for info message
+    "expander_guidelines": "📘 Click here to view observation guidelines", # Added string for expander label
+    "info_no_guidelines": "Guidelines sheet is empty or could not be read.", # Added string for info message
+    "warning_select_create_sheet": "Please select or create a valid sheet to proceed.", # Added string for warning message
+    "label_overall_notes": "General Notes for this Lesson Observation", # Added missing string key
+
+
+}
+
+# Placeholder Arabic strings - REPLACE THESE WITH ACTUAL TRANSLATIONS
+ar_strings = {
+    "page_title": "أداة التقييم للزيارات الصفية",
+    "sidebar_select_page": "اختر صفحة:",
+    "page_lesson_input": "ادخال تقييم الزيارة",
+    "page_analytics": "تحليلات الزيارة",
+    "title_lesson_input": "أداة إدخال زيارة صفية أسبوعية",
+    "info_default_workbook": "استخدام مصنف القالب الافتراضي:",
+    "warning_default_not_found": "تحذير: لم يتم العثور على مصنف القالب الافتراضي '{}'. يرجى تحميل مصنف.",
+    "error_opening_default": "خطأ في فتح ملف القالب الافتراضي:",
+    "success_lo_sheets_found": "تم العثور على {} أوراق LO في المصنف.",
+    "select_sheet_or_create": "حدد ورقة LO موجودة أو أنشئ واحدة جديدة:",
+    "option_create_new": "إنشاء جديد",
+    "success_sheet_created": "تم إنشاء ورقة جديدة: {}",
+    "error_template_not_found": "خطأ: لم يتم العثور على ورقة القالب 'LO 1' في المصنف! لا يمكن إنشاء ورقة جديدة.",
+    "subheader_filling_data": "ملء البيانات لـ: {}",
+    "label_observer_name": "اسم المراقب",
+    "label_teacher_name": "اسم المعلم",
+    "label_teacher_email": "البريد الإلكتروني للمعلم",
+    "label_operator": "المشغل",
+    "label_school_name": "اسم المدرسة",
+    "label_grade": "الصف",
+    "label_subject": "المادة",
+    "label_gender": "الجنس",
+    "label_students": "عدد الطلاب",
+    "label_males": "عدد الذكور",
+    "label_females": "عدد الإناث",
+    "label_time_in": "وقت الدخول",
+    "label_time_out": "وقت الخروج",
+    "label_lesson_duration": "🕒 **مدة الدرس:** {} دقيقة — _{}_",
+    "duration_full_lesson": "درس كامل",
+    "duration_walkthrough": "جولة سريعة",
+    "warning_calculate_duration": "يرجى إدخال وقت الدخول ووقت الخروج لحساب المدة.",
+    "warning_could_not_calculate_duration": "تعذر حساب مدة الدرس.",
+    "label_period": "الفترة",
+    "label_obs_type": "نوع الزيارة",
+    "option_individual": "فردي",
+    "option_joint": "مشترك",
+    "subheader_rubric_scores": "درجات الدليل",
+    "expander_rubric_descriptors": "إرشادات الدليل", # Needs verification
+    "info_no_descriptors": "لا توجد إرشادات دليل متاحة لهذا العنصر.", # Needs verification
+    "label_rating_for": "التقييم لـ {}",
+    "label_write_notes": "كتابة ملاحظات لـ {}", # Guessed translation for notes label
+    "checkbox_send_feedback": "✉️ إنشاء تقرير الملاحظات (للملف PDF)", # Guessed translation - renamed
+    "button_save_observation": "💾 حفظ الزيارة",
+    "warning_fill_essential": "يرجى ملء جميع حقول المعلومات الأساسية قبل الحفظ.",
+    "success_data_saved": "تم حفظ بيانات الزيارة في المصنف.", # Guessed translation - simplified
+    "error_saving_workbook": "خطأ في حفظ المصنف:",
+    "download_workbook": "📥 تنزيل المصنف المحدث",
+    "feedback_subject": "ملاحظات الزيارة الصفية", # Needs verification
+    "feedback_greeting": "عزيزي {},\n\nتم حفظ زيارتك الصفية من {}.\n\n", # Needs verification
+    "feedback_observer": "المراقب: {}\n", # Needs verification
+    "feedback_duration": "المدة: {}\n", # Needs verification
+    "feedback_subject_fb": "المادة: {}\n", # Needs verification
+    "feedback_school": "المدرسة: {}\n\n", # Needs verification
+    "feedback_summary_header": "إليك ملخص لتقييماتك بناءً على الدليل:\n\n", # Needs verification
+    "feedback_domain_header": "**{}: {}**\n", # Needs verification
+    "feedback_element_rating": "- **{}:** التقييم **{}**\n", # Needs verification
+    "feedback_descriptor_for_rating": "  *إرشادات للتقييم {}:* {}\n", # Guessed translation for guidance text
+    "feedback_overall_score": "\n**متوسط الدرجة الإجمالي:** {:.2f}\n\n", # Needs verification
+    "feedback_domain_average": "  *متوسط المجال:* {:.2f}\n", # Needs verification
+    "feedback_performance_summary": "**ملخص الأداء:**\n", # Needs verification
+    "overall_performance_level_text": "مستوى الأداء الإجمالي: {}", # Guessed translation for overall level
+    "feedback_domain_performance": "{}: {}\n", # Needs verification
+    "feedback_support_plan_intro": "\n**خطة الدعم الموصى بها:**\n", # Needs verification
+    "feedback_next_steps_intro": "\n**الخطوات التالية المقترحة:**\n", # Needs verification
+    "feedback_closing": "\nبناءً على هذه التقييمات، يرجى مراجعة المصنف المحدث للحصول على ملاحظات تفصيلية ومجالات التطوير.\n\n", # Needs verification
+    "feedback_regards": "مع التحيات,\nفريق قيادة المدرسة", # Needs verification
+    "success_feedback_generated": "تم إنشاء الملاحظات (محاكاة):\n\n", # Needs verification
+    "success_feedback_log_updated": "تم تحديث سجل الملاحظات.", # Guessed translation - simplified
+    "error_updating_log": "خطأ في تحديث سجل الملاحظات في المصنف:", # Needs verification
+    "title_analytics": "لوحة تحليلات الزيارة الصفية", # Needs verification
+    "warning_no_lo_sheets_analytics": "لم يتم العثور على أوراق 'LO ' في المصنف للتحليلات.", # Needs verification
+    "subheader_avg_score_overall": "متوسط الدرجة لكل مجال (عبر جميع الزيارات)", # Needs verification
+    "info_no_numeric_scores_overall": "لم يتم العثور على درجات رقمية عبر جميع الزيارات لحساب متوسطات المجال الإجمالية.", # Needs verification
+    "subheader_data_summary": "ملخص بيانات الزيارة", # Needs verification
+    "subheader_filter_analyze": "تصفية وتحليل", # Needs verification
+    "filter_by_school": "تصفية حسب المدرسة", # Needs verification
+    "filter_by_grade": "تصفية حسب الصف", # Needs verification
+    "filter_by_subject": "تصفية حسب المادة", # Needs verification
+    "option_all": "الكل", # Needs verification
+    "subheader_avg_score_filtered": "متوسط الدرجة لكل مجال (مصفى)", # Needs verification
+    "info_no_numeric_scores_filtered": "لا توجد زيارات مطابقة للمرشحات المحددة تحتوي على درجات رقمية لمتوسطات المجال.", # Needs verification
+    "subheader_observer_distribution": "توزيع المراقبين (مصفى)", # Needs verification
+    "info_no_observer_data_filtered": "لم يتم العثور على بيانات المراقب للمرشحات المحددة.", # Needs verification
+    "info_no_observation_data_filtered": "لم يتم العثور على بيانات الزيارة للمرشحات المحددة.", # Needs verification
+    "error_loading_analytics": "خطأ في تحميل أو معالجة المصنف للتحليلات:", # Needs verification
+    "overall_score_label": "النتيجة الإجمالية:", # Needs verification
+    "overall_score_value": "**{:.2f}**", # Needs verification
+    "overall_score_na": "**غير متوفر**", # Needs verification
+    "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # Needs verification
+    "feedback_log_sheet_name": "سجل الملاحظات", # Needs verification
     "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers - Guessed translation
     "download_feedback_log_csv": "📥 تنزيل سجل الملاحظات (CSV)", # Needs verification
     "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Needs verification
@@ -291,15 +432,15 @@ ar_strings = {
     "download_filtered_avg_excel": "📥 تنزيل متوسطات المجال المصفاة (Excel)", # Needs verification
     "download_filtered_data_csv": "📥 تنزيل بيانات الزيارة المصفاة (CSV)", # Needs verification
     "download_filtered_data_excel": "📥 تنزيل بيانات الزيارة المصفاة (Excel)", # Needs verification
-    "label_observation_date": "تاريخ الزيارة", # Needs verification
-    "filter_start_date": "تاريخ البدء", # Needs verification
-    "filter_end_date": "تاريخ الانتهاء", # Needs verification
-    "filter_teacher": "تصفية حسب المعلم", # Needs verification
-    "subheader_teacher_performance": "أداء المعلم بمرور الوقت", # Needs verification
-    "info_select_teacher": "حدد معلمًا لعرض تحليلات الأداء الفردي.", # Needs verification
-    "info_no_obs_for_teacher": "لم يتم العثور على زيارات للمعلم المحدد ضمن المرشحات المطبقة.", # Needs verification
-    "subheader_teacher_domain_trend": "اتجاه أداء مجال {}", # Needs verification
-    "subheader_teacher_overall_avg": "متوسط الدرجة الإجمالي لـ {} (مصفى)", # Needs verification
+    "label_observation_date": "Observation Date", # From snippet 1
+    "filter_start_date": "Start Date", # From snippet 1
+    "filter_end_date": "End Date", # From snippet 1
+    "filter_teacher": "Filter by Teacher", # From snippet 1
+    "subheader_teacher_performance": "Teacher Performance Over Time", # From snippet 1
+    "info_select_teacher": "Select a teacher to view individual performance analytics.", # From snippet 1
+    "info_no_obs_for_teacher": "No observations found for the selected teacher within the applied filters.", # From snippet 1
+    "subheader_teacher_domain_trend": "{} Domain Performance Trend", # From snippet 1
+    "subheader_teacher_overall_avg": "{} Overall Average Score (Filtered)", # From snippet 1
     "perf_level_very_weak": "ضعيف جداً", # Needs verification
     "perf_level_weak": "ضعيف", # Needs verification
     "perf_level_acceptable": "مقبول", # Needs verification
@@ -845,7 +986,7 @@ if wb: # Proceed only if workbook was loaded successfully
             The app currently allows you to:
             - Load the default workbook.
             - See the list of existing LO sheets.
-            - Select an existing sheet or create a 'new' one (determining the target name).
+            - Select an existing sheet or create a 'new' one (determining the target name and loading existing data if applicable).
             - Clean up unused sheets.
             - View the Guidelines.
             - Navigate to the Analytics page.
@@ -857,8 +998,6 @@ if wb: # Proceed only if workbook was loaded successfully
             syntax issue was occurring.
             """)
 
-        # The rest of the page logic (which was previously after the problematic else)
-        # now follows directly here.
 
     # <--- This 'if page == strings["page_lesson_input"]:' block ends here.
     #       The 'elif' block below should align with it.
@@ -873,9 +1012,18 @@ if wb: # Proceed only if workbook was loaded successfully
 
         # --- Analytics Logic ---
         # Find all LO sheets (excluding the template) and the Feedback Log
-        lo_sheets_data = {}
+        lo_sheets_data_list = [] # Use a list to build data before creating DataFrame
         feedback_log_data = pd.DataFrame()
         feedback_log_sheet_name = strings["feedback_log_sheet_name"]
+
+        # Structure defining domains and their average cells in the LO sheets
+        # (This is needed to extract domain averages for analytics)
+        rubric_domains_avg_cells = {
+             "Avg Domain 1": "I16", "Avg Domain 2": "I23", "Avg Domain 3": "I31",
+             "Avg Domain 4": "I38", "Avg Domain 5": "I44", "Avg Domain 6": "I50",
+             "Avg Domain 7": "I56", "Avg Domain 8": "I63", "Avg Domain 9": "I69"
+         }
+
 
         try:
             # Load data from LO sheets
@@ -903,8 +1051,17 @@ if wb: # Proceed only if workbook was loaded successfully
                             "Observation Type": ws["AA3"].value,
                             "Overall Score": None, # Placeholder, calculated next
                             "Overall Judgment": None, # Placeholder, calculated next
-                             # Add placeholders for domain averages if needed for raw data table
                         }
+
+                        # Extract Domain Averages from LO sheet cells
+                        for domain_key, cell_ref in rubric_domains_avg_cells.items():
+                             try:
+                                 avg_value = ws[cell_ref].value
+                                 # Convert to numeric, errors='coerce' turns non-numbers into NaN
+                                 data[domain_key] = pd.to_numeric(avg_value, errors='coerce')
+                             except Exception:
+                                 data[domain_key] = pd.NA # Store pandas NA on error
+
 
                         # Calculate Overall Score and Judgment from Excel formulas if possible
                         # Assuming Overall Score is calculated somewhere, e.g., AM1
@@ -912,20 +1069,17 @@ if wb: # Proceed only if workbook was loaded successfully
                             overall_score_excel = ws["AM1"].value # Adjust cell as needed based on template
                             if isinstance(overall_score_excel, (int, float)) and not math.isnan(overall_score_excel):
                                 data["Overall Score"] = float(overall_score_excel)
-                                data["Overall Judgment"] = get_performance_level(overall_score_excel, strings)
+                                # Recalculate judgment based on the numeric score using the function
+                                data["Overall Judgment"] = get_performance_level(data["Overall Score"], strings)
                             else:
-                                data["Overall Score"] = strings["overall_score_na"]
+                                data["Overall Score"] = None # Use None or pd.NA for missing/invalid
                                 data["Overall Judgment"] = strings["overall_score_na"]
                         except Exception:
-                             data["Overall Score"] = strings["overall_score_na"]
+                             data["Overall Score"] = None # Use None or pd.NA on error
                              data["Overall Judgment"] = strings["overall_score_na"]
 
-                         # You could also extract domain averages here if needed for analytics filtering/display
-                         # For example, if Domain 1 average is in I16:
-                         # try: data["Domain 1 Average"] = ws["I16"].value except Exception: pass
-
-
-                        lo_sheets_data[sheet_name] = data
+                        # Append the data dictionary to the list
+                        lo_sheets_data_list.append(data)
 
                     except Exception as e:
                         st.warning(f"Could not load data from sheet '{sheet_name}' for analytics: {e}")
@@ -938,8 +1092,6 @@ if wb: # Proceed only if workbook was loaded successfully
                  data_rows = list(log_ws.iter_rows(min_row=2, values_only=True))
                  headers = [cell.value for cell in log_ws[1]] # Get headers from the first row
 
-                 # Ensure headers match expected keys for reliable DataFrame creation
-                 # You might need robust mapping here if headers can vary
                  if headers and data_rows:
                       # Filter out empty rows if any
                       cleaned_data_rows = [row for row in data_rows if any(cell is not None and str(cell).strip() != "" for cell in row)]
@@ -952,33 +1104,35 @@ if wb: # Proceed only if workbook was loaded successfully
                            if 'Date' in feedback_log_data.columns:
                                 # Convert excel dates (numbers) or strings to datetime
                                 feedback_log_data['Date'] = pd.to_datetime(feedback_log_data['Date'], errors='coerce')
-
             else:
-                 st.info(f"Feedback Log sheet ('{feedback_log_sheet_name}') not found.")
+                 st.info(strings["feedback_log_sheet_name"].format('') + " not found.") # Use string key
 
 
         except Exception as e:
             st.error(strings["error_loading_analytics"].format(e))
             st.stop()
 
-        # Convert extracted LO sheets data to DataFrame for easier analysis
-        all_obs_data = pd.DataFrame(list(lo_sheets_data.values()))
+        # Convert extracted LO sheets data list to DataFrame
+        all_obs_data = pd.DataFrame(lo_sheets_data_list)
 
         if not all_obs_data.empty:
-             # Convert date column if it exists
+             # Convert 'Observation Date' column to datetime objects for robust comparison
              if 'Observation Date' in all_obs_data.columns:
-                  all_obs_data['Observation Date'] = pd.to_datetime(all_obs_data['Observation Date'], errors='coerce').dt.date # Keep as date objects
+                  all_obs_data['Observation Date'] = pd.to_datetime(all_obs_data['Observation Date'], errors='coerce')
 
-             # Attempt to convert score column to numeric, coercing errors
-             if 'Overall Score' in all_obs_data.columns:
-                 all_obs_data['Overall Score'] = pd.to_numeric(all_obs_data['Overall Score'], errors='coerce')
+             # Attempt to convert score column to numeric, coercing errors (Done during loading now)
+             # if 'Overall Score' in all_obs_data.columns:
+             #      all_obs_data['Overall Score'] = pd.to_numeric(all_obs_data['Overall Score'], errors='coerce')
 
 
              st.subheader(strings["subheader_data_summary"])
              st.write(f"Total Observations: {len(all_obs_data)}")
-             if 'Overall Score' in all_obs_data.columns:
+             if 'Overall Score' in all_obs_data.columns and not all_obs_data['Overall Score'].isna().all():
                  avg_overall_score = all_obs_data['Overall Score'].mean()
-                 st.write(f"Overall Average Score: {avg_overall_score:.2f}" if not math.isnan(avg_overall_score) else "Overall Average Score: N/A")
+                 st.write(f"Overall Average Score: {avg_overall_score:.2f}")
+             else:
+                 st.write("Overall Average Score: N/A (No valid scores found)")
+
 
              # --- Filtering Options ---
              st.markdown("---")
@@ -1001,21 +1155,23 @@ if wb: # Proceed only if workbook was loaded successfully
              # Date filtering
              st.markdown("##### Filter by Date")
              today = datetime.now().date()
-             min_date = all_obs_data['Observation Date'].min() if 'Observation Date' in all_obs_data.columns and not all_obs_data['Observation Date'].empty else today - timedelta(days=365)
-             max_date = all_obs_data['Observation Date'].max() if 'Observation Date' in all_obs_data.columns and not all_obs_data['Observation Date'].empty else today + timedelta(days=7)
-
-             # Ensure min/max dates are valid date objects before providing to date_input
-             if not isinstance(min_date, date): min_date = today - timedelta(days=365)
-             if not isinstance(max_date, date): max_date = today + timedelta(days=7)
+             # Determine min/max dates from the loaded data, handling NaT values
+             valid_dates = all_obs_data['Observation Date'].dropna() if 'Observation Date' in all_obs_data.columns else pd.Series(dtype='datetime64[ns]')
+             min_date_data = valid_dates.min().date() if not valid_dates.empty else today - timedelta(days=365)
+             max_date_data = valid_dates.max().date() if not valid_dates.empty else today + timedelta(days=7)
 
              # Use try-except for date inputs as default values might cause issues if data is weird
              try:
-                  start_date = st.date_input(strings["filter_start_date"], value=min_date, min_value=min_date, max_value=max_date)
+                  # Ensure default value is within min/max range for the widget
+                  default_start_date = max(min_date_data, today - timedelta(days=365))
+                  start_date = st.date_input(strings["filter_start_date"], value=default_start_date, min_value=min_date_data, max_value=max_date_data)
              except Exception:
                   start_date = st.date_input(strings["filter_start_date"], value=today - timedelta(days=365)) # Fallback default
 
              try:
-                  end_date = st.date_input(strings["filter_end_date"], value=max_date, min_value=min_date, max_value=max_date)
+                  # Ensure default value is within min/max range for the widget
+                  default_end_date = min(max_date_data, today + timedelta(days=7))
+                  end_date = st.date_input(strings["filter_end_date"], value=default_end_date, min_value=min_date_data, max_value=max_date_data)
              except Exception:
                   end_date = st.date_input(strings["filter_end_date"], value=today + timedelta(days=7)) # Fallback default
 
@@ -1033,79 +1189,157 @@ if wb: # Proceed only if workbook was loaded successfully
              if filter_observer != strings["option_all"]:
                  filtered_data = filtered_data[filtered_data['Observer'] == filter_observer]
 
-             # Apply date filter, ensuring the column exists and has valid dates
+             # Apply date filter, ensuring the column exists and has valid datetimes
              if 'Observation Date' in filtered_data.columns and not filtered_data['Observation Date'].empty:
-                  # Ensure date column is datetime objects for comparison
-                  filtered_data['Observation Date'] = pd.to_datetime(filtered_data['Observation Date'], errors='coerce').dt.date
-                  # Filter out rows where date conversion failed before applying date range
-                  filtered_data = filtered_data.dropna(subset=['Observation Date'])
+                  # Filter out NaT values before comparison
+                  filtered_data_valid_dates = filtered_data.dropna(subset=['Observation Date']).copy()
+                  # Convert date picker results to pandas Timestamps for direct comparison with datetime64[ns]
+                  start_timestamp = pd.Timestamp(start_date)
+                  end_timestamp = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1) # Include the whole end day
 
-                  filtered_data = filtered_data[(filtered_data['Observation Date'] >= start_date) & (filtered_data['Observation Date'] <= end_date)]
+                  filtered_data = filtered_data_valid_dates[(filtered_data_valid_dates['Observation Date'] >= start_timestamp) & (filtered_data_valid_dates['Observation Date'] <= end_timestamp)]
 
 
              st.markdown("---")
              st.subheader(strings["subheader_avg_score_filtered"])
 
-             if not filtered_data.empty and 'Overall Score' in filtered_data.columns:
-                 # Calculate average score for filtered data, ignoring NaNs
-                 avg_filtered_score = filtered_data['Overall Score'].mean()
-                 st.write(f"Average Overall Score for Filtered Data: {avg_filtered_score:.2f}" if not math.isnan(avg_filtered_score) else "Average Overall Score for Filtered Data: N/A")
+             if not filtered_data.empty:
+                 # Calculate average overall score for filtered data, ignoring NaNs
+                 if 'Overall Score' in filtered_data.columns and not filtered_data['Overall Score'].isna().all():
+                      avg_filtered_score = filtered_data['Overall Score'].mean()
+                      st.write(f"Average Overall Score for Filtered Data: {avg_filtered_score:.2f}")
+                 else:
+                      st.write("Average Overall Score for Filtered Data: N/A (No valid scores found)")
 
-                 # Display filtered data table
-                 st.markdown("##### Filtered Observation Data")
-                 st.dataframe(filtered_data)
 
-                 # Download filtered data
-                 csv_buffer_filtered = io.StringIO()
-                 filtered_data.to_csv(csv_buffer_filtered, index=False)
-                 csv_buffer_filtered.seek(0)
-                 st.download_button(
-                     label=strings["download_filtered_data_csv"],
-                     data=csv_buffer_filtered.getvalue(),
-                     file_name="filtered_observation_data.csv",
-                     mime="text/csv"
-                 )
+                 # --- Bar Chart: Overall Judgment Distribution (Filtered) ---
+                 st.markdown("#### Overall Judgment Distribution (Filtered)")
+                 if 'Overall Judgment' in filtered_data.columns and not filtered_data['Overall Judgment'].isna().all():
+                     judgment_counts = filtered_data['Overall Judgment'].value_counts()
+                     if not judgment_counts.empty:
+                          # Define a specific order for the judgments if desired
+                          judgment_order = [strings["perf_level_very_weak"], strings["perf_level_weak"], strings["perf_level_acceptable"], strings["perf_level_good"], strings["perf_level_excellent"], strings["overall_score_na"]]
+                          judgment_counts = judgment_counts.reindex(judgment_order).dropna() # Reindex to enforce order, drop categories with no counts
+                          st.bar_chart(judgment_counts)
+                     else:
+                          st.info("No valid overall judgments found in the filtered data.")
+                 else:
+                      st.info("Overall Judgment data is not available or is invalid in the filtered dataset.")
 
-                 excel_buffer_filtered = io.BytesIO()
-                 filtered_data.to_excel(excel_buffer_filtered, index=False)
-                 excel_buffer_filtered.seek(0)
-                 st.download_button(
-                      label=strings["download_filtered_data_excel"],
-                      data=excel_buffer_filtered.getvalue(),
-                      file_name="filtered_observation_data.xlsx",
-                      mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                 )
+
+                 # --- Bar Chart: Average Score by Domain (Filtered) ---
+                 st.markdown("#### Average Score by Domain (Filtered)")
+                 # Calculate average for each domain column, ignoring NaNs
+                 domain_avg_columns = [col for col in filtered_data.columns if col.startswith('Avg Domain')]
+                 if domain_avg_columns:
+                      # Select only the domain average columns and calculate the mean for each
+                      domain_avg_data = filtered_data[domain_avg_columns].mean().reset_index()
+                      domain_avg_data.columns = ['Domain', 'Average Score']
+                      # Remove 'Avg ' prefix for cleaner chart labels
+                      domain_avg_data['Domain'] = domain_avg_data['Domain'].str.replace('Avg ', '')
+
+                      if not domain_avg_data.empty and not domain_avg_data['Average Score'].isna().all():
+                           # Set the index to Domain for st.bar_chart
+                           domain_avg_data = domain_avg_data.set_index('Domain')
+                           st.bar_chart(domain_avg_data)
+                      else:
+                           st.info("No valid domain average scores found in the filtered data.")
+                 else:
+                     st.info("Domain average data is not available in the dataset.")
+
+
+                 # --- Filtered Data Table and Downloads ---
+                 st.markdown("---")
+                 st.markdown("##### Filtered Observation Data Table")
+                 # Select specific columns for the table display for clarity
+                 display_columns = ['Sheet', 'Observer', 'Teacher', 'School', 'Grade', 'Subject', 'Observation Date', 'Overall Score', 'Overall Judgment'] + domain_avg_columns
+                 # Ensure selected display columns exist in the filtered data
+                 display_columns = [col for col in display_columns if col in filtered_data.columns]
+                 st.dataframe(filtered_data[display_columns])
+
+                 st.markdown("###### Download Filtered Data")
+                 col_csv, col_excel = st.columns(2)
+                 with col_csv:
+                      csv_buffer_filtered = io.StringIO()
+                      # Include all columns in the downloaded CSV/Excel, not just display columns
+                      filtered_data.to_csv(csv_buffer_filtered, index=False)
+                      csv_buffer_filtered.seek(0)
+                      st.download_button(
+                          label=strings["download_filtered_data_csv"],
+                          data=csv_buffer_filtered.getvalue(),
+                          file_name="filtered_observation_data.csv",
+                          mime="text/csv"
+                      )
+                 with col_excel:
+                      excel_buffer_filtered = io.BytesIO()
+                      filtered_data.to_excel(excel_buffer_filtered, index=False)
+                      excel_buffer_filtered.seek(0)
+                      st.download_button(
+                           label=strings["download_filtered_data_excel"],
+                           data=excel_buffer_filtered.getvalue(),
+                           file_name="filtered_observation_data.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      )
+
+                 st.markdown("---")
+                 st.info("""
+                     **Note on Chart Downloads:** Streamlit's native charts (like the bar charts above)
+                     do not have a built-in image download option. If you require downloadable chart
+                     images, you would typically use charting libraries like Matplotlib or Plotly
+                     (displayed using `st.pyplot()` or `st.plotly_chart()`) and add specific code
+                     for chart export, which can add complexity. The data used to generate the charts
+                     is available for download in the filtered data table above.
+                     """)
 
 
              else:
-                 st.info(strings["info_no_observation_data_filtered"]) # Adjusted string to cover no data after filtering
+                 st.info(strings["info_no_observation_data_filtered"]) # Show this if filtered_data is empty
 
 
-             # --- Overall Domain Averages (Across all observations) ---
-             st.markdown("---")
-             st.subheader(strings["subheader_avg_score_overall"])
+             # --- Overall Domain Averages (Across ALL observations, ignoring filters) ---
+             st.markdown("#### Average Score per Domain (Across all observations)")
+             # Calculate average for each domain column from the unfiltered data, ignoring NaNs
+             domain_avg_columns_all = [col for col in all_obs_data.columns if col.startswith('Avg Domain')]
+             if domain_avg_columns_all:
+                  domain_avg_data_all = all_obs_data[domain_avg_columns_all].mean().reset_index()
+                  domain_avg_data_all.columns = ['Domain', 'Average Score']
+                  # Remove 'Avg ' prefix for cleaner chart labels
+                  domain_avg_data_all['Domain'] = domain_avg_data_all['Domain'].str.replace('Avg ', '')
 
-             # This requires reading domain scores from each sheet, which wasn't fully implemented
-             # in the load_existing_data or the save logic yet.
-             # Need to read I16 (Domain 1 Avg), I23 (Domain 2 Avg), etc., for each LO sheet.
-             # For now, show a placeholder or calculate if possible from log sheet if domain averages were added there.
+                  if not domain_avg_data_all.empty and not domain_avg_data_all['Average Score'].isna().all():
+                       # Set the index to Domain for st.bar_chart
+                       domain_avg_data_all = domain_avg_data_all.set_index('Domain')
+                       st.bar_chart(domain_avg_data_all)
 
-             # Assuming domain averages might be available in the log sheet or derivable from raw LO sheet data
-             # (This part needs specific implementation based on where domain averages are stored/calculated)
-             st.info("Calculation of overall domain averages is pending implementation based on detailed score extraction.")
+                       st.markdown("###### Download Overall Domain Averages Data")
+                       col_csv_all_avg, col_excel_all_avg = st.columns(2)
+                       with col_csv_all_avg:
+                            csv_buffer_all_avg = io.StringIO()
+                            domain_avg_data_all.to_csv(csv_buffer_all_avg)
+                            csv_buffer_all_avg.seek(0)
+                            st.download_button(
+                                label=strings["download_overall_avg_csv"],
+                                data=csv_buffer_all_avg.getvalue(),
+                                file_name="overall_domain_averages.csv",
+                                mime="text/csv"
+                            )
+                       with col_excel_all_avg:
+                            excel_buffer_all_avg = io.BytesIO()
+                            domain_avg_data_all.to_excel(excel_buffer_all_avg)
+                            excel_buffer_all_avg.seek(0)
+                            st.download_button(
+                                 label=strings["download_overall_avg_excel"],
+                                 data=excel_buffer_all_avg.getvalue(),
+                                 file_name="overall_domain_averages.xlsx",
+                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
 
 
-             # --- Observer Distribution ---
-             st.markdown("---")
-             st.subheader(strings["subheader_observer_distribution"])
-
-             if not filtered_data.empty and 'Observer' in filtered_data.columns:
-                  observer_counts = filtered_data['Observer'].value_counts().reset_index()
-                  observer_counts.columns = ['Observer', 'Count']
-                  st.dataframe(observer_counts)
-
+                  else:
+                       st.info(strings["info_no_numeric_scores_overall"]) # No valid overall domain averages found
              else:
-                  st.info(strings["info_no_observer_data_filtered"])
+                  st.info("Domain average data columns not found in the dataset.")
+
 
 
              # --- Teacher Performance Over Time ---
@@ -1113,26 +1347,80 @@ if wb: # Proceed only if workbook was loaded successfully
              st.subheader(strings["subheader_teacher_performance"])
              st.info(strings["info_select_teacher"])
 
-             selected_teacher_for_trend = st.selectbox("Select Teacher for Trend Analysis", [None] + list(all_teachers))
+             # Teacher selection dropdown for detailed trend
+             # Use the list of unique teachers from *all* data, not just filtered data,
+             # so you can select any teacher even if they are filtered out by other criteria initially.
+             selected_teacher_for_trend = st.selectbox("Select Teacher for Trend Analysis", [None] + list(all_teachers), format_func=lambda x: x if x is not None else "Select a Teacher...") # Use None for the initial placeholder
+
 
              if selected_teacher_for_trend:
-                  teacher_data = filtered_data[filtered_data['Teacher'] == selected_teacher_for_trend].copy()
+                  # Filter the *original* data by the selected teacher for the trend,
+                  # but apply the date filter if set. Other filters (school, grade, subject, observer)
+                  # might make the trend analysis less meaningful, so we can choose to
+                  # apply only the teacher filter + date filter for the trend chart.
+                  # Let's apply all current filters for consistency with the table above for now.
+                  teacher_data_for_trend = filtered_data[filtered_data['Teacher'] == selected_teacher_for_trend].copy()
 
-                  if not teacher_data.empty and 'Overall Score' in teacher_data.columns:
+
+                  if not teacher_data_for_trend.empty and 'Overall Score' in teacher_data_for_trend.columns:
                        st.subheader(strings["subheader_teacher_overall_avg"].format(selected_teacher_for_trend))
                        # Display average for the selected teacher within the current filters
-                       avg_teacher_score = teacher_data['Overall Score'].mean()
-                       st.write(f"Average Overall Score: {avg_teacher_score:.2f}" if not math.isnan(avg_teacher_score) else "Average Overall Score: N/A")
+                       avg_teacher_score_filtered = teacher_data_for_trend['Overall Score'].mean()
+                       st.write(f"Average Overall Score (Filtered): {avg_teacher_score_filtered:.2f}" if not math.isnan(avg_teacher_score_filtered) else "Average Overall Score (Filtered): N/A")
 
-                       # Plot trend over time
-                       if 'Observation Date' in teacher_data.columns and not teacher_data.dropna(subset=['Observation Date']).empty:
+                       # Plot trend over time (Requires valid dates and domain data)
+                       domain_avg_columns_teacher = [col for col in teacher_data_for_trend.columns if col.startswith('Avg Domain')]
+
+                       if 'Observation Date' in teacher_data_for_trend.columns and not teacher_data_for_trend.dropna(subset=['Observation Date']).empty and domain_avg_columns_teacher:
                             st.subheader(strings["subheader_teacher_domain_trend"].format(selected_teacher_for_trend))
-                            # Need to extract Domain Averages into columns for plotting
-                            # This requires the implementation of extracting domain scores from sheets.
-                            st.info("Trend analysis requires extraction of domain scores from observation sheets.")
 
-                       else:
-                            st.info("Observation dates are missing or invalid for this teacher.")
+                            # Prepare data for plotting trend - requires dates as index and numeric columns
+                            # Sort data by date for the trend line
+                            teacher_data_for_trend = teacher_data_for_trend.sort_values(by='Observation Date')
+                            # Select date and domain average columns
+                            trend_columns = ['Observation Date'] + domain_avg_columns_teacher
+                            trend_data = teacher_data_for_trend[trend_columns].dropna(subset=['Observation Date']) # Drop rows with no date
+
+                            if not trend_data.empty:
+                                 # Set date as index for plotting
+                                 trend_data = trend_data.set_index('Observation Date')
+                                 # Remove 'Avg ' prefix from column names for cleaner plot legend
+                                 trend_data.columns = trend_data.columns.str.replace('Avg ', '')
+
+                                 st.line_chart(trend_data)
+
+                                 st.markdown("###### Download Teacher Trend Data")
+                                 col_csv_trend, col_excel_trend = st.columns(2)
+                                 with col_csv_trend:
+                                      csv_buffer_trend = io.StringIO()
+                                      trend_data.to_csv(csv_buffer_trend)
+                                      csv_buffer_trend.seek(0)
+                                      st.download_button(
+                                          label="📥 Download Trend Data (CSV)",
+                                          data=csv_buffer_trend.getvalue(),
+                                          file_name=f"{selected_teacher_for_trend.replace(' ', '_')}_trend_data.csv",
+                                          mime="text/csv"
+                                      )
+                                 with col_excel_trend:
+                                      excel_buffer_trend = io.BytesIO()
+                                      trend_data.to_excel(excel_buffer_trend)
+                                      excel_buffer_trend.seek(0)
+                                      st.download_button(
+                                          label="📥 Download Trend Data (Excel)",
+                                          data=excel_buffer_trend.getvalue(),
+                                          file_name=f"{selected_teacher_for_trend.replace(' ', '_')}_trend_data.xlsx",
+                                          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                      )
+
+
+                            else:
+                                 st.info("No data with valid dates and domain scores found for this teacher under current filters.")
+
+                       elif 'Observation Date' not in teacher_data_for_trend.columns or teacher_data_for_trend.dropna(subset=['Observation Date']).empty:
+                            st.info("Observation dates are missing or invalid for this teacher under current filters.")
+                       elif not domain_avg_columns_teacher:
+                            st.info("Domain average data is not available for trend analysis.")
+
 
                   else:
                        st.info(strings["info_no_obs_for_teacher"])
@@ -1140,8 +1428,9 @@ if wb: # Proceed only if workbook was loaded successfully
                  st.info("Select a teacher above to view their performance trend.")
 
 
-        else:
-            st.info(strings["info_no_observation_data_filtered"]) # Show this if all_obs_data is empty
+
+        else: # If all_obs_data is empty after initial loading
+            st.info(strings["info_no_observation_data_filtered"])
 
 
 # <--- This 'if wb:' block ends here.
