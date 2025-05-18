@@ -16,7 +16,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import csv
 import io
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import get_column_letter, column_index_from_string
 
 # Import ReportLab modules for PDF generation
 from reportlab.lib.pagesizes import letter
@@ -529,37 +529,37 @@ def generate_observation_pdf(data, feedback_content, strings): # Removed teacher
                      label = element.get("label", "Unknown Element")
                      rating = element.get("rating", "N/A")
                      note = element.get("note", "")
-                     descriptor = element.get("descriptor", "") # Specific descriptor text for the given rating
+                     # Descriptor structure is now a dict {rating: text}
+                     descriptors_by_rating = element.get("descriptors_by_rating", {})
 
                      story.append(Paragraph(f"- <b>{label}:</b> Rating <b>{rating}</b>", styles['RubricElementRating']))
 
-                     # Include Descriptor if available
-                     if descriptor and isinstance(descriptor, str) and descriptor.strip():
-                         # Clean and format the descriptor text - remove HTML/markdown like bold
-                         cleaned_desc_para = re.sub(r'<.*?>', '', descriptor).replace('**', '')
+                     # Include Descriptor for the selected rating if available
+                     selected_rating_descriptor = descriptors_by_rating.get(str(rating)) # Get descriptor for the specific rating
+                     if selected_rating_descriptor and isinstance(selected_rating_descriptor, str) and selected_rating_descriptor.strip():
+                         cleaned_desc_para = re.sub(r'<.*?>', '', selected_rating_descriptor).replace('**', '')
                          desc_paragraphs = cleaned_desc_para.split('\n')
                          for desc_para in desc_paragraphs:
                              if desc_para.strip():
-                                  story.append(Paragraph(desc_para, styles['RubricDescriptor']))
-                         story.append(Spacer(1, 0.05*inch)) # Small space after descriptor
+                                  story.append(Paragraph(f"  <i>Guidance for rating {rating}:</i> {desc_para}", styles['RubricDescriptor']))
+                         story.append(Spacer(1, 0.05*inch))
 
                      # Include Note if available
                      if note and isinstance(note, str) and note.strip():
-                          # Clean and format the note text - remove HTML/markdown like bold
                           cleaned_note_para = re.sub(r'<.*?>', '', note).replace('**', '')
                           note_paragraphs = cleaned_note_para.split('\n')
-                          story.append(Paragraph("  <i>Notes:</i>", styles['Normal'])) # Italicize notes header
+                          story.append(Paragraph("  <i>Notes:</i>", styles['Normal']))
                           for note_para in note_paragraphs:
                              if note_para.strip():
                                   story.append(Paragraph(note_para, styles['Normal']))
-                          story.append(Spacer(1, 0.05*inch)) # Small space after notes
+                          story.append(Spacer(1, 0.05*inch))
 
-                     story.append(Spacer(1, 0.1*inch)) # Space after each element
+                     story.append(Spacer(1, 0.1*inch))
             else:
                  story.append(Paragraph("No elements recorded for this domain.", styles['Normal']))
 
 
-            story.append(Spacer(1, 0.2*inch)) # Space after each domain
+            story.append(Spacer(1, 0.2*inch))
     else:
         story.append(Paragraph("No rubric data available.", styles['Normal']))
 
@@ -568,7 +568,6 @@ def generate_observation_pdf(data, feedback_content, strings): # Removed teacher
     overall_notes = data.get("overall_notes", "")
     if overall_notes and isinstance(overall_notes, str) and overall_notes.strip():
         story.append(Paragraph(strings["label_overall_notes"] + ":", styles['Heading2']))
-        # Convert markdown in general notes if any
         cleaned_overall_notes = re.sub(r'<.*?>', '', overall_notes).replace('**', '<b>').replace('**', '</b>')
         notes_paragraphs = cleaned_overall_notes.split('\n')
         for note_para in notes_paragraphs:
@@ -577,21 +576,15 @@ def generate_observation_pdf(data, feedback_content, strings): # Removed teacher
         story.append(Spacer(1, 0.2*inch))
 
 
-    # Feedback Content (This part is crucial and needs to be generated dynamically)
+    # Feedback Content
     story.append(Paragraph("Feedback Report:", styles['Heading2']))
     if feedback_content and isinstance(feedback_content, str):
-        # The feedback_content string needs to be constructed before calling this function.
-        # It should include the greeting, summary of scores/judgments, performance summary,
-        # suggested plan/steps, and closing.
-        # Convert markdown-like text to ReportLab flowables
-        feedback_paragraphs = feedback_content.split('\n\n') # Split by double newline
+        feedback_paragraphs = feedback_content.split('\n\n')
         for para in feedback_paragraphs:
             if para.strip():
-                # Simple bold conversion and newline handling for ReportLab
-                # Also clean any stray HTML tags
                 para_styled = re.sub(r'<.*?>', '', para).replace('**', '<b>').replace('**', '</b>').replace('\n', '<br/>')
                 story.append(Paragraph(para_styled, styles['Normal']))
-            story.append(Spacer(1, 0.1*inch)) # Add space between paragraphs
+            story.append(Spacer(1, 0.1*inch))
     else:
         story.append(Paragraph("Feedback content could not be generated.", styles['Normal']))
 
@@ -602,10 +595,8 @@ def generate_observation_pdf(data, feedback_content, strings): # Removed teacher
         buffer.seek(0)
         return buffer
     except Exception as e:
-        # Handle errors during PDF build
-        print(f"Error generating PDF: {e}") # Log to console/logs
-        # st.error(f"Error generating PDF: {e}") # Avoid st.error inside this function if it runs outside Streamlit thread
-        return None # Indicate failure
+        print(f"Error generating PDF: {e}")
+        return None
 
 
 # --- Streamlit App Layout ---
@@ -614,16 +605,12 @@ arabic_mode = st.sidebar.toggle(en_strings["arabic_toggle_label"], False)
 strings = get_strings(arabic_mode)
 
 # --- Default File Definition ---
-# Define the path to your template workbook
 DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 
 
 # Initialize workbook in session state if not already loaded
-# This avoids reloading the workbook from disk on every single rerun
-# BUT requires careful handling of saving modifications back to disk.
 if 'workbook' not in st.session_state:
     st.session_state.workbook = None
-    # Attempt to load the default workbook on first run
     if os.path.exists(DEFAULT_FILE):
         try:
             st.session_state.workbook = load_workbook(DEFAULT_FILE)
@@ -634,18 +621,14 @@ if 'workbook' not in st.session_state:
     else:
         st.warning(strings["warning_default_not_found"].format(DEFAULT_FILE))
 
-# Use the workbook from session state
 wb = st.session_state.workbook
 
-# Sidebar page selection
-page = st.sidebar.selectbox(strings["sidebar_select_page"], [strings["page_lesson_input"], strings["page_analytics"], strings["page_help"]]) # Added Help page
+page = st.sidebar.selectbox(strings["sidebar_select_page"], [strings["page_lesson_input"], strings["page_analytics"], strings["page_help"]])
 
-# --- Main Application Logic ---
-if wb: # Proceed only if workbook was loaded successfully
+if wb:
     if page == strings["page_lesson_input"]:
         st.title(strings["title_lesson_input"])
 
-        # CSS for spacing
         st.markdown("""
         <style>
         .block-container {
@@ -654,26 +637,19 @@ if wb: # Proceed only if workbook was loaded successfully
         </style>
         """, unsafe_allow_html=True)
 
-        # Email Domain Restriction
-        # This widget manages st.session_state['auth_email_input'] automatically via its key.
         email = st.text_input("Enter your school email to continue", value=st.session_state.get('auth_email_input', ''), key='auth_email_input')
 
         allowed_domains = ["@charterschools.ae", "@adek.gov.ae"]
-        # Check if email is entered AND if it ends with an allowed domain
-        # Read the value directly from session state managed by the widget
         if not (st.session_state.get('auth_email_input') and any(st.session_state.get('auth_email_input', '').strip().lower().endswith(domain) for domain in allowed_domains)):
-             if st.session_state.get('auth_email_input', '').strip(): # Only show specific warning if email is entered but invalid
+             if st.session_state.get('auth_email_input', '').strip():
                   st.warning("Access restricted. Please use an authorized school email.")
-             st.stop() # Stop execution if email is invalid
-
-        # REMOVED: st.session_state['auth_email_input'] = email # Store valid email - THIS LINE CAUSED THE ERROR
+             st.stop()
 
 
         lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
         if wb and lo_sheets:
              st.success(strings["success_lo_sheets_found"].format(len(lo_sheets)))
 
-        # Cleanup unused LO sheets
         if wb and len(lo_sheets) > 1:
              if st.checkbox(strings.get("checkbox_cleanup_sheets", "🪟 Clean up unused LO sheets (no observer name)")):
                  to_remove = []
@@ -710,7 +686,6 @@ if wb: # Proceed only if workbook was loaded successfully
                      st.info(strings.get("info_no_sheets_to_cleanup", "No unused LO sheets found to clean up."))
 
 
-        # Display Guidelines expander (keeping it here for quick access)
         if wb and "Guidelines" in wb.sheetnames:
             guideline_content = []
             try:
@@ -733,12 +708,11 @@ if wb: # Proceed only if workbook was loaded successfully
         lo_sheets = [sheet for sheet in wb.sheetnames if sheet.startswith("LO ")]
         if "LO 1" not in wb.sheetnames:
             st.error(strings["error_template_not_found"])
-            st.stop() # Cannot proceed without template
+            st.stop()
 
         existing_sheets_for_selection = sorted([s for s in lo_sheets if s != "LO 1"])
         sheet_selection_options = [strings["option_create_new"]] + existing_sheets_for_selection
 
-        # --- Sheet Selection Dropdown ---
         selected_option = st.selectbox(
             strings["select_sheet_or_create"],
             sheet_selection_options,
@@ -762,24 +736,33 @@ if wb: # Proceed only if workbook was loaded successfully
         rubric_descriptors = {}
         try:
              template_ws = wb["LO 1"]
+             # Assume rating 1-6 descriptors are in columns E, F, G, H, K, L respectively for each element row.
+             # This is an assumption based on common layouts; adjust column letters if needed.
+             descriptor_cols = {
+                 1: 'E', 2: 'F', 3: 'G', 4: 'H', 5: 'K', 6: 'L'
+             }
+
              for domain, (start_cell, count) in rubric_domains_structure.items():
                   row_start = int(start_cell[1:])
                   for i in range(count):
                        row = row_start + i
                        element_key = f"{domain}_{i}"
-                       descriptor_text_parts = []
-                       try:
-                            # Assuming descriptors are in columns E (index 4) to H (index 7)
-                            for col_idx in range(4, 8):
-                                 col_letter = get_column_letter(col_idx + 1)
-                                 cell_value = template_ws[f"{col_letter}{row}"].value
-                                 if cell_value is not None and isinstance(cell_value, str) and cell_value.strip():
-                                      descriptor_text_parts.append(cell_value.strip())
-                       except Exception as e:
-                            print(f"Error reading descriptor cells for {domain} element {i}: {e}")
-                            pass
+                       rubric_descriptors[element_key] = {}
 
-                       rubric_descriptors[element_key] = {'general': " ".join(descriptor_text_parts) if descriptor_text_parts else strings["info_no_descriptors"]}
+                       for rating_value in range(1, 7): # For ratings 1 through 6
+                            col_letter = descriptor_cols.get(rating_value)
+                            if col_letter:
+                                 try:
+                                      cell_value = template_ws[f"{col_letter}{row}"].value
+                                      if cell_value is not None and isinstance(cell_value, str) and cell_value.strip():
+                                           rubric_descriptors[element_key][str(rating_value)] = cell_value.strip()
+                                      else:
+                                           rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"] # Use specific string
+                                 except Exception as e:
+                                      print(f"Error reading descriptor cell {col_letter}{row} for {domain} element {i}: {e}")
+                                      rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"] # Use specific string on error
+                            else:
+                                 rubric_descriptors[element_key][str(rating_value)] = strings["info_no_descriptors"] # Use specific string if column not mapped
 
         except KeyError:
             st.warning("Template sheet 'LO 1' not found. Cannot read rubric descriptors.")
@@ -913,18 +896,13 @@ if wb: # Proceed only if workbook was loaded successfully
             return data
 
         # --- State Management for Sheet Selection (Loading/Resetting) ---
-        # Initialize tracker for the sheet whose data is currently loaded into session state
         if 'current_loaded_sheet_option' not in st.session_state:
-             st.session_state['current_loaded_sheet_option'] = None # Initialize to no sheet loaded
+             st.session_state['current_loaded_sheet_option'] = None
 
-        # Check if the selected sheet in the dropdown has changed from the one whose data is loaded
         if st.session_state['sheet_selector'] != st.session_state['current_loaded_sheet_option']:
-             # The selected option has changed, update the tracker and load/reset state
              st.session_state['current_loaded_sheet_option'] = st.session_state['sheet_selector']
 
              if selected_option == strings["option_create_new"]:
-                 # --- Logic for "Create New" ---
-                 # Calculate the name for the *new* sheet (target name)
                  next_index = 1
                  existing_lo_numbers = []
                  for sheet in wb.sheetnames:
@@ -936,11 +914,9 @@ if wb: # Proceed only if workbook was loaded successfully
                       next_index = max(existing_lo_numbers) + 1
                  calculated_new_sheet_name = f"LO {next_index}"
 
-                 # Set the target sheet name for the form display and eventual saving
                  st.session_state['active_sheet_name_for_display'] = calculated_new_sheet_name
                  st.info(strings["subheader_filling_data"].format(st.session_state['active_sheet_name_for_display']))
 
-                 # Reset session state keys to defaults for a new sheet
                  st.session_state.update({
                       'observer_name': '',
                       'teacher_name': '',
@@ -960,10 +936,9 @@ if wb: # Proceed only if workbook was loaded successfully
                       'observation_type': strings["option_individual"],
                       'overall_notes': '',
                       'checkbox_send_feedback': False,
-                      'element_inputs': {} # Initialize empty dict for element scores/notes
+                      'element_inputs': {}
                  })
 
-                 # Initialize element inputs in session state with default "NA" rating and empty notes
                  for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
                       for i in range(count):
                            rating_key = f"{domain}_{i}_rating"
@@ -971,10 +946,9 @@ if wb: # Proceed only if workbook was loaded successfully
                            st.session_state['element_inputs'][rating_key] = "NA"
                            st.session_state['element_inputs'][note_key] = ""
 
-                 # Trigger a rerun to redraw the app with the newly reset state
                  st.rerun()
 
-             else: # --- Logic for Selecting an Existing Sheet ---
+             else:
                  target_sheet_name_from_selector = selected_option
                  st.session_state['active_sheet_name_for_display'] = target_sheet_name_from_selector
                  st.subheader(strings["subheader_filling_data"].format(st.session_state['active_sheet_name_for_display']))
@@ -982,78 +956,58 @@ if wb: # Proceed only if workbook was loaded successfully
                  try:
                      ws_to_load_from = wb[target_sheet_name_from_selector]
 
-                     # Load existing data into session state
                      existing_data = load_existing_data(ws_to_load_from, rubric_domains_structure)
 
-                     # Update session state with loaded data (excluding auth email)
                      for key, value in existing_data.items():
                           if key != 'auth_email_input':
-                               # Handle specific types for widget defaults
                                if key in ['observer_name', 'teacher_name', 'teacher_email', 'operator', 'school_name', 'grade', 'subject', 'period', 'overall_notes']:
-                                    st.session_state[key] = value if value is not None else '' # Use empty string for text inputs
+                                    st.session_state[key] = value if value is not None else ''
                                elif key in ['students', 'males', 'females']:
-                                    st.session_state[key] = value if value is not None else 0 # Use 0 for numbers
+                                    st.session_state[key] = value if value is not None else 0
                                elif key in ['gender', 'observation_type']:
-                                    # Ensure loaded value is one of the selectbox options or default
                                     options = ["Male", "Female", "Mixed", ""] if key == 'gender' else [strings["option_individual"], strings["option_joint"]]
-                                    st.session_state[key] = value if value in options else (options[0] if options else '') # Default to first option or empty
+                                    st.session_state[key] = value if value in options else (options[0] if options else '')
                                elif key == 'observation_date':
-                                    # Ensure it's a date object
-                                    if isinstance(value, datetime):
-                                         st.session_state[key] = value.date()
-                                    elif isinstance(value, date):
-                                         st.session_state[key] = value
-                                    else:
-                                         st.session_state[key] = datetime.now().date() # Default if invalid
+                                    if isinstance(value, datetime): st.session_state[key] = value.date()
+                                    elif isinstance(value, date): st.session_state[key] = value
+                                    else: st.session_state[key] = datetime.now().date()
                                elif key in ['time_in', 'time_out']:
-                                     # Ensure it's a time object
-                                     if isinstance(value, datetime.time):
-                                          st.session_state[key] = value
-                                     elif isinstance(value, datetime): # Sometimes loaded as datetime
-                                          st.session_state[key] = value.time()
-                                     else:
-                                          st.session_state[key] = None # Default None
+                                     if isinstance(value, datetime.time): st.session_state[key] = value
+                                     elif isinstance(value, datetime): st.session_state[key] = value.time()
+                                     else: st.session_state[key] = None
                                elif key == 'element_inputs':
-                                     # element_inputs is a dictionary, merge it
                                      st.session_state[key] = value if isinstance(value, dict) else {}
                                else:
-                                    st.session_state[key] = value # For other types
+                                    st.session_state[key] = value
 
-
-                     # Ensure element_inputs is initialized even if loading failed for it
                      if 'element_inputs' not in st.session_state or not isinstance(st.session_state['element_inputs'], dict):
-                          st.session_state['element_inputs'] = {} # Safety initialization
+                          st.session_state['element_inputs'] = {}
 
                  except KeyError:
                      st.error(f"Error: Selected sheet '{target_sheet_name_from_selector}' not found or could not be accessed.")
-                     st.session_state['sheet_selector'] = strings["option_create_new"] # Reset selector
-                     st.session_state['current_loaded_sheet_option'] = strings["option_create_new"] # Reset tracker
-                     st.session_state['active_sheet_name_for_display'] = None # Clear display name
+                     st.session_state['sheet_selector'] = strings["option_create_new"]
+                     st.session_state['current_loaded_sheet_option'] = strings["option_create_new"]
+                     st.session_state['active_sheet_name_for_display'] = None
                      st.rerun()
-                     st.stop() # Stop current run
+                     st.stop()
                  except Exception as e:
                      st.error(f"Error loading data from sheet '{target_sheet_name_from_selector}': {e}")
-                     st.session_state['sheet_selector'] = strings["option_create_new"] # Reset selector
-                     st.session_state['current_loaded_sheet_option'] = strings["option_create_new"] # Reset tracker
-                     st.session_state['active_sheet_name_for_display'] = None # Clear display name
+                     st.session_state['sheet_selector'] = strings["option_create_new"]
+                     st.session_state['current_loaded_sheet_option'] = strings["option_create_new"]
+                     st.session_state['active_sheet_name_for_display'] = None
                      st.rerun()
-                     st.stop() # Stop current run
+                     st.stop()
 
-                 # Trigger a rerun to redraw the app with the newly loaded state
                  st.rerun()
 
         # --- Input Form (Draw only if an active sheet name is set in state) ---
-        # The form now reads its initial values from st.session_state,
-        # which was populated by the state change logic above.
         if st.session_state.get('active_sheet_name_for_display'):
             st.info(f"**Currently Editing:** `{st.session_state['active_sheet_name_for_display']}`")
 
-            # Basic Information Inputs
             st.markdown("---")
             st.subheader("Basic Information")
             cols = st.columns(2)
             with cols[0]:
-                # Use keys ending in _form to isolate widget state from main session state keys
                 st.text_input(strings["label_observer_name"], value=st.session_state.get('observer_name', '') or '', key='observer_name_input_form')
                 st.text_input(strings["label_teacher_name"], value=st.session_state.get('teacher_name', '') or '', key='teacher_name_input_form')
                 st.text_input(strings["label_teacher_email"], value=st.session_state.get('teacher_email', '') or '', key='teacher_email_input_form')
@@ -1090,7 +1044,6 @@ if wb: # Proceed only if workbook was loaded successfully
                 if isinstance(default_time_out, datetime): default_time_out = default_time_out.time()
                 st.time_input(strings["label_time_out"], value=default_time_out, key='time_out_input_form')
 
-            # Calculate and display Lesson Duration (reads from _form widget keys)
             lesson_duration_minutes = None
             duration_type = ""
             duration_display = strings["warning_calculate_duration"]
@@ -1142,6 +1095,7 @@ if wb: # Proceed only if workbook was loaded successfully
                 for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
                      domain_title = domain
                      try:
+                         # Assuming domain title is in column B, one row above the first element of the domain
                          title_row = int(start_cell[1:]) - 1
                          if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
                              domain_title = template_ws[f'B{title_row}'].value
@@ -1153,6 +1107,7 @@ if wb: # Proceed only if workbook was loaded successfully
                           row = int(start_cell[1:]) + i
                           element_label = f"Element {i+1}"
                           try:
+                               # Assuming element label is in column B, on the same row as the rating
                                if f"B{row}" in template_ws and template_ws[f"B{row}"].value is not None:
                                     element_label = template_ws[f"B{row}"].value
                           except Exception: pass
@@ -1161,8 +1116,23 @@ if wb: # Proceed only if workbook was loaded successfully
 
                           st.markdown(f"##### {element_label}")
 
-                          descriptor_text = rubric_descriptors.get(element_key, {}).get('general', strings["info_no_descriptors"])
-                          st.expander(strings["expander_rubric_descriptors"]).markdown(descriptor_text)
+                          # Display rubric guidance for this element
+                          st.markdown(f"**{strings['expander_rubric_descriptors']}**") # Use markdown for bolding
+                          # Get all descriptors for this element
+                          element_descriptors = rubric_descriptors.get(element_key, {})
+                          if element_descriptors:
+                               # Iterate through ratings 1-6 to display descriptors
+                               for rating_value in range(1, 7):
+                                    descriptor_text = element_descriptors.get(str(rating_value), strings["info_no_descriptors"])
+                                    # Format: **Rating:** Description
+                                    st.markdown(f"**{rating_value}:** {descriptor_text}")
+                               # Add NA descriptor if available (optional, based on template)
+                               if 'NA' in element_descriptors:
+                                    st.markdown(f"**NA:** {element_descriptors['NA']}")
+
+                          else:
+                               st.info(strings["info_no_descriptors"])
+
 
                           cols_rating_note = st.columns(2)
                           with cols_rating_note[0]:
@@ -1175,7 +1145,7 @@ if wb: # Proceed only if workbook was loaded successfully
                                  strings["label_rating_for"].format(element_label),
                                  rating_options,
                                  index=rating_options.index(current_rating),
-                                 key=f'{rating_key}_form' # Widget key
+                                 key=f'{rating_key}_form'
                              )
                           with cols_rating_note[1]:
                              note_key = f"{domain}_{i}_note"
@@ -1183,7 +1153,7 @@ if wb: # Proceed only if workbook was loaded successfully
                              st.text_area(
                                  strings["label_write_notes"].format(element_label),
                                  value=current_note,
-                                 key=f'{note_key}_form' # Widget key
+                                 key=f'{note_key}_form'
                              )
 
             else:
@@ -1201,8 +1171,6 @@ if wb: # Proceed only if workbook was loaded successfully
             if st.button(strings["button_save_observation"], key='save_observation_button'):
 
                  # --- Read Final Values from Form Widgets into Main Session State ---
-                 # This step is crucial to get the latest values from the form widgets
-                 # before performing validation and saving.
                  try:
                      st.session_state['observer_name'] = st.session_state.get('observer_name_input_form', '')
                      st.session_state['teacher_name'] = st.session_state.get('teacher_name_input_form', '')
@@ -1282,11 +1250,7 @@ if wb: # Proceed only if workbook was loaded successfully
                          template_ws = wb["LO 1"]
                          ws = wb.copy_worksheet(template_ws)
                          ws.title = target_sheet_name
-                         # After creating, change the selectbox state to the new sheet's name
-                         # This will trigger a rerun and reload the newly created sheet's (empty) data
                          st.session_state['sheet_selector'] = target_sheet_name
-                         # We don't need to rerun explicitly here, saving the workbook and reloading below will trigger it.
-                         # However, we need to update the loaded sheet tracker to match the new selector value immediately
                          st.session_state['current_loaded_sheet_option'] = target_sheet_name
 
                          st.success(strings["success_sheet_created"].format(target_sheet_name))
@@ -1314,7 +1278,6 @@ if wb: # Proceed only if workbook was loaded successfully
                      ws["AA6"].value = st.session_state.get('school_name')
                      ws["AA7"].value = st.session_state.get('overall_notes')
                      ws["AA8"].value = st.session_state.get('teacher_email')
-                     # AA9 for feedback timestamp is updated later if PDF is generated
 
                      ws["B1"].value = st.session_state.get('grade')
                      ws["B5"].value = st.session_state.get('gender')
@@ -1400,13 +1363,14 @@ if wb: # Proceed only if workbook was loaded successfully
                                overall_scores_list.append(float(rating))
 
                           element_key_for_descriptor = f"{domain_name}_{i}"
-                          descriptor_text = rubric_descriptors.get(element_key_for_descriptor, {}).get('general', strings["info_no_descriptors"])
+                          # Pass the entire descriptors dictionary for this element
+                          descriptors_by_rating = rubric_descriptors.get(element_key_for_descriptor, {})
 
                           elements_data.append({
                              "label": element_label,
                              "rating": rating if rating is not None else "NA",
                              "note": note,
-                             "descriptor": descriptor_text
+                             "descriptors_by_rating": descriptors_by_rating # Pass the dictionary
                           })
 
 
@@ -1488,8 +1452,12 @@ if wb: # Proceed only if workbook was loaded successfully
                                    feedback_content_text += strings["feedback_domain_header"].format(domain_name, domain_info.get("title", domain_name))
                                    for element in domain_info.get("elements", []):
                                          feedback_content_text += strings["feedback_element_rating"].format(element["label"], element["rating"])
-                                         if element["descriptor"] and element["descriptor"] != strings["info_no_descriptors"]:
-                                               feedback_content_text += strings["feedback_descriptor_for_rating"].format(element["rating"], element["descriptor"])
+                                         # Add descriptor text for the specific rating if available
+                                         rating_for_descriptor = element["rating"] # Use the selected rating
+                                         descriptor_text = element.get("descriptors_by_rating", {}).get(str(rating_for_descriptor)) # Get descriptor for this rating
+                                         if descriptor_text and descriptor_text.strip() and descriptor_text != strings["info_no_descriptors"]:
+                                               feedback_content_text += f"  *Guidance for rating {rating_for_descriptor}:* {descriptor_text.strip()}\n"
+
                                          if element["note"] and element["note"].strip():
                                               feedback_content_text += f"  *Notes:* {element['note'].strip()}\n"
 
@@ -1587,8 +1555,6 @@ if wb: # Proceed only if workbook was loaded successfully
                       wb.save(DEFAULT_FILE)
                       st.success(strings["success_data_saved"])
                       st.session_state.workbook = load_workbook(DEFAULT_FILE)
-                      # No explicit rerun needed here, as changing sheet_selector above already triggers one.
-                      # However, explicitly updating wb seems safer immediately.
                       wb = st.session_state.workbook
 
 
@@ -1603,7 +1569,6 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  with col1:
                      workbook_buffer = io.BytesIO()
-                     # Use the potentially newly reloaded wb
                      st.session_state.workbook.save(workbook_buffer)
                      workbook_buffer.seek(0)
                      st.download_button(
@@ -1631,7 +1596,7 @@ if wb: # Proceed only if workbook was loaded successfully
 
                  with col3:
                      feedback_log_sheet_name = strings["feedback_log_sheet_name"]
-                     if feedback_log_sheet_name in st.session_state.workbook.sheetnames: # Use reloaded wb
+                     if feedback_log_sheet_name in st.session_state.workbook.sheetnames:
                          try:
                              log_ws = st.session_state.workbook[feedback_log_sheet_name]
                              log_data = []
@@ -1667,9 +1632,6 @@ if wb: # Proceed only if workbook was loaded successfully
 
         else:
              st.info(strings["warning_select_create_sheet"])
-
-
-    # <--- End of Lesson Observation Input Page Logic --->
 
 
     elif page == strings["page_analytics"]:
@@ -2067,10 +2029,7 @@ if wb: # Proceed only if workbook was loaded successfully
             st.info(strings["info_no_observation_data_filtered"])
 
 
-    # <--- End of Lesson Observation Analytics Page Logic --->
-
-
-    elif page == strings["page_help"]: # New Help/Guidelines page
+    elif page == strings["page_help"]:
         st.title(strings["title_help"])
 
         st.markdown("---")
@@ -2095,7 +2054,7 @@ if wb: # Proceed only if workbook was loaded successfully
         - The Teacher Performance Over Time section allows you to select a specific teacher from the filtered data and view their domain score trends over time.
 
         **App Information and Guidelines Page:**
-        - This page provides general information about the app and displays the observation guidelines read directly from the 'Guidelines' sheet in the Excel workbook.
+        - This page provides general information about the app and displays the guidelines read directly from the 'Guidelines' sheet in the Excel workbook.
 
         """)
 
@@ -2120,6 +2079,5 @@ if wb: # Proceed only if workbook was loaded successfully
             st.warning("Guidelines sheet not found in the workbook.")
 
 
-# <--- This 'if wb:' block ends here.
-else: # If workbook could not be loaded at the very start
+else:
     st.error("Could not load the workbook. Please ensure 'Teaching Rubric Tool_WeekTemplate.xlsx' exists and is accessible.")
