@@ -27,7 +27,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 import re # Import regex for cleaning HTML tags
 
-# --- Set Streamlit Page Config (MUST BE THE FIRST STREAMIT COMMAND) ---
+# --- Set Streamlit Page Config (MUST BE THE FIRST STREAMLIT COMMAND) ---
 st.set_page_config(page_title="Lesson Observation Tool", layout="wide")
 
 # --- Logo File Paths ---
@@ -978,7 +978,8 @@ if wb: # Proceed only if workbook was loaded successfully
 
         # --- Inputs Section (Only display if a sheet is selected or created) ---
         # Proceed with inputs only if a target sheet name is determined AND workbook is loaded
-        if wb and st.session_state.get('target_sheet_name') and st.session_state.get('target_sheet_name') != strings["option_create_new"]: # Ensure we have a valid target sheet name and workbook
+        # We also need to make sure it's not still the "Create new" placeholder
+        if wb and st.session_state.get('target_sheet_name') and st.session_state.get('target_sheet_name') != strings["option_create_new"]:
 
              # --- Basic Information Inputs ---
              # Inputs now read/write directly to st.session_state based on their keys
@@ -1527,5 +1528,181 @@ if wb: # Proceed only if workbook was loaded successfully
                                    log_ws.append(ordered_log_row)
 
                               st.success(strings["success_feedback_log_updated"]) # Use localized string
-                         except Exception as e:
-                              st.error(strings["error_updates
+                         except Exception as e: # Corrected string key and closing parenthesis
+                              st.error(strings["error_updating_log"].format(e))
+
+
+                         # --- Generate Feedback Content (Uses calculated scores/judgments) ---
+                         feedback_content = ""
+                         # The checkbox state is already in session_state from the widget above
+
+                         if st.session_state.get('checkbox_send_feedback', False): # Check session state value
+                              # Build the detailed feedback string using pdf_rubric_data and strings
+                              feedback_content += strings["feedback_greeting"].format(
+                                   st.session_state.get('teacher_name', 'Teacher'),
+                                   st.session_state.get('observation_date').strftime("%Y-%m-%d") if st.session_state.get('observation_date') else "the recent observation"
+                              )
+                              feedback_content += strings["feedback_observer"].format(st.session_state.get('observer_name', 'Observer'))
+                              feedback_content += strings["feedback_duration"].format(f"{minutes_save} minutes ({duration_label_save})")
+                              feedback_content += strings["feedback_subject_fb"].format(st.session_state.get('subject', 'Subject'))
+                              feedback_content += strings["feedback_school"].format(st.session_state.get('school_name', 'School'))
+
+                              # Add Summary Header and Overall Score
+                              feedback_content += strings["feedback_summary_header"]
+                              if pdf_rubric_data.get("overall_score") is not None:
+                                   feedback_content += strings["feedback_overall_score"].format(pdf_rubric_data["overall_score"])
+
+                              # Add Domain Summaries and Element Details
+                              for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                   feedback_content += strings["feedback_domain_header"].format(domain_name, domain_info.get("title", domain_name))
+                                   if domain_info.get("average") is not None:
+                                        feedback_content += strings["feedback_domain_average"].format(domain_info["average"]) + "\n"
+
+                                   for element in domain_info.get("elements", []):
+                                        rating = element.get('rating', 'N/A')
+                                        label = element.get('label', 'Unknown Element')
+                                        note = element.get('note', '')
+                                        descriptor = element.get('descriptor', '') # Specific descriptor for the rating
+
+                                        feedback_content += strings["feedback_element_rating"].format(label, rating)
+                                        if descriptor:
+                                             # Clean markdown/HTML from descriptor for the text feedback string too
+                                             cleaned_desc = re.sub(r'<.*?>', '', descriptor).replace('**', '')
+                                             feedback_content += strings["feedback_descriptor_for_rating"].format(rating, cleaned_desc)
+
+                                        if note:
+                                             feedback_content += f"  *Notes:* {note}\n" # Add notes to text feedback
+                                        feedback_content += "\n" # Space after each element in text feedback
+
+
+                              # Add Performance Summary (Overall and Domain)
+                              feedback_content += strings["feedback_performance_summary"]
+                              if pdf_rubric_data.get("overall_judgment"):
+                                   feedback_content += strings["overall_performance_level_text"].format(pdf_rubric_data["overall_judgment"]) + "\n" # Use overall_judgment directly
+
+                              # Add Domain Performance Summary
+                              feedback_content += "\nDomain Performance:\n"
+                              for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                   if domain_info.get("judgment") and domain_info.get("judgment") != strings["overall_score_na"]: # Only add if judgment is available and not N/A
+                                        feedback_content += strings["feedback_domain_performance"].format(domain_info.get("title", domain_name), domain_info["judgment"]) + "\n"
+
+
+                              # Add Support Plan / Next Steps (Conditional Logic)
+                              feedback_content += "\n"
+                              overall_judgment_pdf = pdf_rubric_data.get("overall_judgment")
+
+                              if overall_judgment_pdf == strings["perf_level_very_weak"]:
+                                   feedback_content += strings["plan_very_weak_overall"] + "\n\n"
+                              elif overall_judgment_pdf == strings["perf_level_weak"]:
+                                   feedback_content += strings["plan_weak_overall"] + "\n\n"
+
+                                   # Add specific domain weakness recommendations
+                                   for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                        if domain_info.get("judgment") == strings["perf_level_weak"]:
+                                             # Need to identify key elements/skills within this weak domain
+                                             weak_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
+                                             feedback_content += strings["plan_weak_domain"].format(domain_info.get("title", domain_name), ", ".join(weak_elements_labels)) + "\n\n"
+
+
+                              # Add Next Steps for Acceptable/Good/Excellent
+                              elif overall_judgment_pdf == strings["perf_level_acceptable"]:
+                                   feedback_content += strings["steps_acceptable_overall"] + "\n\n"
+                              elif overall_judgment_pdf == strings["perf_level_good"]:
+                                   feedback_content += strings["steps_good_overall"] + "\n\n"
+                                   # Can add specific domain strengths suggestions here too
+                                   for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                        if domain_info.get("judgment") == strings["perf_level_good"]:
+                                             strong_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
+                                             feedback_content += strings["steps_good_domain"].format(domain_info.get("title", domain_name), ", ".join(strong_elements_labels)) + "\n\n"
+
+                              elif overall_judgment_pdf == strings["perf_level_excellent"]:
+                                   feedback_content += strings["steps_excellent_overall"] + "\n\n"
+                                   # Can add specific domain excellent suggestions here too
+                                   for domain_name, domain_info in pdf_rubric_data.get("domain_data", {}).items():
+                                        if domain_info.get("judgment") == strings["perf_level_excellent"]:
+                                             excellent_elements_labels = [el.get("label", "Unknown Element") for el in domain_info.get("elements", [])]
+                                             feedback_content += strings["steps_excellent_domain"].format(domain_info.get("title", domain_name), ", ".join(excellent_elements_labels)) + "\n\n"
+
+                              else: # Case where overall judgment is N/A or could not be determined
+                                   feedback_content += strings["no_specific_plan_needed"] + "\n\n"
+
+
+                              # Add closing
+                              feedback_content += strings["feedback_closing"]
+                              feedback_content += strings["feedback_regards"]
+
+                               # --- Simulate Sending Feedback / Just generate for PDF ---
+                               # The checkbox simply means we generate the feedback text content for the PDF.
+                               # Actual email sending is NOT implemented here.
+                              st.info(strings["success_feedback_generated"]) # Display message that feedback was prepared (for PDF)
+
+
+                         # --- Save Workbook ---
+                         # Use the determined actual sheet name for the filename
+                         save_filename = f"{sheet_name_to_save_actual}_{st.session_state.get('teacher_name', 'Teacher').replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx" # More descriptive filename
+                         try:
+                             # Save to a BytesIO buffer instead of a file, safer in web apps
+                             output_buffer = io.BytesIO()
+                             wb.save(output_buffer)
+                             output_buffer.seek(0) # Rewind the buffer
+
+                             st.success(strings["success_data_saved"]) # Use localized string
+
+                             # Offer workbook download
+                             st.download_button(
+                                 strings["download_workbook"],
+                                 output_buffer, # Use the BytesIO buffer
+                                 file_name=save_filename,
+                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                             )
+
+                             # --- Generate PDF and Offer Download (Only if feedback was generated) ---
+                             # Check if feedback_content was actually generated
+                             if feedback_content:
+                                 # Pass pdf_rubric_data which contains all necessary info including basic details, scores, notes, judgments
+                                 pdf_buffer = generate_observation_pdf(pdf_rubric_data, feedback_content, strings, rubric_domains_structure, st.session_state.get('teacher_email', ''))
+
+                                 if pdf_buffer:
+                                      pdf_filename = f"{sheet_name_to_save_actual}_{st.session_state.get('teacher_name', 'Teacher').replace(' ', '_')}_Observation_Feedback.pdf"
+                                      st.success(strings["success_pdf_generated"]) # Use localized string
+                                      st.download_button(
+                                           label=strings["download_feedback_pdf"], # Use localized string
+                                           data=pdf_buffer,
+                                           file_name=pdf_filename,
+                                           mime="application/pdf"
+                                      )
+                                 else:
+                                      st.error("Failed to generate Feedback PDF.") # Report PDF generation failure
+
+                             # Trigger a rerun to update the UI after saving and potentially creating a new sheet
+                             st.experimental_rerun()
+
+
+                         except Exception as e: # <-- This except matches the try Block above it
+                             st.error(strings["error_saving_workbook"].format(e))
+                    # <-- The `if ws_to_save:` block ends here.
+                 # <-- The `if st.button(...)` block ends here.
+            # <-- The `if wb and st.session_state.get('target_sheet_name'):` block ends here.
+
+        else: # <-- This else matches the if wb and st.session_state.get('target_sheet_name'): block
+             # This block is executed if wb is loaded, page is input, but target_sheet_name
+             # is None or still "Create new" from the selectbox.
+             # The user needs to select or create a sheet first.
+             st.warning(strings.get("warning_select_create_sheet", "Please select or create a valid sheet to proceed."))
+
+
+    # <--- This 'if page == strings["page_lesson_input"]:' block ends here.
+    #       The 'elif' block below should align with it.
+    #       This 'if/elif' structure handles page navigation.
+    elif page == strings["page_analytics"]:
+        st.title(strings["title_analytics"])
+
+        # Placeholder for Analytics page logic
+        st.info("Analytics dashboard goes here. Load data from all 'LO ' sheets, filter, calculate averages, and display charts/tables.")
+        st.warning("This section is not yet implemented in the current code.")
+
+# <--- This 'if wb:' block ends here.
+#       The final 'else' block should align with it.
+#       This top-level 'if/else' structure handles initial workbook loading errors.
+else: # If workbook could not be loaded at the very start
+     st.error("Could not load the workbook. Please ensure 'Teaching Rubric Tool_WeekTemplate.xlsx' exists and is accessible.")
