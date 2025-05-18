@@ -2117,19 +2117,19 @@ if wb: # Proceed only if workbook was loaded successfully
 
 
             # Feedback Checkbox (Reordered to appear after the Save button)
-            # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']
-            # This checkbox needs to be at the SAME INDENTATION level as the 'if st.button(...):' line
-            send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_feedback')
+        # Note: The value of this checkbox is stored directly in session_state['checkbox_send_feedback']
+        # This checkbox needs to be at the SAME INDENTATION level as the 'if st.session_state.get(...):' block (8 spaces)
+        send_feedback = st.checkbox(strings["checkbox_send_feedback"], key='checkbox_send_checkbox') # <--- THIS LINE MUST HAVE EXACTLY 8 SPACES
 
-        # <--- This 'if st.session_state.get('target_sheet_name'):' block ends here.
-        #      The 'else' below should align with it.
-        #      This 'if/else' block contains all the inputs and the save button logic.
-        else: # If workbook or target sheet name couldn't be determined (e.g., error during selection/loading)
-             st.warning(strings.get("warning_select_create_sheet", "Please select or create a valid sheet to proceed.")) # Localized warning
+    # <--- This 'if st.session_state.get('target_sheet_name'):' block ends here.
+    #      The 'else' below should align with it (8 spaces).
+    #      This 'if/else' block contains all the inputs and the save button logic.
+    else: # If workbook or target sheet name couldn't be determined (e.g., error during selection/loading)
+         st.warning(strings.get("warning_select_create_sheet", "Please select or create a valid sheet to proceed.")) # Localized warning
 
 
     # <--- This 'if page == strings["page_lesson_input"]:' block ends here.
-    #      The 'elif' block below should align with it.
+    #      The 'elif' block below should align with it (4 spaces).
     #      This 'if/elif' structure handles page navigation.
     elif page == strings["page_analytics"]:
         st.title(strings["title_analytics"])
@@ -2139,7 +2139,7 @@ if wb: # Proceed only if workbook was loaded successfully
         st.warning("This section is not yet implemented in the current code.")
 
 # <--- This 'if wb:' block ends here.
-#      The final 'else' block should align with it.
+#      The final 'else' block should align with it (0 spaces).
 #      This top-level 'if/else' structure handles initial workbook loading errors.
 else: # If workbook could not be loaded at the very start
      st.error("Could not load the workbook. Please ensure 'Teaching Rubric Tool_WeekTemplate.xlsx' exists and is accessible.")
