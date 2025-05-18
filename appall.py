@@ -919,8 +919,6 @@ def get_performance_level(score, strings):
         elif numeric_score >= 2.5:
             return strings["perf_level_weak"]
         else:
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
             return strings["perf_level_very_weak"]
     except (ValueError, TypeError):
         # Handle non-numeric scores like "NA" or other errors
@@ -965,8 +963,6 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
             img = Image(logo_path, width=1.5*inch, height=0.75*inch)
             img.hAlign = 'CENTER'
             story.append(img)
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
             story.append(Spacer(1, 0.2*inch))
         except Exception as e:
              # Log error without st.error if not running in Streamlit context for PDF build
@@ -1137,8 +1133,6 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
     try:
         doc.build(story)
         buffer.seek(0)
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
         return buffer
     except Exception as e:
         # Handle errors during PDF build
@@ -1165,8 +1159,6 @@ DEFAULT_FILE = "Teaching Rubric Tool_WeekTemplate.xlsx"
 if os.path.exists(DEFAULT_FILE):
      try:
          wb = load_workbook(DEFAULT_FILE) # Load directly from path
-     except Exception as e:
-         st.error(f"An error occurred: {e}")
          st.info(strings["info_default_workbook"].format(DEFAULT_FILE))
      except Exception as e:
          st.error(strings["error_opening_default"].format(e))
@@ -1219,8 +1211,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     aa1_value = wb[sheet]["AA1"].value
                     # Consider None or empty string as unused
                     if aa1_value is None or (isinstance(aa1_value, str) and aa1_value.strip() == ""):
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
                          to_remove.append(sheet)
                 except KeyError:
                     # Handle case where sheet might not have AA1 or is invalid
@@ -1251,8 +1241,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     st.info(strings.get("info_reloaded_workbook", "Reloaded workbook after cleanup."))
                      # Re-run Streamlit explicitly to update the UI fully
                     st.experimental_rerun()
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
 
                 except Exception as e:
                      st.error(f"Error reloading workbook after cleanup: {e}")
@@ -1272,8 +1260,6 @@ if wb: # Proceed only if workbook was loaded successfully
                      for cell in row:
                          if cell is not None:
                              # Convert potential numbers to string and strip whitespace
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
                              guideline_content.append(str(cell).strip())
             except Exception as e:
                  st.error(f"Error reading Guidelines sheet: {e}")
@@ -1328,8 +1314,6 @@ if wb: # Proceed only if workbook was loaded successfully
                 if isinstance(time_in_str, datetime.time):
                      data["time_in"] = time_in_str
                 elif isinstance(time_in_str, str) and time_in_str:
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
                      data["time_in"] = datetime.strptime(time_in_str, "%H:%M").time()
             except (ValueError, TypeError):
                  data["time_in"] = None # Ensure it's set to None on error
@@ -1339,8 +1323,6 @@ if wb: # Proceed only if workbook was loaded successfully
                 if isinstance(time_out_str, datetime.time):
                      data["time_out"] = time_out_str
                 elif isinstance(time_out_str, str) and time_out_str:
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
                      data["time_out"] = datetime.strptime(time_out_str, "%H:%M").time()
             except (ValueError, TypeError):
                  data["time_out"] = None # Ensure it's set to None on error
@@ -1363,8 +1345,6 @@ if wb: # Proceed only if workbook was loaded successfully
                      data["observation_date"] = date_val.date() # Store as date object
                  elif isinstance(date_val, date):
                       data["observation_date"] = date_val # Already a date object
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
                  # Add other potential date formats if necessary
             except Exception:
                  data["observation_date"] = datetime.now().date() # Default to today if error
@@ -1441,8 +1421,6 @@ if wb: # Proceed only if workbook was loaded successfully
             try:
                  ws_to_load_from = wb[sheet_name_to_process] # Get the selected sheet object
                  st.subheader(strings["subheader_filling_data"].format(sheet_name_to_process))
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
 
                  # Load existing data into session state from the selected sheet
                  existing_data = load_existing_data(ws_to_load_from)
@@ -1551,8 +1529,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     dummy_date = date.today()
                     start_dt = datetime.combine(dummy_date, time_in_ss)
                     end_dt = datetime.combine(dummy_date, time_out_ss)
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
 
                     if end_dt < start_dt:
                         end_dt += timedelta(days=1)
@@ -1593,13 +1569,11 @@ if wb: # Proceed only if workbook was loaded successfully
             # Dictionary to store element labels, notes, and descriptors from template for PDF/Feedback
             rubric_template_data = {}
 
-            domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff", "#e6e6ff", "#ffffe6"]
+            domain_colors = ["#e6f2ff", "#fff2e6", "#e6ffe6", "#f9e6ff", "#ffe6e6", "#f0f0f5", "#e6f9ff", "#f2ffe6", "#ffe6f2"]
 
             try:
                 # Assuming "LO 1" sheet contains the rubric details
                 rubric_template_ws = wb["LO 1"]
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
 
                 for idx, (domain_name, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
                     background = domain_colors[idx % len(domain_colors)]
@@ -1607,8 +1581,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     # Read Domain Title from template
                     try:
                         domain_row_template = int(start_cell[1:]) # Row for Domain Title in template
-                    except Exception as e:
-                        st.error(f"An error occurred: {e}")
                         domain_title = rubric_template_ws[f"A{domain_row_template}"].value or domain_name
                     except Exception:
                         domain_title = domain_name # Fallback if reading title fails
@@ -1644,8 +1616,6 @@ if wb: # Proceed only if workbook was loaded successfully
                                 if desc_value is not None:
                                     descriptors[rating_level] = str(desc_value)
                                     # Also build formatted markdown for expander
-                            except Exception as e:
-                                st.error(f"An error occurred: {e}")
                                     descriptor_text_full += f"**{rating_level}:** {desc_value}\n\n"
                             except Exception:
                                  pass # Ignore if reading descriptor fails
@@ -1744,8 +1714,6 @@ if wb: # Proceed only if workbook was loaded successfully
                     students_val = st.session_state.get('students', '')
                     males_val = st.session_state.get('males', '')
                     females_val = st.session_state.get('females', '')
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
 
                     num_students = int(students_val) if students_val else None
                     num_males = int(males_val) if males_val else None
@@ -1770,8 +1738,6 @@ if wb: # Proceed only if workbook was loaded successfully
                             existing_lo_numbers = [int(sheet[3:]) for sheet in wb.sheetnames if sheet.startswith("LO ") and len(sheet) > 3 and sheet[3:].isdigit()]
                             next_index = max(existing_lo_numbers) + 1 if existing_lo_numbers else 1
                             sheet_name_to_save_actual = f"LO {next_index}"
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
 
                             # Copy template and set title
                             wb.copy_worksheet(wb["LO 1"]).title = sheet_name_to_save_actual
@@ -1822,8 +1788,6 @@ if wb: # Proceed only if workbook was loaded successfully
                              lesson_duration_save = end_dt - start_dt
                              minutes_save = round(lesson_duration_save.total_seconds() / 60)
                              duration_label_save = strings["duration_full_lesson"] if minutes_save >= 40 else strings["duration_walkthrough"]
-                    except Exception as e:
-                        st.error(f"An error occurred: {e}")
 
                         ws_to_save["D3"].value = duration_label_save # Save calculated duration label
                         ws_to_save["D4"].value = st.session_state.get('period')
@@ -1969,8 +1933,6 @@ if wb: # Proceed only if workbook was loaded successfully
                                 log_ws: Worksheet = wb[log_sheet_name]
                                 # Ensure headers exist if sheet was empty or different
                                 if not log_ws['A1'].value: # Simple check for empty sheet
-                            except Exception as e:
-                                st.error(f"An error occurred: {e}")
                                     log_ws.append(strings["feedback_log_header"])
                             except Exception as e:
                                  st.warning(f"Could not access or validate log sheet '{log_sheet_name}', attempting to create new. Error: {e}")
@@ -1997,8 +1959,6 @@ if wb: # Proceed only if workbook was loaded successfully
                         # Append the row
                         try:
                              log_ws.append(ordered_log_row)
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
                              st.success(strings["success_feedback_log_updated"]) # Use localized string
                         except Exception as e:
                              st.error(strings["error_updating_log"].format(e))
@@ -2120,8 +2080,6 @@ if wb: # Proceed only if workbook was loaded successfully
                             output_buffer = io.BytesIO()
                             wb.save(output_buffer)
                             output_buffer.seek(0) # Rewind the buffer
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
 
                             st.success(strings["success_data_saved"]) # Use localized string
 
