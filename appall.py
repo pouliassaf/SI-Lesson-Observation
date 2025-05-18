@@ -55,7 +55,9 @@ en_strings = {
     "sidebar_select_page": "Choose a page:",
     "page_lesson_input": "Lesson Observation Input",
     "page_analytics": "Lesson Observation Analytics",
+    "page_help": "App Information and Guidelines", # New string for Help page
     "title_lesson_input": "Weekly Lesson Observation Input Tool",
+    "title_help": "App Information and Guidelines", # New string for Help page title
     "info_default_workbook": "Using default template workbook:",
     "warning_default_not_found": "Default template workbook '{}' not found. Please upload a workbook.",
     "error_opening_default": "Error opening default template file:",
@@ -129,6 +131,8 @@ en_strings = {
     "filter_by_school": "Filter by School", # From snippet 1
     "filter_by_grade": "Filter by Grade", # From snippet 1
     "filter_by_subject": "Filter by Subject", # From snippet 1
+    "filter_by_operator": "Filter by Operator", # New string for Operator filter
+    "filter_by_observer_an": "Filter by Observer", # String for observer filter in analytics
     "option_all": "All", # From snippet 1
     "subheader_avg_score_filtered": "Average Score per Domain (Filtered)", # From snippet 1
     "info_no_numeric_scores_filtered": "No observations matching the selected filters contain numeric scores for domain averages.", # From snippet 1
@@ -196,7 +200,9 @@ ar_strings = {
     "sidebar_select_page": "اختر صفحة:",
     "page_lesson_input": "ادخال تقييم الزيارة",
     "page_analytics": "تحليلات الزيارة",
+    "page_help": "معلومات وإرشادات التطبيق", # New string for Help page - Needs verification
     "title_lesson_input": "أداة إدخال زيارة صفية أسبوعية",
+    "title_help": "معلومات وإرشادات التطبيق", # New string for Help page title - Needs verification
     "info_default_workbook": "استخدام مصنف القالب الافتراضي:",
     "warning_default_not_found": "تحذير: لم يتم العثور على مصنف القالب الافتراضي '{}'. يرجى تحميل مصنف.",
     "error_opening_default": "خطأ في فتح ملف القالب الافتراضي:",
@@ -270,6 +276,8 @@ ar_strings = {
     "filter_by_school": "تصفية حسب المدرسة", # Needs verification
     "filter_by_grade": "تصفية حسب الصف", # Needs verification
     "filter_by_subject": "تصفية حسب المادة", # Needs verification
+    "filter_by_operator": "تصفية حسب المشغل", # New string for Operator filter - Needs verification
+    "filter_by_observer_an": "تصفية حسب المراقب", # String for observer filter in analytics - Needs verification
     "option_all": "الكل", # Needs verification
     "subheader_avg_score_filtered": "متوسط الدرجة لكل مجال (مصفى)", # Needs verification
     "info_no_numeric_scores_filtered": "لا توجد زيارات مطابقة للمرشحات المحددة تحتوي على درجات رقمية لمتوسطات المجال.", # Needs verification
@@ -580,7 +588,7 @@ arabic_mode = st.sidebar.toggle(en_strings["arabic_toggle_label"], False)
 strings = get_strings(arabic_mode)
 
 # Sidebar page selection
-page = st.sidebar.selectbox(strings["sidebar_select_page"], [strings["page_lesson_input"], strings["page_analytics"]])
+page = st.sidebar.selectbox(strings["sidebar_select_page"], [strings["page_lesson_input"], strings["page_analytics"], strings["page_help"]]) # Added Help page
 
 # --- File Handling ---
 # Use a simple approach: load workbook directly if file exists
@@ -688,6 +696,7 @@ if wb: # Proceed only if workbook was loaded successfully
 
 
         # Display Guidelines (Integrated from snippet 2)
+        # Note: Guidelines are also displayed on the new Help page now.
         if wb and "Guidelines" in wb.sheetnames: # Ensure workbook is loaded before checking sheet
             # Attempt to read content safely
             guideline_content = []
@@ -847,7 +856,7 @@ if wb: # Proceed only if workbook was loaded successfully
             - See the list of existing LO sheets.
             - Select an existing sheet or create a 'new' one (determining the target name and loading existing data if applicable).
             - Clean up unused sheets.
-            - View the Guidelines.
+            - View the Guidelines (on the new 'App Information and Guidelines' page).
             - Navigate to the Analytics page.
 
             To restore the input and save features, the removed code block needs to be
@@ -859,8 +868,8 @@ if wb: # Proceed only if workbook was loaded successfully
 
 
     # <--- This 'if page == strings["page_lesson_input"]:' block ends here.
-    #       The 'elif' block below should align with it.
-    #       This 'if/elif' structure handles page navigation.
+    #       The 'elif' blocks below should align with it.
+    #       This 'if/elif/elif' structure handles page navigation.
     elif page == strings["page_analytics"]:
         st.title(strings["title_analytics"])
 
@@ -1003,21 +1012,23 @@ if wb: # Proceed only if workbook was loaded successfully
              st.markdown("---")
              st.subheader(strings["subheader_filter_analyze"])
 
-             # Get unique values for filters from ALL loaded LO sheets, drop NaNs
-             all_operators = sorted(all_obs_data['Operator'].dropna().unique().tolist()) if 'Operator' in all_obs_data.columns else [] # Added Operator
+             # Get unique values for filters from ALL loaded LO sheets, drop NaNs, convert to list
+             all_operators = sorted(all_obs_data['Operator'].dropna().unique().tolist()) if 'Operator' in all_obs_data.columns else []
              all_schools = sorted(all_obs_data['School'].dropna().unique().tolist()) if 'School' in all_obs_data.columns else []
              all_grades = sorted(all_obs_data['Grade'].dropna().unique().tolist()) if 'Grade' in all_obs_data.columns else []
              all_subjects = sorted(all_obs_data['Subject'].dropna().unique().tolist()) if 'Subject' in all_obs_data.columns else []
              all_teachers = sorted(all_obs_data['Teacher'].dropna().unique().tolist()) if 'Teacher' in all_obs_data.columns else []
              all_observers = sorted(all_obs_data['Observer'].dropna().unique().tolist()) if 'Observer' in all_obs_data.columns else []
 
+
              # Add filters
-             filter_operator = st.selectbox(strings["label_operator"], [strings["option_all"]] + all_operators) # Added Operator filter
+             filter_operator = st.selectbox(strings["filter_by_operator"], [strings["option_all"]] + all_operators) # Added Operator filter
              filter_school = st.selectbox(strings["filter_by_school"], [strings["option_all"]] + all_schools)
              filter_grade = st.selectbox(strings["filter_by_grade"], [strings["option_all"]] + all_grades)
              filter_subject = st.selectbox(strings["filter_by_subject"], [strings["option_all"]] + all_subjects)
              filter_teacher = st.selectbox(strings["filter_teacher"], [strings["option_all"]] + all_teachers)
-             filter_observer = st.selectbox("Filter by Observer", [strings["option_all"]] + all_observers) # Added observer filter
+             filter_observer = st.selectbox(strings["filter_by_observer_an"], [strings["option_all"]] + all_observers) # Added observer filter
+
 
              # Date filtering
              st.markdown("##### Filter by Date")
@@ -1055,52 +1066,62 @@ if wb: # Proceed only if workbook was loaded successfully
              if filter_operator != strings["option_all"]:
                   # Ensure column exists and filter, handle potential NaNs in column
                  if 'Operator' in filtered_data.columns:
+                      # Filter out rows where Operator is NaN before comparison, to avoid errors
+                      filtered_data = filtered_data[filtered_data['Operator'].notna()]
                       filtered_data = filtered_data[filtered_data['Operator'] == filter_operator]
                  else:
-                      st.warning("Operator column not found for filtering.")
-                      filtered_data = filtered_data[filtered_data['Operator'].isna()] # Effectively filter everything out if column missing or all NaN
+                      st.warning(f"Operator column not found in data. Cannot filter by '{filter_operator}'.")
+                      filtered_data = filtered_data.head(0) # Return empty dataframe
 
 
              if filter_school != strings["option_all"]:
                  if 'School' in filtered_data.columns:
-                      filtered_data = filtered_data[filtered_data['School'] == filter_school]
+                     filtered_data = filtered_data[filtered_data['School'].notna()]
+                     filtered_data = filtered_data[filtered_data['School'] == filter_school]
                  else:
-                      st.warning("School column not found for filtering.")
-                      filtered_data = filtered_data[filtered_data['School'].isna()]
+                     st.warning(f"School column not found in data. Cannot filter by '{filter_school}'.")
+                     filtered_data = filtered_data.head(0)
+
 
              if filter_grade != strings["option_all"]:
                  if 'Grade' in filtered_data.columns:
-                      filtered_data = filtered_data[filtered_data['Grade'] == filter_grade]
+                     filtered_data = filtered_data[filtered_data['Grade'].notna()]
+                     filtered_data = filtered_data[filtered_data['Grade'] == filter_grade]
                  else:
-                       st.warning("Grade column not found for filtering.")
-                       filtered_data = filtered_data[filtered_data['Grade'].isna()]
+                      st.warning(f"Grade column not found in data. Cannot filter by '{filter_grade}'.")
+                      filtered_data = filtered_data.head(0)
+
 
              if filter_subject != strings["option_all"]:
                  if 'Subject' in filtered_data.columns:
+                      filtered_data = filtered_data[filtered_data['Subject'].notna()]
                       filtered_data = filtered_data[filtered_data['Subject'] == filter_subject]
                  else:
-                       st.warning("Subject column not found for filtering.")
-                       filtered_data = filtered_data[filtered_data['Subject'].isna()]
+                      st.warning(f"Subject column not found in data. Cannot filter by '{filter_subject}'.")
+                      filtered_data = filtered_data.head(0)
+
 
              if filter_teacher != strings["option_all"]:
                  if 'Teacher' in filtered_data.columns:
+                      filtered_data = filtered_data[filtered_data['Teacher'].notna()]
                       filtered_data = filtered_data[filtered_data['Teacher'] == filter_teacher]
                  else:
-                       st.warning("Teacher column not found for filtering.")
-                       filtered_data = filtered_data[filtered_data['Teacher'].isna()]
+                       st.warning(f"Teacher column not found in data. Cannot filter by '{filter_teacher}'.")
+                       filtered_data = filtered_data.head(0)
 
 
              if filter_observer != strings["option_all"]:
                   if 'Observer' in filtered_data.columns:
+                       filtered_data = filtered_data[filtered_data['Observer'].notna()]
                        filtered_data = filtered_data[filtered_data['Observer'] == filter_observer]
                   else:
-                       st.warning("Observer column not found for filtering.")
-                       filtered_data = filtered_data[filtered_data['Observer'].isna()]
+                       st.warning(f"Observer column not found in data. Cannot filter by '{filter_observer}'.")
+                       filtered_data = filtered_data.head(0)
 
 
              # Apply date filter, ensuring the column exists and has valid datetimes
-             if 'Observation Date' in filtered_data.columns and not filtered_data['Observation Date'].empty:
-                  # Filter out NaT values before comparison
+             if 'Observation Date' in filtered_data.columns and not filtered_data['Observation Date'].isna().all():
+                  # Filter out NaT values before comparison and convert to date for comparison with date pickers
                   filtered_data_valid_dates = filtered_data.dropna(subset=['Observation Date']).copy()
                   # Convert date picker results to pandas Timestamps for direct comparison with datetime64[ns]
                   start_timestamp = pd.Timestamp(start_date)
@@ -1341,6 +1362,32 @@ if wb: # Proceed only if workbook was loaded successfully
 
         else: # If all_obs_data is empty after initial loading
             st.info(strings["info_no_observation_data_filtered"])
+
+
+    # <--- This 'elif page == strings["page_analytics"]:' block ends here.
+    #       The 'elif' block below should align with it.
+    #       This 'if/elif/elif' structure handles page navigation.
+    elif page == strings["page_help"]: # New Help/Guidelines page
+         st.title(strings["title_help"])
+
+         # Read and display guidelines from the Excel sheet
+         if wb and "Guidelines" in wb.sheetnames:
+             guideline_content = []
+             try:
+                  for row in wb["Guidelines"].iter_rows(values_only=True):
+                      for cell in row:
+                          if cell is not None:
+                              guideline_content.append(str(cell).strip())
+             except Exception as e:
+                  st.error(f"Error reading Guidelines sheet: {e}")
+                  guideline_content = [f"Error loading guidelines: {e}"]
+
+             if cleaned_guidelines: # Use cleaned_guidelines defined outside the block if possible, or re-clean here
+                  st.markdown("\n".join([line for line in guideline_content if line])) # Re-join cleaned content
+             else:
+                  st.info(strings.get("info_no_guidelines", "Guidelines sheet is empty or could not be read."))
+         else:
+              st.warning("Guidelines sheet not found in the workbook.")
 
 
 # <--- This 'if wb:' block ends here.
