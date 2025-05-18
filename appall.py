@@ -1067,8 +1067,8 @@ if wb: # Proceed only if workbook was loaded successfully
                   # Ensure column exists and filter, handle potential NaNs in column
                  if 'Operator' in filtered_data.columns:
                       # Filter out rows where Operator is NaN before comparison, to avoid errors
-                      filtered_data = filtered_data[filtered_data['Operator'].notna()]
-                      filtered_data = filtered_data[filtered_data['Operator'] == filter_operator]
+                      filtered_data = filtered_data[filtered_data['Operator'].notna()].copy()
+                      filtered_data = filtered_data[filtered_data['Operator'] == filter_operator].copy()
                  else:
                       st.warning(f"Operator column not found in data. Cannot filter by '{filter_operator}'.")
                       filtered_data = filtered_data.head(0) # Return empty dataframe
@@ -1076,8 +1076,8 @@ if wb: # Proceed only if workbook was loaded successfully
 
              if filter_school != strings["option_all"]:
                  if 'School' in filtered_data.columns:
-                     filtered_data = filtered_data[filtered_data['School'].notna()]
-                     filtered_data = filtered_data[filtered_data['School'] == filter_school]
+                     filtered_data = filtered_data[filtered_data['School'].notna()].copy()
+                     filtered_data = filtered_data[filtered_data['School'] == filter_school].copy()
                  else:
                      st.warning(f"School column not found in data. Cannot filter by '{filter_school}'.")
                      filtered_data = filtered_data.head(0)
@@ -1085,17 +1085,17 @@ if wb: # Proceed only if workbook was loaded successfully
 
              if filter_grade != strings["option_all"]:
                  if 'Grade' in filtered_data.columns:
-                     filtered_data = filtered_data[filtered_data['Grade'].notna()]
-                     filtered_data = filtered_data[filtered_data['Grade'] == filter_grade]
+                     filtered_data = filtered_data[filtered_data['Grade'].notna()].copy()
+                     filtered_data = filtered_data[filtered_data['Grade'] == filter_grade].copy()
                  else:
-                      st.warning(f"Grade column not found in data. Cannot filter by '{filter_grade}'.")
-                      filtered_data = filtered_data.head(0)
+                       st.warning(f"Grade column not found in data. Cannot filter by '{filter_grade}'.")
+                       filtered_data = filtered_data.head(0)
 
 
              if filter_subject != strings["option_all"]:
                  if 'Subject' in filtered_data.columns:
-                      filtered_data = filtered_data[filtered_data['Subject'].notna()]
-                      filtered_data = filtered_data[filtered_data['Subject'] == filter_subject]
+                      filtered_data = filtered_data[filtered_data['Subject'].notna()].copy()
+                      filtered_data = filtered_data[filtered_data['Subject'] == filter_subject].copy()
                  else:
                       st.warning(f"Subject column not found in data. Cannot filter by '{filter_subject}'.")
                       filtered_data = filtered_data.head(0)
@@ -1103,8 +1103,8 @@ if wb: # Proceed only if workbook was loaded successfully
 
              if filter_teacher != strings["option_all"]:
                  if 'Teacher' in filtered_data.columns:
-                      filtered_data = filtered_data[filtered_data['Teacher'].notna()]
-                      filtered_data = filtered_data[filtered_data['Teacher'] == filter_teacher]
+                      filtered_data = filtered_data[filtered_data['Teacher'].notna()].copy()
+                      filtered_data = filtered_data[filtered_data['Teacher'] == filter_teacher].copy()
                  else:
                        st.warning(f"Teacher column not found in data. Cannot filter by '{filter_teacher}'.")
                        filtered_data = filtered_data.head(0)
@@ -1112,8 +1112,8 @@ if wb: # Proceed only if workbook was loaded successfully
 
              if filter_observer != strings["option_all"]:
                   if 'Observer' in filtered_data.columns:
-                       filtered_data = filtered_data[filtered_data['Observer'].notna()]
-                       filtered_data = filtered_data[filtered_data['Observer'] == filter_observer]
+                       filtered_data = filtered_data[filtered_data['Observer'].notna()].copy()
+                       filtered_data = filtered_data[filtered_data['Observer'] == filter_observer].copy()
                   else:
                        st.warning(f"Observer column not found in data. Cannot filter by '{filter_observer}'.")
                        filtered_data = filtered_data.head(0)
@@ -1128,6 +1128,12 @@ if wb: # Proceed only if workbook was loaded successfully
                   end_timestamp = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1) # Include the whole end day
 
                   filtered_data = filtered_data_valid_dates[(filtered_data_valid_dates['Observation Date'] >= start_timestamp) & (filtered_data_valid_dates['Observation Date'] <= end_timestamp)].copy() # Use copy() to avoid SettingWithCopyWarning
+             else:
+                 # If date column is missing or all NaT, date filtering cannot be applied meaningfully
+                 # An empty DataFrame is already returned by the filters above if a column was missing.
+                 # If the date column exists but is all NaN, filtered_data_valid_dates will be empty,
+                 # resulting in filtered_data being empty, which is correct.
+                 pass # No explicit 'else' needed here
 
 
              st.markdown("---")
@@ -1151,8 +1157,13 @@ if wb: # Proceed only if workbook was loaded successfully
                           judgment_counts = valid_judgments.value_counts()
                           # Define a specific order for the judgments
                           judgment_order = [strings["perf_level_very_weak"], strings["perf_level_weak"], strings["perf_level_acceptable"], strings["perf_level_good"], strings["perf_level_excellent"], strings["overall_score_na"]]
-                          judgment_counts = judgment_counts.reindex(judgment_order).dropna() # Reindex to enforce order, drop categories with no counts
-                          st.bar_chart(judgment_counts)
+                          # Reindex to enforce order, fill missing categories with 0, then drop NA if desired
+                          judgment_counts = judgment_counts.reindex(judgment_order, fill_value=0).drop(strings["overall_score_na"], errors='ignore')
+                          # Only show the chart if there are counts for actual judgments
+                          if not judgment_counts.empty and judgment_counts.sum() > 0:
+                               st.bar_chart(judgment_counts)
+                          else:
+                               st.info("No observations with valid judgments found in the filtered data to chart.")
                      else:
                           st.info("No valid overall judgments found in the filtered data to chart.")
                  else:
@@ -1375,15 +1386,20 @@ if wb: # Proceed only if workbook was loaded successfully
              guideline_content = []
              try:
                   for row in wb["Guidelines"].iter_rows(values_only=True):
-                      for cell in row:
-                          if cell is not None:
-                              guideline_content.append(str(cell).strip())
+                      # Flatten the row and filter out None values, convert to string
+                      cleaned_row = [str(cell).strip() for cell in row if cell is not None]
+                      guideline_content.extend(cleaned_row) # Add cleaned cells from the row
+
              except Exception as e:
                   st.error(f"Error reading Guidelines sheet: {e}")
-                  guideline_content = [f"Error loading guidelines: {e}"]
+                  guideline_content = [f"Error loading guidelines: {e}"] # Provide an error message
 
-             if cleaned_guidelines: # Use cleaned_guidelines defined outside the block if possible, or re-clean here
-                  st.markdown("\n".join([line for line in guideline_content if line])) # Re-join cleaned content
+             # Filter out any empty strings resulting from strip()
+             display_content = [line for line in guideline_content if line]
+
+             if display_content:
+                  # Join content with newlines for Markdown display
+                  st.markdown("\n".join(display_content))
              else:
                   st.info(strings.get("info_no_guidelines", "Guidelines sheet is empty or could not be read."))
          else:
