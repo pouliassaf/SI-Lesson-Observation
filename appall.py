@@ -144,10 +144,10 @@ en_strings = {
     "overall_score_value": "**{:.2f}**", # From snippet 1
     "overall_score_na": "**N/A**", # From snippet 1
     "arabic_toggle_label": "عرض باللغة العربية (Display in Arabic)", # From snippet 1
-    "feedback_log_sheet_name": "Feedback Log", # From snippet 1
+    "feedback_log_sheet_name": "سجل الملاحظات", # Needs verification
     "feedback_log_header": ["Sheet", "Observer", "Teacher", "Email", "School", "Subject", "Date", "Overall Judgment", "Overall Score", "Summary Notes"], # Updated log headers
-    "download_feedback_log_csv": "📥 Download Feedback Log (CSV)", # From snippet 1
-    "error_generating_log_csv": "Error generating log CSV:", # From snippet 1
+    "download_feedback_log_csv": "📥 Download Feedback Log (CSV)", # Needs verification
+    "error_generating_log_csv": "خطأ في إنشاء سجل الملاحظات CSV:", # Needs verification
     "download_overall_avg_csv": "📥 Download Overall Domain Averages (CSV)", # From snippet 1
     "download_overall_avg_excel": "📥 Download Overall Domain Averages (Excel)", # From snippet 1
     "download_filtered_avg_csv": "📥 Download Filtered Domain Averages (CSV)", # From snippet 1
@@ -889,7 +889,6 @@ if wb: # Proceed only if workbook was loaded successfully
 
 
             return data
-
 
         # --- Logic based on selected sheet/create new ---
         # This section determines the target sheet name and loads data into session state
