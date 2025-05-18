@@ -438,7 +438,7 @@ def generate_observation_pdf(data, feedback_content, strings): # Removed teacher
         strings["label_time_in"]: data.get("time_in", ""),
         strings["label_time_out"]: data.get("time_out", ""),
         # The duration label needs care with HTML/emoji
-        strings["label_lesson_duration"].split("🕒")[0].strip(): data.get("duration_display", ""), # Pass formatted duration, strip emoji/html
+        strings["label_lesson_duration"].split("🕒")[0].strip() + ":": data.get("duration_display", ""), # Pass formatted duration, strip emoji/html
         strings["label_period"]: data.get("period", ""),
         strings["label_obs_type"]: data.get("observation_type", ""),
     }
@@ -466,7 +466,7 @@ def generate_observation_pdf(data, feedback_content, strings): # Removed teacher
                   formatted_value = str(value) # Convert numbers to string
 
 
-             cleaned_basic_info_data.append([str(label) + ":", str(formatted_value)]) # Ensure keys are strings
+             cleaned_basic_info_data.append([str(label), str(formatted_value)]) # Ensure keys are strings
 
     # Add the overall score row at the end if it exists
     if overall_score_pdf_row:
@@ -783,9 +783,9 @@ if wb:
         rubric_descriptors = {}
         try:
              template_ws = wb["LO 1"]
-             # Assume rating 1-6 descriptors are in columns E, F, G, H, K, L respectively for each element row.
+             # Assume rating 1-6 descriptors are in columns C, D, E, F, G, H respectively for each element row.
              descriptor_cols = {
-                 1: 'E', 2: 'F', 3: 'G', 4: 'H', 5: 'K', 6: 'L'
+                 1: 'C', 2: 'D', 3: 'E', 4: 'F', 5: 'G', 6: 'H'
              }
 
              for domain, (start_cell, count) in rubric_domains_structure.items():
@@ -1179,16 +1179,17 @@ if wb:
                 for idx, (domain, (start_cell, count)) in enumerate(rubric_domains_structure.items()):
                      domain_title = domain
                      try:
-                         # Assuming domain title is in column B, one row above the first element of the domain
-                         title_row = int(start_cell[1:]) - 1
-                         if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
-                             domain_title = template_ws[f'B{title_row}'].value
-                             print(f"Read Domain {domain} Title: {domain_title} from B{title_row}")
-                         else:
-                              print(f"No value found for Domain {domain} title in B{title_row}")
+                         # Assuming domain title is in column A, on the same row as the first element of the domain
+                         # Based on the previous code: ws[f'A{int(start_cell[1:])}']
+                         title_row = int(start_cell[1:])
+                         if f'A{title_row}' in template_ws and template_ws[f'A{title_row}'].value is not None:
+                             domain_title = template_ws[f'A{title_row}'].value
+                             # print(f"Read Domain {domain} Title: {domain_title} from A{title_row}") # Debug print
+                         # else:
+                             # print(f"No value found for Domain {domain} title in A{title_row}") # Debug print
 
                      except Exception as e:
-                         print(f"Error reading Domain {domain} title from B{title_row}: {e}")
+                         print(f"Error reading Domain {domain} title from A{title_row}: {e}")
                          pass # Use default domain name
 
                      st.markdown(f"#### {domain}: {domain_title}")
@@ -1198,13 +1199,15 @@ if wb:
                           element_label = f"Element {i+1}"
                           try:
                                # Assuming element label is in column B, on the same row as the rating
-                               if f"B{row}" in template_ws and template_ws[f"B{row}"].value is not None:
-                                    element_label = template_ws[f"B{row}"].value
-                                    print(f"Read Element {domain}.{i+1} Label: {element_label} from B{row}")
-                               else:
-                                     print(f"No value found for Element {domain}.{i+1} label in B{row}")
+                               # Based on the previous code: ws[f"B{row + i}"]
+                               label_row = row # Element label is on the same row as the element's data
+                               if f"B{label_row}" in template_ws and template_ws[f"B{label_row}"].value is not None:
+                                    element_label = template_ws[f"B{label_row}"].value
+                                    # print(f"Read Element {domain}.{i+1} Label: {element_label} from B{label_row}") # Debug print
+                               # else:
+                                    # print(f"No value found for Element {domain}.{i+1} label in B{label_row}") # Debug print
                           except Exception as e:
-                               print(f"Error reading Element {domain}.{i+1} label from B{row}: {e}")
+                               print(f"Error reading Element {domain}.{i+1} label from B{label_row}: {e}")
                                pass # Use default label
 
                           element_key = f"{domain}_{i}"
@@ -1217,6 +1220,10 @@ if wb:
                                element_descriptors = rubric_descriptors.get(element_key, {})
                                if element_descriptors:
                                    # Iterate through ratings 1-6 to display descriptors
+                                   # Use the descriptor_cols mapping from rubric_descriptors reading
+                                   descriptor_cols_display_order = {
+                                        1: 'C', 2: 'D', 3: 'E', 4: 'F', 5: 'G', 6: 'H'
+                                   }
                                    for rating_value in range(1, 7):
                                         descriptor_text = element_descriptors.get(str(rating_value), strings["info_no_descriptors"])
                                         # Format: **Rating:** Description
@@ -1431,9 +1438,10 @@ if wb:
                       domain_title = domain_name
                       if template_ws:
                            try:
-                                title_row = int(start_cell[1:]) - 1
-                                if f'B{title_row}' in template_ws and template_ws[f'B{title_row}'].value is not None:
-                                     domain_title = template_ws[f'B{title_row}'].value
+                                # Assuming domain title is in column A, on the same row as the first element of the domain
+                                title_row = int(start_cell[1:])
+                                if f'A{title_row}' in template_ws and template_ws[f'A{title_row}'].value is not None:
+                                     domain_title = template_ws[f'A{title_row}'].value
                            except Exception: pass
 
 
@@ -1444,6 +1452,7 @@ if wb:
                           element_label = f"Element {i+1}"
                           if template_ws:
                               try:
+                                  # Assuming element label is in column B, on the same row as the rating
                                   label_row = int(start_cell[1:]) + i
                                   if f"B{label_row}" in template_ws and template_ws[f"B{label_row}"].value is not None:
                                        element_label = template_ws[f"B{label_row}"].value
@@ -2049,7 +2058,7 @@ if wb:
 
 
              if selected_teacher_for_trend:
-                  teacher_data_for_trend = filtered_data[filtered_data['Teacher'] == selected_teacher_for_trend].copy()
+                  teacher_data_for_trend = filtered_data[filtered_data['Teacher'] == selected_data_for_trend].copy()
 
                   if not teacher_data_for_trend.empty:
                        if 'Overall Score' in teacher_data_for_trend.columns and not teacher_data_for_trend['Overall Score'].isna().all():
