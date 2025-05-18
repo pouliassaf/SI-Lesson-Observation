@@ -389,16 +389,15 @@ def generate_observation_pdf(data, feedback_content, strings, rubric_domains_str
     # --- Add School Logo ---
     school_name = data.get("school_name", "Default") # Use key from data dict
     logo_path = LOGO_PATHS.get(school_name, LOGO_PATHS["Default"])
-
     if os.path.exists(logo_path):
         try:
             img = Image(logo_path, width=1.5*inch, height=0.75*inch)
             img.hAlign = 'CENTER'
             story.append(img)
             story.append(Spacer(1, 0.2*inch))
-             # Log error without st.error if not running in Streamlit context for PDF build
-             print(f"Could not add logo for {school_name}: {e}")
-             story.append(Paragraph(f"[{school_name} Logo Placeholder]", styles['Normal'])) # Add placeholder text
+        except Exception as e:
+            print(f"Could not add logo for {school_name}: {e}")
+            story.append(Paragraph(f"[{school_name} Logo Placeholder]", styles['Normal']))
     else:
          print(f"Logo file not found for {school_name} at {logo_path}. Using text title.")
          story.append(Paragraph(strings["page_title"], styles['Heading1Centered']))
